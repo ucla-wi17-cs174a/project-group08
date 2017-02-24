@@ -105,6 +105,7 @@ Declare_Any_Class("Example_Animation", {
         shapes_in_use.sphere.draw(graphics_state, model_transform, sphereMaterial);
         model_transform = mult(model_transform, translation(-50, 0, 150));
 
+		
         // create tetrahedron for temp plane
 		// modify speed based on key input
 		var speed_change = 0.01;
@@ -157,13 +158,14 @@ Declare_Any_Class("Example_Animation", {
         this.shared_scratchpad.y += y_change;
         this.shared_scratchpad.z += z_change;
 
+		// draw plane
         model_transform = mult(model_transform, translation(this.shared_scratchpad.x, this.shared_scratchpad.y, this.shared_scratchpad.z));
         model_transform = mult(model_transform, rotation(this.shared_scratchpad.heading, 0, 1, 0));
         model_transform = mult(model_transform, rotation(this.shared_scratchpad.pitch, 1, 0, 0));
         shapes_in_use.tetrahedron.draw(graphics_state, model_transform, tetraMaterial);
-
+		
+		// make camera follow the plane
         this.shared_scratchpad.graphics_state.camera_transform = mat4();
-        // make camera follow the plane
         this.shared_scratchpad.graphics_state.camera_transform = mult(this.shared_scratchpad.graphics_state.camera_transform, rotation(10, 1, 0, 0));
         this.shared_scratchpad.graphics_state.camera_transform = mult(this.shared_scratchpad.graphics_state.camera_transform, translation(0, -5, -10));
         this.shared_scratchpad.graphics_state.camera_transform = mult(this.shared_scratchpad.graphics_state.camera_transform, rotation(this.shared_scratchpad.heading, 0, -1, 0));
