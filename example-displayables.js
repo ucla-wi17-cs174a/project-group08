@@ -27,34 +27,57 @@ Declare_Any_Class("Example_Animation", {
         this.shared_scratchpad.y = 0;
         this.shared_scratchpad.z = 0;
         this.shared_scratchpad.speed = 0.1;
+		
+		this.shared_scratchpad.speed_change = 0; // 0: no change; -1: slow down; +1: speed up;
+		this.shared_scratchpad.right = false;
+		this.shared_scratchpad.left = false;
+		this.shared_scratchpad.up = false;
+		this.shared_scratchpad.down = false;
     },
     'init_keys': function(controls) {
-        var degree_change = 1;
         controls.add("up", this, function() {
-            this.shared_scratchpad.pitch += degree_change;
+            this.shared_scratchpad.up = true;
         });
+		controls.add( "up", this, function() { 
+			this.shared_scratchpad.up =  false; }, {'type':'keyup'} 
+		);
         controls.add("down", this, function() {
-            this.shared_scratchpad.pitch -= degree_change;
+            this.shared_scratchpad.down = true;
         });
+		controls.add( "down", this, function() { 
+			this.shared_scratchpad.down =  false; }, {'type':'keyup'} 
+		);
         controls.add("left", this, function() {
-            this.shared_scratchpad.heading += degree_change;
+            this.shared_scratchpad.left = true;
         });
+		controls.add( "left", this, function() { 
+			this.shared_scratchpad.left =  false; }, {'type':'keyup'} 
+		);
         controls.add("right", this, function() {
-            this.shared_scratchpad.heading -= degree_change;
+            this.shared_scratchpad.right = true;
         });
+		controls.add( "right", this, function() { 
+			this.shared_scratchpad.right =  false; }, {'type':'keyup'} 
+		);
 
         // slow down
         controls.add("1", this, function() {
-            if (this.shared_scratchpad.speed > 0) {
-                this.shared_scratchpad.speed -= 0.1;
-            }
-        });
+			this.shared_scratchpad.speed_change = -1;
+			}
+        );
+		controls.add( "1", this, function() { 
+			this.shared_scratchpad.speed_change =  0; }, {'type':'keyup'} 
+		);
+
         // speed up
         controls.add("2", this, function() {
-            if (this.shared_scratchpad.speed < 1) {
-                this.shared_scratchpad.speed += 0.1;
+			this.shared_scratchpad.speed_change = 1;
             }
-        });
+        );
+				controls.add( "2", this, function() { 
+			this.shared_scratchpad.speed_change =  0; }, {'type':'keyup'} 
+		);
+
     },
     'display': function(time) {
         var graphics_state = this.shared_scratchpad.graphics_state,
@@ -83,6 +106,44 @@ Declare_Any_Class("Example_Animation", {
         model_transform = mult(model_transform, translation(-50, 0, 150));
 
         // create tetrahedron for temp plane
+		// modify speed based on key input
+		var speed_change = 0.01;
+		if(this.shared_scratchpad.speed_change < 0) // slowing down
+		{
+			if(this.shared_scratchpad.speed > 0)
+			{
+				this.shared_scratchpad.speed -= speed_change;
+				if(this.shared_scratchpad.speed < 0)
+					this.shared_scratchpad.speed = 0;
+			}
+		}
+		else if(this.shared_scratchpad.speed_change > 0) // speeding up
+		{
+			if(this.shared_scratchpad.speed < 1)
+			{
+				this.shared_scratchpad.speed += speed_change;
+			}
+		}
+		// modify heading and pitch based on key input
+		var pitch_change = 0.1;
+		var heading_change = 0.1;
+		if(this.shared_scratchpad.up)
+		{
+			this.shared_scratchpad.pitch += pitch_change;
+		}
+		if(this.shared_scratchpad.down)
+		{
+			this.shared_scratchpad.pitch -= pitch_change;
+		}
+			if(this.shared_scratchpad.left)
+		{
+			this.shared_scratchpad.heading += heading_change;
+		}
+			if(this.shared_scratchpad.right)
+		{
+			this.shared_scratchpad.heading -= heading_change;
+		}
+		
         // move forward based on current heading
         var forward_speed = this.shared_scratchpad.speed;
 
