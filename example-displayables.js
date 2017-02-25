@@ -21,6 +21,7 @@ Declare_Any_Class("Example_Animation", {
         shapes_in_use.tetrahedron = new Tetrahedron();
         shapes_in_use.sphere = new Subdivision_Sphere(4);
 		shapes_in_use.heightmap = new Heightmap;
+		shapes_in_use.terrain = new Terrain;
         this.shared_scratchpad.heading = 0;
         this.shared_scratchpad.pitch = 0;
 
@@ -100,8 +101,9 @@ Declare_Any_Class("Example_Animation", {
 
         // create sphere for frame of reference
         model_transform = mult(model_transform, translation(0, 0, -100));
-        shapes_in_use.sphere.draw(graphics_state, model_transform, sphereMaterial);
-		shapes_in_use.heightmap.draw(graphics_state, model_transform, landMaterial);
+        //shapes_in_use.sphere.draw(graphics_state, model_transform, sphereMaterial);
+		//shapes_in_use.heightmap.draw(graphics_state, model_transform, landMaterial);
+		shapes_in_use.terrain.draw(graphics_state, model_transform, sphereMaterial);
         model_transform = mult(model_transform, translation(0, 0, 100));
 
         model_transform = mult(model_transform, translation(50, 0, -150));
