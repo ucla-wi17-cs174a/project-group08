@@ -20,6 +20,7 @@ Declare_Any_Class("Example_Animation", {
 
         shapes_in_use.tetrahedron = new Tetrahedron();
         shapes_in_use.sphere = new Subdivision_Sphere(4);
+		shapes_in_use.heightmap = new Heightmap;
         this.shared_scratchpad.heading = 0;
         this.shared_scratchpad.pitch = 0;
 
@@ -94,11 +95,13 @@ Declare_Any_Class("Example_Animation", {
         // *** Materials: *** Declare new ones as temps when needed; they're just cheap wrappers for some numbers.
         // 1st parameter:  Color (4 floats in RGBA format), 2nd: Ambient light, 3rd: Diffuse reflectivity, 4th: Specular reflectivity, 5th: Smoothness exponent, 6th: Texture image.
         var sphereMaterial = new Material(Color(1, 0, 1, 1), .4, .4, .8, 40); // Omit the final (string) parameter if you want no texture
-        var tetraMaterial = new Material(Color(0, 1, 1, 1), .4, .4, .8, 40); // Omit the final (string) parameter if you want no texture
+        var tetraMaterial = new Material(Color(0, 1, 1, 1), .4, .4, .4, 40); // Omit the final (string) parameter if you want no texture
+		var landMaterial = new Material(Color(0.3, 0.2, 0, 1), .6, .8, .1, 4);	//Just a placeholder for now
 
         // create sphere for frame of reference
         model_transform = mult(model_transform, translation(0, 0, -100));
         shapes_in_use.sphere.draw(graphics_state, model_transform, sphereMaterial);
+		shapes_in_use.heightmap.draw(graphics_state, model_transform, landMaterial);
         model_transform = mult(model_transform, translation(0, 0, 100));
 
         model_transform = mult(model_transform, translation(50, 0, -150));
