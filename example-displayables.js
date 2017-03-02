@@ -1,3 +1,6 @@
+var RES_RATIO = 16;	
+
+
 Declare_Any_Class("Example_Camera", {
     'construct': function(context) { // 1st parameter below is our starting camera matrix.  2nd is the projection:  The matrix that determines how depth is treated.  It projects 3D points onto a plane.
         context.shared_scratchpad.graphics_state = new Graphics_State(translation(0, -1, -50), perspective(45, canvas.width / canvas.height, .1, 1000), 0);
@@ -21,7 +24,13 @@ Declare_Any_Class("Example_Animation", {
         shapes_in_use.tetrahedron = new Tetrahedron();
         shapes_in_use.sphere = new Subdivision_Sphere(4);
 		shapes_in_use.heightmap = new Heightmap;
-		shapes_in_use.terrain = new Terrain;
+		shapes_in_use.terrain1 = new Terrain(vec3(0, -32, -32), 32);
+		// shapes_in_use.terrain2 = new Terrain(vec3(0, -32, -64), 32);
+		// shapes_in_use.terrain3 = new Terrain(vec3(0, -32, -96), 32);
+		
+		//tree = new Node(1024, vec3(-512,-512,-512), null);
+		//node = Node_add(vec3(0, -32, -64), 32, tree);
+		
         this.shared_scratchpad.heading = 0;
         this.shared_scratchpad.pitch = 0;
 
@@ -97,19 +106,23 @@ Declare_Any_Class("Example_Animation", {
         // 1st parameter:  Color (4 floats in RGBA format), 2nd: Ambient light, 3rd: Diffuse reflectivity, 4th: Specular reflectivity, 5th: Smoothness exponent, 6th: Texture image.
         var sphereMaterial = new Material(Color(1, 0, 1, 1), .4, .4, .8, 40); // Omit the final (string) parameter if you want no texture
         var tetraMaterial = new Material(Color(0, 1, 1, 1), .4, .4, .4, 40); // Omit the final (string) parameter if you want no texture
-		var landMaterial = new Material(Color(0.3, 0.2, 0, 1), .6, .8, .1, 4);	//Just a placeholder for now
+		var landMaterial = new Material(Color(0.4, 0.5, 0, 1), .6, .8, .4, 4);	//Just a placeholder for now
 
         // create sphere for frame of reference
         model_transform = mult(model_transform, translation(0, 0, -100));
         //shapes_in_use.sphere.draw(graphics_state, model_transform, sphereMaterial);
 		//shapes_in_use.heightmap.draw(graphics_state, model_transform, landMaterial);
-		shapes_in_use.terrain.draw(graphics_state, model_transform, sphereMaterial);
+		shapes_in_use.terrain1.draw(graphics_state, model_transform, landMaterial);
+		// shapes_in_use.terrain2.draw(graphics_state, model_transform, landMaterial);
+		// shapes_in_use.terrain3.draw(graphics_state, model_transform, landMaterial);
         model_transform = mult(model_transform, translation(0, 0, 100));
 
         model_transform = mult(model_transform, translation(50, 0, -150));
         shapes_in_use.sphere.draw(graphics_state, model_transform, sphereMaterial);
         model_transform = mult(model_transform, translation(-50, 0, 150));
-
+		
+		
+		
 		
         // create tetrahedron for temp plane
 		// modify speed based on key input

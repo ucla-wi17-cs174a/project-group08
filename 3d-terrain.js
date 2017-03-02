@@ -1,52 +1,17 @@
 
 
 Declare_Any_Class( "Terrain",
-{ 'populate': function() 
+{ 'populate': function(coords, c_size) 
     {
-		//Paul Bourke's marching cubes algorithm, rewritten in javascript and adapted here to make us a surface
+		res = c_size/RES_RATIO
+		//Paul Bourke's implementation of the marching cubes algorithm, rewritten in javascript and adapted here to make us a surface
 		/*
 		   Linearly interpolate the position where an isosurface cuts
 		   an edge between two vertices, each with their own scalar value
 		*/
-		function VertexInterp(isolevel,p1,p2,valp1,valp2)
-		{
-		   var mu;
-		   var p = vec3();
-
-		   if (Math.abs(isolevel-valp1) < 0.00001)
-			  return(p1);
-		   if (Math.abs(isolevel-valp2) < 0.00001)
-			  return(p2);
-		   if (Math.abs(valp1-valp2) < 0.00001)
-			  return(p1);
-		   mu = (isolevel - valp1) / (valp2 - valp1);
-		   p[0] = p1[0] + mu * (p2[0] - p1[0]);
-		   p[1] = p1[1] + mu * (p2[1] - p1[1]);
-		   p[2] = p1[2] + mu * (p2[2] - p1[2]);
-
-		   return(p);
-		}
 		
-		/*
-		   Given a grid cell and an isolevel, calculate the triangular
-		   facets required to represent the isosurface through the cell.
-		   Return the number of triangular facets, the array "triangles"
-		   will be loaded up with the vertices at most 5 triangular facets.
-			0 will be returned if the grid cell is either totally above
-		   of totally below the isolevel.
-		*/
-				//Returns number of triangles made
-			function march(grid_p, grid_val, shape_in, ntriang)
-			{
-				var isolevel = 0;	//We set this
-				//var triangles;	//Shouldn't be needed because we have the shape setup?
-				
-				//var i;
-				var ntriang;
-				var cubeindex;
-				var vertlist = [];
-
-				var edgeTable = [
+		//First, the lookup tables (move these elsewhere eventually)
+		var edge_table = [	//Remember, you changed this from edgeTable to edge_table
 				0x0  , 0x109, 0x203, 0x30a, 0x406, 0x50f, 0x605, 0x70c,
 				0x80c, 0x905, 0xa0f, 0xb06, 0xc0a, 0xd03, 0xe09, 0xf00,
 				0x190, 0x99 , 0x393, 0x29a, 0x596, 0x49f, 0x795, 0x69c,
@@ -79,7 +44,7 @@ Declare_Any_Class( "Terrain",
 				0x69c, 0x795, 0x49f, 0x596, 0x29a, 0x393, 0x99 , 0x190,
 				0xf00, 0xe09, 0xd03, 0xc0a, 0xb06, 0xa0f, 0x905, 0x80c,
 				0x70c, 0x605, 0x50f, 0x406, 0x30a, 0x203, 0x109, 0x0   ];
-				var triTable =
+		var tri_table =
 				[[-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1],
 				[0, 8, 3, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1],
 				[0, 1, 9, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1],
@@ -336,79 +301,215 @@ Declare_Any_Class( "Terrain",
 				[0, 9, 1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1],
 				[0, 3, 8, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1],
 				[-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1]];
+		
+		//First we make the density function:
+		function f_density(ws)	//Positive corresponds to ground
+		{
+			var dens = -ws[1] - 5;
+			
+			dens += 32*perlin(ws[0]*0.046, ws[1]*0.026, ws[2]*0.026);
+			dens += 16*perlin(ws[0]*0.066, ws[1]*0.046, ws[2]*0.056);
+			dens += 8*perlin(ws[0]*0.091, ws[1]*0.111, ws[2]*0.091);
+			dens += 4*perlin(ws[0]*0.191, ws[1]*0.291, ws[2]*0.191);
+			dens += 2*perlin(ws[0]*0.391, ws[1]*0.391, ws[2]*0.391);
+			//dens += 1*perlin(ws[0]*0.791, ws[1]*0.791, ws[2]*0.791);
+			//dens += 0.5*perlin(ws[0]*1.201, ws[1]*1.201, ws[2]*1.201);
+			
+			//Hard floor:
+			// if(ws[1] < -5)
+				// dens = 0.5;
+			
+			return dens;
+		}
+		
+		//Accidentally water looking:
+		/*
+		function f_density(ws)	//Positive corresponds to ground
+		{
+			var dens = -ws[1] - 5;
+			dens += 28*perlin(ws[0]*0.056, ws[1]*0.026, ws[2]*0.026);
+			dens += 8*perlin(ws[0]*0.091, ws[1]*0.091, ws[2]*0.091);
+			dens += 4*perlin(ws[0]*0.191, ws[1]*0.191, ws[2]*0.191);
+			dens += 2*perlin(ws[0]*0.391, ws[1]*0.391, ws[2]*0.391);			
+			//Hard floor:
+			if(ws[1] < -5)
+				dens = 0.1;			
+			return dens;
+		}
+		
+		*/
+		function sign_density(coords)
+		{
+			if(f_density(coords) > 0)	//Returns 1 if it's positive
+				return 1;
+			else
+				return 0;
+		}
+		//This either needs a new home, or I need to figure out how these classes work
+		function check_block(coords, size)	//Check if a block needs to be drawn in the first place - much cheaper than drawing
+		{
+			res = size/RES_RATIO
+			//Check every surface density, and stop if any of them aren't similar to every other
+			check = sign_density(coords);
+			//this initial check should catch most of the boundary blocks
+			if(check != sign_density(coords[0]+size, coords[1]+size, coords[2]+size))
+				return 3;	//Returns 1 or 2 to be consistent with future values
+			else
+			{
+				//Now do the whole loop
+				for(var i = coords[0]; i < coords[0]+size; i += res)
+					for(var j = coords[1]; j < coords[1]+size; j += res)
+					{
+						if(check != sign_density(i, j, coords[2]) || check != f_density(i, j, coords[2]+size))
+							return 3;
+					}
+				for(var i = coords[0]; i < coords[0]+size; i += res)
+					for(var k = coords[2]+res; k < coords[2]+size-res; j += res)
+					{
+						if(check != sign_density(i, coords[1], k) || check != f_density(i, coords[1]+size, k))
+							return 3;
+					}
+				for(var j = coords[1]+res; j < coords[1]+size-res; i += res)
+					for(var k = coords[2]+res; k < coords[2]+size-res; j += res)
+					{
+						if(check != sign_density(coords[0], j, k) || check != f_density(coords[0]+size, j, k))
+							return 3;
+					}
+			}
+			if(check = 1)
+				return 2;	
+			else
+				return 1;
+		}
+		
+		function VertexInterp(isolevel,p1,p2,valp1,valp2)
+		{
+		   var mu;
+		   var p = vec3();
 
-				/*
-				  Determine the index into the edge table which
-				  tells us which vertices are inside of the surface
-				*/
-				cubeindex = 0;
-				if (grid_val[0] < isolevel) cubeindex |= 1;
-				if (grid_val[1] < isolevel) cubeindex |= 2;
-				if (grid_val[2] < isolevel) cubeindex |= 4;
-				if (grid_val[3] < isolevel) cubeindex |= 8;
-				if (grid_val[4] < isolevel) cubeindex |= 16;
-				if (grid_val[5] < isolevel) cubeindex |= 32;
-				if (grid_val[6] < isolevel) cubeindex |= 64;
-				if (grid_val[7] < isolevel) cubeindex |= 128;
+		   if (Math.abs(isolevel-valp1) < 0.00001)
+			  return(p1);
+		   if (Math.abs(isolevel-valp2) < 0.00001)
+			  return(p2);
+		   if (Math.abs(valp1-valp2) < 0.00001)
+			  return(p1);
+		   mu = (isolevel - valp1) / (valp2 - valp1);
+		   p[0] = p1[0] + mu * (p2[0] - p1[0]);
+		   p[1] = p1[1] + mu * (p2[1] - p1[1]);
+		   p[2] = p1[2] + mu * (p2[2] - p1[2]);
 
-				/* Cube is entirely in/out of the surface */
-				if (edgeTable[cubeindex] == 0)
-				  return(ntriang);
+		   return(p);
+		}
+		
+		function find_grad(pos)
+		{
+			var grad_o = vec3(0,0,0);
+			grad_o[0] = f_density(add(pos, vec3(0.001, 0, 0))) - f_density(add(pos, vec3(-0.001, 0, 0)));
+			grad_o[1] = f_density(add(pos, vec3(0, 0.001, 0))) - f_density(add(pos, vec3(0, -0.001, 0)));
+			grad_o[2] = f_density(add(pos, vec3(0, 0, 0.001))) - f_density(add(pos, vec3(0, 0, -0.001)));
+			return mult(normalize(grad_o), vec3(-1,-1,-1));
+		}
+		
+		/*
+		   Given a grid cell and an isolevel, calculate the triangular
+		   facets required to represent the isosurface through the cell.
+		   Return the number of triangular facets, the array "triangles"
+		   will be loaded up with the vertices at most 5 triangular facets.
+			0 will be returned if the grid cell is either totally above
+		   of totally below the isolevel.
+		*/
+				//Returns number of triangles made
+		function march(grid_p, grid_val, shape_in, ntriang, edgeTable, triTable)
+		{
+			var isolevel = 0;	//We set this
+			//var triangles;	//Shouldn't be needed because we have the shape setup?
+			
+			//var i;
+			var ntriang;
+			var cubeindex;
+			var vertlist = [];
+			
 
-				/* Find the vertices where the surface intersects the cube */
-				if (edgeTable[cubeindex] & 1)
-				  vertlist[0] =
-					 VertexInterp(isolevel,grid_p[0],grid_p[1],grid_val[0],grid_val[1]);
-				if (edgeTable[cubeindex] & 2)
-				  vertlist[1] =
-					 VertexInterp(isolevel,grid_p[1],grid_p[2],grid_val[1],grid_val[2]);
-				if (edgeTable[cubeindex] & 4)
-				  vertlist[2] =
-					 VertexInterp(isolevel,grid_p[2],grid_p[3],grid_val[2],grid_val[3]);
-				if (edgeTable[cubeindex] & 8)
-				  vertlist[3] =
-					 VertexInterp(isolevel,grid_p[3],grid_p[0],grid_val[3],grid_val[0]);
-				if (edgeTable[cubeindex] & 16)
-				  vertlist[4] =
-					 VertexInterp(isolevel,grid_p[4],grid_p[5],grid_val[4],grid_val[5]);
-				if (edgeTable[cubeindex] & 32)
-				  vertlist[5] =
-					 VertexInterp(isolevel,grid_p[5],grid_p[6],grid_val[5],grid_val[6]);
-				if (edgeTable[cubeindex] & 64)
-				  vertlist[6] =
-					 VertexInterp(isolevel,grid_p[6],grid_p[7],grid_val[6],grid_val[7]);
-				if (edgeTable[cubeindex] & 128)
-				  vertlist[7] =
-					 VertexInterp(isolevel,grid_p[7],grid_p[4],grid_val[7],grid_val[4]);
-				if (edgeTable[cubeindex] & 256)
-				  vertlist[8] =
-					 VertexInterp(isolevel,grid_p[0],grid_p[4],grid_val[0],grid_val[4]);
-				if (edgeTable[cubeindex] & 512)
-				  vertlist[9] =
-					 VertexInterp(isolevel,grid_p[1],grid_p[5],grid_val[1],grid_val[5]);
-				if (edgeTable[cubeindex] & 1024)
-				  vertlist[10] =
-					 VertexInterp(isolevel,grid_p[2],grid_p[6],grid_val[2],grid_val[6]);
-				if (edgeTable[cubeindex] & 2048)
-				  vertlist[11] =
-					 VertexInterp(isolevel,grid_p[3],grid_p[7],grid_val[3],grid_val[7]);
+			/*
+			  Determine the index into the edge table which
+			  tells us which vertices are inside of the surface
+			*/
+			cubeindex = 0;
+			if (grid_val[0] < isolevel) cubeindex |= 1;
+			if (grid_val[1] < isolevel) cubeindex |= 2;
+			if (grid_val[2] < isolevel) cubeindex |= 4;
+			if (grid_val[3] < isolevel) cubeindex |= 8;
+			if (grid_val[4] < isolevel) cubeindex |= 16;
+			if (grid_val[5] < isolevel) cubeindex |= 32;
+			if (grid_val[6] < isolevel) cubeindex |= 64;
+			if (grid_val[7] < isolevel) cubeindex |= 128;
 
-				/* Create the triangle */
-				for (var i=0; triTable[cubeindex][i]!=-1; i+=3) {
-				  //triangles[ntriang].p[0] = vertlist[triTable[cubeindex][i  ]];
-				  //triangles[ntriang].p[1] = vertlist[triTable[cubeindex][i+1]];
-				  //triangles[ntriang].p[2] = vertlist[triTable[cubeindex][i+2]];
+			/* Cube is entirely in/out of the surface */
+			if (edgeTable[cubeindex] == 0)
+			  return(ntriang);
+
+			/* Find the vertices where the surface intersects the cube */
+			if (edgeTable[cubeindex] & 1)
+			  vertlist[0] =
+				 VertexInterp(isolevel,grid_p[0],grid_p[1],grid_val[0],grid_val[1]);
+			if (edgeTable[cubeindex] & 2)
+			  vertlist[1] =
+				 VertexInterp(isolevel,grid_p[1],grid_p[2],grid_val[1],grid_val[2]);
+			if (edgeTable[cubeindex] & 4)
+			  vertlist[2] =
+				 VertexInterp(isolevel,grid_p[2],grid_p[3],grid_val[2],grid_val[3]);
+			if (edgeTable[cubeindex] & 8)
+			  vertlist[3] =
+				 VertexInterp(isolevel,grid_p[3],grid_p[0],grid_val[3],grid_val[0]);
+			if (edgeTable[cubeindex] & 16)
+			  vertlist[4] =
+				 VertexInterp(isolevel,grid_p[4],grid_p[5],grid_val[4],grid_val[5]);
+			if (edgeTable[cubeindex] & 32)
+			  vertlist[5] =
+				 VertexInterp(isolevel,grid_p[5],grid_p[6],grid_val[5],grid_val[6]);
+			if (edgeTable[cubeindex] & 64)
+			  vertlist[6] =
+				 VertexInterp(isolevel,grid_p[6],grid_p[7],grid_val[6],grid_val[7]);
+			if (edgeTable[cubeindex] & 128)
+			  vertlist[7] =
+				 VertexInterp(isolevel,grid_p[7],grid_p[4],grid_val[7],grid_val[4]);
+			if (edgeTable[cubeindex] & 256)
+			  vertlist[8] =
+				 VertexInterp(isolevel,grid_p[0],grid_p[4],grid_val[0],grid_val[4]);
+			if (edgeTable[cubeindex] & 512)
+			  vertlist[9] =
+				 VertexInterp(isolevel,grid_p[1],grid_p[5],grid_val[1],grid_val[5]);
+			if (edgeTable[cubeindex] & 1024)
+			  vertlist[10] =
+				 VertexInterp(isolevel,grid_p[2],grid_p[6],grid_val[2],grid_val[6]);
+			if (edgeTable[cubeindex] & 2048)
+			  vertlist[11] =
+				 VertexInterp(isolevel,grid_p[3],grid_p[7],grid_val[3],grid_val[7]);
+
+			/* Create the triangle */
+			var pos0;
+			var pos1;
+			var pos2;
+			for (var i=0; triTable[cubeindex][i]!=-1; i+=3) {
+			  //triangles[ntriang].p[0] = vertlist[triTable[cubeindex][i  ]];
+			  //triangles[ntriang].p[1] = vertlist[triTable[cubeindex][i+1]];
+			  //triangles[ntriang].p[2] = vertlist[triTable[cubeindex][i+2]];
+				pos0 = vertlist[triTable[cubeindex][i  ]];
+				pos1 = vertlist[triTable[cubeindex][i+1]];
+				pos2 = vertlist[triTable[cubeindex][i+2]];
+			  
+				shape_in.positions.push(pos0, pos1, pos2);
+				shape_in.indices.push(ntriang*3, ntriang*3+1, ntriang*3+2);
 				  
-				  shape_in.positions.push(vertlist[triTable[cubeindex][i  ]], vertlist[triTable[cubeindex][i+1]], vertlist[triTable[cubeindex][i+2]]);
-				  shape_in.indices.push(ntriang*3, ntriang*3+1, ntriang*3+2);
-				  
-				  shape_in.normals.push(vec3(0,1,0), vec3(0,1,0), vec3(0,1,0));	//TODO: Generate normals with the gradient of the density function  
-				  
-				  ntriang++;
-				}
+				//shape_in.normals.push(vec3(0,1,0), vec3(0,1,0), vec3(0,1,0));	//TODO: Generate normals with the gradient of the density function
+				//Generate 3 normals, one for each vertex sent in
+				shape_in.normals.push(find_grad(pos0), find_grad(pos1), find_grad(pos2));
+			  
+				ntriang++;
+			}
 
-				return(ntriang);
-			}	
+			return(ntriang);
+		}	
 
 		//Same Perlin noise as the heightmap
 		var perm = [151,160,137,91,90,15,              
@@ -459,7 +560,11 @@ Declare_Any_Class( "Terrain",
 		}
 		
 		function perlin(x, y, z)
-		{		
+		{	
+			x += 1048576;	//Makes it positive
+			y += 1048576;
+			z += 1048576;
+		
 			var xi = Math.floor(x) % 256;
 			var yi = Math.floor(y) % 256;
 			var zi = Math.floor(z) % 256;	
@@ -501,22 +606,19 @@ Declare_Any_Class( "Terrain",
 			
 			return (lerp (y1, y2, w)+1)/2 - 0.5; 	//Output from -0.5 to 0.5; change this to change that range
 		}		
-		
-			//This commented function works by the way, just testing things
-			//march([vec3(0,0,0), vec3(10,0,0), vec3(10,0,10), vec3(0,0,10), vec3(0,10,0), vec3(10,10,0), vec3(10,10,10), vec3(0,10,10),], [-0.2, 0.2, 0.1, 0.2, -0.2, -0.4, 0.1, 0.1], this)
+					
+		//Now that we defined the functions, draw the geometry:
 			
-			//Now that we defined the functions, draw the geometry:
-			//First we make the density function:
-		function density(coords)	//Positive corresponds to ground
-		{
-			var dens = coords[1]+5.5 + 13*Math.sin(0.2*coords[0]) - 10*Math.sin(0.2*coords[1]) - 0.2*Math.abs(coords[2]);
-			return dens;
-		}
+		//Right now, about 7 seconds per million cubes being checked, plus 4 seconds per noise function - this should really be sped up
+		//Sped up, now 1 second per million cubes, plus 2 seconds per noise function
 		
-		//Now we choose a volume to apply the marching cubes:
-		var volume = [50, 50, 50];	//Right now, about 7 seconds per million cubes being checked
-		//And the size of each cube
-		var res = 1;
+		
+		//Choose a volume to apply the marching cubes:
+		//var volume = [50, 25, 200];	
+		//And the size of each cube (resolution)
+		//var res = 1;
+		
+		//Changed function to work on a box of size c_size at lowest coordinate coords, divisible by c_size
 		
 		//For each cube, pass in the coordinates and density values
 		var coord0
@@ -529,36 +631,119 @@ Declare_Any_Class( "Terrain",
 		var coord7;
 		var ntriang = 0;
 		var new_ntriang;
-		
-		for(var i=0; i < volume[0]; i++)
-			for(var j=0; j < volume[1]; j++)
-				for(var k=0; k < volume[2]; k++)
+		for(var i=0; i < c_size/res; i++)	//Remember to change these if the c_size isn't all the same
+			for(var j=0; j < c_size/res; j++)
+				for(var k=0; k < c_size/res; k++)
 				{
-					coord0 = vec3(i*res-((volume[0]-1)*res/2),j*res-((volume[1]-1)*res/2),k*res-((volume[2]-1)*res/2));
-					coord1 = vec3(i*res-((volume[0]-1)*res/2)+res,j*res-((volume[1]-1)*res/2),k*res-((volume[2]-1)*res/2));
-					coord2 = vec3(i*res-((volume[0]-1)*res/2)+res,j*res-((volume[1]-1)*res/2),k*res-((volume[2]-1)*res/2)+res);
-					coord3 = vec3(i*res-((volume[0]-1)*res/2),j*res-((volume[1]-1)*res/2),k*res-((volume[2]-1)*res/2)+res);
-					coord4 = vec3(i*res-((volume[0]-1)*res/2),j*res-((volume[1]-1)*res/2)+res,k*res-((volume[2]-1)*res/2));
-					coord5 = vec3(i*res-((volume[0]-1)*res/2)+res,j*res-((volume[1]-1)*res/2)+res,k*res-((volume[2]-1)*res/2));
-					coord6 = vec3(i*res-((volume[0]-1)*res/2)+res,j*res-((volume[1]-1)*res/2)+res,k*res-((volume[2]-1)*res/2)+res);
-					coord7 = vec3(i*res-((volume[0]-1)*res/2),j*res-((volume[1]-1)*res/2)+res,k*res-((volume[2]-1)*res/2)+res);
+					coord0 = vec3(i*res+coords[0],j*res+coords[1],k*res+coords[2]);
+					coord1 = vec3(i*res+res+coords[0],j*res+coords[1],k*res+coords[2]);
+					coord2 = vec3(i*res+res+coords[0],j*res+coords[1],k*res+res+coords[2]);
+					coord3 = vec3(i*res+coords[0],j*res+coords[1],k*res+res+coords[2]);
+					coord4 = vec3(i*res+coords[0],j*res+res+coords[1],k*res+coords[2]);
+					coord5 = vec3(i*res+res+coords[0],j*res+res+coords[1],k*res+coords[2]);
+					coord6 = vec3(i*res+res+coords[0],j*res+res+coords[1],k*res+res+coords[2]);
+					coord7 = vec3(i*res+coords[0],j*res+res+coords[1],k*res+res+coords[2]);
 					new_ntriang = march([coord0, coord1, coord2, coord3, coord4, coord5, coord6, coord7],
-						[density(coord0), density(coord1), density(coord2), density(coord3), 
-						density(coord4), density(coord5), density(coord6), density(coord7)], this, ntriang);
-					//if new_ntriang is the same as the old one, we didnt generate any geometry and we shouldn't try again
+						[f_density(coord0), f_density(coord1), f_density(coord2), f_density(coord3), 
+						f_density(coord4), f_density(coord5), f_density(coord6), f_density(coord7)], this, ntriang, edge_table, tri_table);
+					//if new_ntriang is the same as the old one, we didnt generate any geometry and we shouldn't try again - use this info later
 					ntriang = new_ntriang;
+					//Old stuff, in case we need it:
+					// coord0 = vec3(i*res-((volume[0]-1)*res/2)+coords[0],j*res-((volume[1]-1)*res/2)+coords[1],k*res-((volume[2]-1)*res/2)+coords[2]);
+					// coord1 = vec3(i*res-((volume[0]-1)*res/2)+res+coords[0],j*res-((volume[1]-1)*res/2)+coords[1],k*res-((volume[2]-1)*res/2)+coords[2]);
+					// coord2 = vec3(i*res-((volume[0]-1)*res/2)+res+coords[0],j*res-((volume[1]-1)*res/2)+coords[1],k*res-((volume[2]-1)*res/2)+res+coords[2]);
+					// coord3 = vec3(i*res-((volume[0]-1)*res/2)+coords[0],j*res-((volume[1]-1)*res/2)+coords[1],k*res-((volume[2]-1)*res/2)+res+coords[2]);
+					// coord4 = vec3(i*res-((volume[0]-1)*res/2)+coords[0],j*res-((volume[1]-1)*res/2)+res+coords[1],k*res-((volume[2]-1)*res/2)+coords[2]);
+					// coord5 = vec3(i*res-((volume[0]-1)*res/2)+res+coords[0],j*res-((volume[1]-1)*res/2)+res+coords[1],k*res-((volume[2]-1)*res/2)+coords[2]);
+					// coord6 = vec3(i*res-((volume[0]-1)*res/2)+res+coords[0],j*res-((volume[1]-1)*res/2)+res+coords[1],k*res-((volume[2]-1)*res/2)+res+coords[2]);
+					// coord7 = vec3(i*res-((volume[0]-1)*res/2)+coords[0],j*res-((volume[1]-1)*res/2)+res+coords[1],k*res-((volume[2]-1)*res/2)+res+coords[2]);
 				}
-		
-		
-			
-	
+								
 	}
 }, Shape )
 
+//Stuff for a tree is below, so we can hold the block data
+//parent holds the node's parent, children holds the list of child nodes
+//Conveniently, it naturally deals with larger sizes too
+function Node(coords, size, base) {	//To make a new tree, put in (size, vec3(-size/2,-size/2,-size/2), null)
+	this.coords = coords;
+    this.size = size;	//Dimensions of the block	
+	this.checked = 0;	//0-3, corresponding to unchecked, all air, all ground, and to draw
+    this.base = base;	//Because parent is reserved for something?
+    this.children = [];
+}
+
+function Node_find(loc, size, node, base)	//This size is the goal size - for the current size, use node.size
+{
+	if(size > 0.01)
+		console.log(loc, size);
+	//Should probably be recursive
+	//When first calling the function, give it the root
+	if(!node)	
+		node = Node_add(vec3(Math.floor(loc[0]/base.size/2)*base.size/2, Math.floor(loc[1]/base.size/2)*base.size/2, Math.floor(loc[2]/base.size/2)*base.size/2), base.size/2, base);
+	if(node.size == size)
+		return node;
+	var found;	
+	if(loc[0] < node.coords[0]+node.size/2)
+		if(loc[1] < node.coords[1]+node.size/2)
+			if(loc[2] < node.coords[2]+node.size/2)			
+				found = Node_find(loc, size, node.children[0], node);
+			else
+				found = Node_find(loc, size, node.children[4], node);
+		else
+			if(loc[2] < node.coords[2]+node.size/2)			
+				found = Node_find(loc, size, node.children[2], node);
+			else
+				found = Node_find(loc, size, node.children[6], node);
+	else
+		if(loc[1] < node.coords[1]+node.size/2)
+			if(loc[2] < node.coords[2]+node.size/2)			
+				found = Node_find(loc, size, node.children[1], node);
+			else
+				found = Node_find(loc, size, node.children[5], node);
+		else
+			if(loc[2] < node.coords[2]+node.size/2)			
+				found = Node_find(loc, size, node.children[3], node);
+			else
+				found = Node_find(loc, size, node.children[7], node);
+	return found;	//Returns the right node
+}
+
+function Node_add(loc, size, tree)
+{
+	if(size > 0.01)
+		console.log("add", loc, size);
+	var base = Node_find(loc, size*2, tree, null);
+	var node = new Node(loc, size, base);
+	if(loc[0] < base.coords[0]+size)
+		if(loc[1] < node.coords[1]+size)
+			if(loc[2] < node.coords[2]+size)	
+				base.children[0] = node;
+			else
+				base.children[4] = node;
+		else
+			if(loc[2] < node.coords[2]+size)	
+				base.children[2] = node;
+			else
+				base.children[6] = node;
+	else
+		if(loc[1] < node.coords[1]+size)
+			if(loc[2] < node.coords[2]+size)	
+				base.children[1] = node;
+			else
+				base.children[5] = node;
+		else
+			if(loc[2] < node.coords[2]+size)	
+				base.children[3] = node;
+			else
+				base.children[7] = node;
+	return node;
+}
 
 
 
 
+//The old heightmap stuff
   Declare_Any_Class( "Heightmap",
   { 'populate': function() 
       {
