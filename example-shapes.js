@@ -23,8 +23,92 @@ Declare_Any_Class( "Tetrahedron",
         
       }
   }, Shape )
+  
+Declare_Any_Class("Imported_Object",
+{
+	'populate': function()
+	{
+		var allText;
+		var rawFile = new XMLHttpRequest();
+		var tempthis = this;
+		// .obj files start indicies at 1, so these are placeholders
+		tempthis.positions.push(vec3(0,0,0));
+		tempthis.texture_coords.push(vec2(0,0));
+		tempthis.normals.push(vec3(0,0,0));
 
-
+		rawFile.open("GET", "./capsule/cow-nonormals.obj", false);
+		rawFile.onreadystatechange = (function ()
+		{
+			if(rawFile.readyState === 4)
+			{
+				if(rawFile.status === 200 || rawFile.status == 0)
+				{
+					allText = rawFile.responseText.split("\n");
+					console.log(allText[0]);
+					for(var i = 0; i < allText.length; i++)
+					{
+						// process the file line by line
+						var divided = allText[i].split(" ");
+						if (divided[0] == "mtllib")
+						{
+							// how to handle mtllib
+						}
+						else if (divided[0] == "usemtl")
+						{
+							// how to handle usemtl
+						}
+						else if(divided[0] == "v")
+						{
+							tempthis.positions.push(vec3(parseFloat(divided[1]),parseFloat(divided[2]),parseFloat(divided[3])));
+						}
+						else if(divided[0] == "vt")
+						{
+							tempthis.texture_coords.push(vec2(parseFloat(divided[1]),parseFloat(divided[2])));
+						}
+						else if(divided[0] == "vn")
+						{
+							tempthis.normals.push(vec3(parseFloat(divided[1]),parseFloat(divided[2]),parseFloat(divided[3])));
+						}
+						else if(divided[0] == "vp")
+						{
+							// none
+						}
+						else if(divided[0] == "f")
+						{
+							for(var j = 1; j < divided.length; j++)
+							{
+								tempthis.indices.push(parseFloat(divided[j]));
+							//	var temp = divided[j].split("/");
+							//	tempthis.indices.push(parseFloat(temp[0]));
+							}
+						}
+					}
+				}
+			}
+		});
+		rawFile.send(null);
+	}
+}, Shape)
+/*
+function readTextFile()
+{
+    var rawFile = new XMLHttpRequest();
+    rawFile.open("GET", "./test.txt");
+    rawFile.onreadystatechange = function ()
+    {
+        if(rawFile.readyState === 4)
+        {
+            if(rawFile.status === 200 || rawFile.status == 0)
+            {
+                var allText = rawFile.responseText.split("\n");
+                for(var i = 0; i < allText.length; i++)
+					console.log("hello");
+            }
+        }
+    }
+    rawFile.send(null);
+}
+*/
 // *********** SQUARE ***********
 Declare_Any_Class( "Square",    // A square, demonstrating shared vertices.  On any planar surface, the interior edges don't make any important seams.
   { 'populate': function()      // In these cases there's no reason not to re-use values of the common vertices between triangles.  This makes all the

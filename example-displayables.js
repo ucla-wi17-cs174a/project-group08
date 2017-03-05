@@ -58,6 +58,9 @@ Declare_Any_Class("Example_Animation", {
 		shapes_in_use.collection_object3 = new Collection_Object(4, 50, 0, -100);
 		shapes_in_use.collection_object4 = new Collection_Object(4, -50, 0, -100);
 		
+		shapes_in_use.imported = Imported_Object.prototype.auto_flat_shaded_version();;
+		shapes_in_use.square = new Square();
+		
 		shapes_in_use.heightmap = new Heightmap;
 		shapes_in_use.terrain1 = new Terrain(vec3(0, -32, -32), 32);
 		// shapes_in_use.terrain2 = new Terrain(vec3(0, -32, -64), 32);
@@ -392,9 +395,10 @@ Declare_Any_Class("Example_Animation", {
 			{
 				model_transform = mat4();
 				model_transform = mult(model_transform, translation(cur_collection.x, cur_collection.y, cur_collection.z));
-				cur_collection.draw(graphics_state, model_transform, sphereMaterial);
+				shapes_in_use.imported.draw(graphics_state, model_transform, sphereMaterial);
 			}
 		}
+
 		
 		
 		// make camera follow the plane
