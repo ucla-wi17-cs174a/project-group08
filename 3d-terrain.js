@@ -753,11 +753,13 @@ function Node_terrain(node)
 	node.terrain = new Terrain(node.coords, node.size);
 }
 
-// function choose_seen_terrain(to_check, plane_pos, plane_dir)
-// {
+//plane_pos is a vec3, plane_heading is a single value
+function choose_seen_terrain(to_check, plane_pos, plane_heading)
+{
 	// Everything within some radius, modified by angle, should be drawn nicely
 	
-// }
+	
+}
 
 
 
