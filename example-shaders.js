@@ -149,6 +149,8 @@ Declare_Any_Class( "Phong_or_Gouraud_Shader",
           }`;
       }
   }, Shader );
+  
+  
 
 Declare_Any_Class( "Funny_Shader",                    // This one borrows almost everything from Phong_or_Gouraud_Shader.
   { 'fragment_glsl_code_string': function()           // ********* FRAGMENT SHADER *********

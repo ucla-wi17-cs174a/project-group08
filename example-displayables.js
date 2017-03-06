@@ -1,5 +1,35 @@
 var RES_RATIO = 16;	
 
+Declare_Any_Class( "Debug_Screen",  // Debug_Screen - An example of a displayable object that our class Canvas_Manager can manage.  Displays a text user interface.
+  { 'construct': function( context )
+      { this.define_data_members( { shared_scratchpad: context.shared_scratchpad, numCollected: 0, graphicsState: new Graphics_State() } );
+        shapes_in_use.debug_text = new Text_Line( 35 );
+		this.shared_scratchpad.numCollected = 0;
+      },
+    'init_keys': function( controls )
+      { 
+      },
+    'update_strings': function( debug_screen_object )   // Strings that this displayable object (Debug_Screen) contributes to the UI:
+      { 
+		this.numCollected = this.shared_scratchpad.numCollected;
+      },
+    'display': function( time )
+      {
+        shaders_in_use["Default"].activate();
+        gl.uniform4fv( g_addrs.shapeColor_loc, Color( .8, .8, .8, 1 ) );
+
+        var font_scale = scale( .02, .04, 1 ),
+            model_transform = mult( translation( -.95, -.9, 0 ), font_scale );
+
+	
+		shapes_in_use.debug_text.set_string("Collected: " + this.numCollected.toString() );
+		shapes_in_use.debug_text.draw( this.graphicsState, model_transform, true, vec4(0,0,0,1) );  // Draw some UI text (strings)
+		model_transform = mult( translation( 0, .08, 0 ), model_transform );
+	
+
+      }
+  }, Animation );
+
 
 Declare_Any_Class("Example_Camera", {
     'construct': function(context) { // 1st parameter below is our starting camera matrix.  2nd is the projection:  The matrix that determines how depth is treated.  It projects 3D points onto a plane.
@@ -23,6 +53,14 @@ Declare_Any_Class("Example_Animation", {
 
         shapes_in_use.tetrahedron = new Tetrahedron();
         shapes_in_use.sphere = new Subdivision_Sphere(4);
+		shapes_in_use.collection_object1 = new Collection_Object(4, 50, 0, -150);
+		shapes_in_use.collection_object2 = new Collection_Object(4, -50, 0, -150);
+		shapes_in_use.collection_object3 = new Collection_Object(4, 50, 0, -100);
+		shapes_in_use.collection_object4 = new Collection_Object(4, -50, 0, -100);
+		
+		shapes_in_use.imported = Imported_Object.prototype.auto_flat_shaded_version();;
+		shapes_in_use.square = new Square();
+		
 		shapes_in_use.heightmap = new Heightmap;
 		shapes_in_use.terrain1 = new Terrain(vec3(0, -32, -32), 32);
 		// shapes_in_use.terrain2 = new Terrain(vec3(0, -32, -64), 32);
@@ -40,56 +78,190 @@ Declare_Any_Class("Example_Animation", {
         this.shared_scratchpad.speed = 0.1;
 		
 		this.shared_scratchpad.speed_change = 0; // 0: no change; -1: slow down; +1: speed up;
-		this.shared_scratchpad.right = false;
-		this.shared_scratchpad.left = false;
-		this.shared_scratchpad.up = false;
-		this.shared_scratchpad.down = false;
+		this.shared_scratchpad.right = 0;
+		this.shared_scratchpad.left = 0;
+		this.shared_scratchpad.up = 0;
+		this.shared_scratchpad.down = 0;
+		this.shared_scratchpad.pitch_change = 0;
+		this.shared_scratchpad.heading_change = 0;
     },
     'init_keys': function(controls) {
         controls.add("up", this, function() {
-            this.shared_scratchpad.up = true;
+            this.shared_scratchpad.pitch_change = 0.6;
         });
 		controls.add( "up", this, function() { 
-			this.shared_scratchpad.up =  false; }, {'type':'keyup'} 
+			this.shared_scratchpad.pitch_change =  0; }, {'type':'keyup'} 
 		);
         controls.add("down", this, function() {
-            this.shared_scratchpad.down = true;
+            this.shared_scratchpad.pitch_change = -0.6;
         });
 		controls.add( "down", this, function() { 
-			this.shared_scratchpad.down =  false; }, {'type':'keyup'} 
+			this.shared_scratchpad.pitch_change =  0; }, {'type':'keyup'} 
 		);
-        controls.add("left", this, function() {
-            this.shared_scratchpad.left = true;
+		controls.add("left", this, function() {
+            this.shared_scratchpad.heading_change = 0.6;
         });
 		controls.add( "left", this, function() { 
-			this.shared_scratchpad.left =  false; }, {'type':'keyup'} 
+			this.shared_scratchpad.heading_change =  0; }, {'type':'keyup'} 
 		);
         controls.add("right", this, function() {
-            this.shared_scratchpad.right = true;
+            this.shared_scratchpad.heading_change = -0.6;
         });
 		controls.add( "right", this, function() { 
-			this.shared_scratchpad.right =  false; }, {'type':'keyup'} 
+			this.shared_scratchpad.heading_change =  0; }, {'type':'keyup'} 
+		);
+		
+		// left and right: set to 1-5: Left; 6-0: right
+        controls.add("1", this, function() {
+            this.shared_scratchpad.heading_change = 1;
+        });
+		controls.add( "1", this, function() { 
+			this.shared_scratchpad.heading_change =  0; }, {'type':'keyup'} 
+		);
+		controls.add("2", this, function() {
+            this.shared_scratchpad.heading_change = 0.8;
+        });
+		controls.add( "2", this, function() { 
+			this.shared_scratchpad.heading_change =  0; }, {'type':'keyup'} 
+		);
+		controls.add("3", this, function() {
+            this.shared_scratchpad.heading_change = 0.6;
+        });
+		controls.add( "3", this, function() { 
+			this.shared_scratchpad.heading_change =  0; }, {'type':'keyup'} 
+		);
+		controls.add("4", this, function() {
+            this.shared_scratchpad.heading_change = 0.4;
+        });
+		controls.add( "4", this, function() { 
+			this.shared_scratchpad.heading_change =  0; }, {'type':'keyup'} 
+		);
+		controls.add("5", this, function() {
+            this.shared_scratchpad.heading_change = 0.2;
+        });
+		controls.add( "5", this, function() { 
+			this.shared_scratchpad.heading_change =  0; }, {'type':'keyup'} 
+		);
+		controls.add("6", this, function() {
+            this.shared_scratchpad.heading_change = -0.2;
+        });
+		controls.add( "6", this, function() { 
+			this.shared_scratchpad.heading_change =  0; }, {'type':'keyup'} 
+		);
+		controls.add("7", this, function() {
+            this.shared_scratchpad.heading_change = -0.4;
+        });
+		controls.add( "7", this, function() { 
+			this.shared_scratchpad.heading_change =  0; }, {'type':'keyup'} 
+		);
+		controls.add("8", this, function() {
+            this.shared_scratchpad.heading_change = -0.6;
+        });
+		controls.add( "8", this, function() { 
+			this.shared_scratchpad.heading_change =  0; }, {'type':'keyup'} 
+		);
+		controls.add("9", this, function() {
+            this.shared_scratchpad.heading_change = -0.8;
+        });
+		controls.add( "9", this, function() { 
+			this.shared_scratchpad.heading_change =  0; }, {'type':'keyup'} 
+		);
+		controls.add("0", this, function() {
+            this.shared_scratchpad.heading_change = -1;
+        });
+		controls.add( "0", this, function() { 
+			this.shared_scratchpad.heading_change =  0; }, {'type':'keyup'} 
+		);
+		
+		// up and down: set to 'q'-'t': Left; 'y'-'p': right
+        controls.add("q", this, function() {
+            this.shared_scratchpad.pitch_change = 1;
+        });
+		controls.add( "q", this, function() { 
+			this.shared_scratchpad.pitch_change =  0; }, {'type':'keyup'} 
+		);
+		controls.add("w", this, function() {
+            this.shared_scratchpad.pitch_change = 0.8;
+        });
+		controls.add( "w", this, function() { 
+			this.shared_scratchpad.pitch_change =  0; }, {'type':'keyup'} 
+		);
+		controls.add("e", this, function() {
+            this.shared_scratchpad.pitch_change = 0.6;
+        });
+		controls.add( "e", this, function() { 
+			this.shared_scratchpad.pitch_change =  0; }, {'type':'keyup'} 
+		);
+		controls.add("r", this, function() {
+            this.shared_scratchpad.pitch_change = 0.4;
+        });
+		controls.add( "r", this, function() { 
+			this.shared_scratchpad.pitch_change =  0; }, {'type':'keyup'} 
+		);
+		controls.add("t", this, function() {
+            this.shared_scratchpad.pitch_change = 0.2;
+        });
+		controls.add( "t", this, function() { 
+			this.shared_scratchpad.pitch_change =  0; }, {'type':'keyup'} 
+		);
+		controls.add("y", this, function() {
+            this.shared_scratchpad.pitch_change = -0.2;
+        });
+		controls.add( "y", this, function() { 
+			this.shared_scratchpad.pitch_change =  0; }, {'type':'keyup'} 
+		);
+		controls.add("u", this, function() {
+            this.shared_scratchpad.pitch_change = -0.4;
+        });
+		controls.add( "u", this, function() { 
+			this.shared_scratchpad.pitch_change =  0; }, {'type':'keyup'} 
+		);
+		controls.add("i", this, function() {
+            this.shared_scratchpad.pitch_change = -0.6;
+        });
+		controls.add( "i", this, function() { 
+			this.shared_scratchpad.pitch_change =  0; }, {'type':'keyup'} 
+		);
+		controls.add("o", this, function() {
+            this.shared_scratchpad.pitch_change = -0.8;
+        });
+		controls.add( "o", this, function() { 
+			this.shared_scratchpad.pitch_change =  0; }, {'type':'keyup'} 
+		);
+		controls.add("p", this, function() {
+            this.shared_scratchpad.pitch_change = -1;
+        });
+		controls.add( "p", this, function() { 
+			this.shared_scratchpad.pitch_change =  0; }, {'type':'keyup'} 
 		);
 
         // slow down
-        controls.add("1", this, function() {
+        controls.add(",", this, function() {
 			this.shared_scratchpad.speed_change = -1;
 			}
         );
-		controls.add( "1", this, function() { 
+		controls.add( ",", this, function() { 
 			this.shared_scratchpad.speed_change =  0; }, {'type':'keyup'} 
 		);
 
         // speed up
-        controls.add("2", this, function() {
+        controls.add(".", this, function() {
 			this.shared_scratchpad.speed_change = 1;
             }
         );
-				controls.add( "2", this, function() { 
+		controls.add( ".", this, function() { 
 			this.shared_scratchpad.speed_change =  0; }, {'type':'keyup'} 
 		);
 
     },
+	'checkCollision' : function(x1, y1, z1, r1, x2, y2, z2, r2) {
+		// Exit if separated along an axis
+		if ( (x1+r1) < (x2-r2) || (x1-r1) > (x2+r2) ) return false;
+		if ( (y1+r1) < (y2-r2) || (y1-r1) > (y2+r2) ) return false;
+		if ( (z1+r1) < (z2-r2) || (z1-r1) > (z2+r2) ) return false;
+		// Overlapping on all axes means there is an intersection
+		return true;// Exit if separated along an axis
+	},
     'display': function(time) {
         var graphics_state = this.shared_scratchpad.graphics_state,
             model_transform = mat4();
@@ -108,22 +280,13 @@ Declare_Any_Class("Example_Animation", {
         var tetraMaterial = new Material(Color(0, 1, 1, 1), .4, .4, .4, 40); // Omit the final (string) parameter if you want no texture
 		var landMaterial = new Material(Color(0.4, 0.5, 0, 1), .6, .8, .4, 4);	//Just a placeholder for now
 
-        // create sphere for frame of reference
-        model_transform = mult(model_transform, translation(0, 0, -100));
-        //shapes_in_use.sphere.draw(graphics_state, model_transform, sphereMaterial);
-		//shapes_in_use.heightmap.draw(graphics_state, model_transform, landMaterial);
+
+		// create map
+        model_transform = mult(model_transform, translation(0, 0, -100));;
 		shapes_in_use.terrain1.draw(graphics_state, model_transform, landMaterial);
-		// shapes_in_use.terrain2.draw(graphics_state, model_transform, landMaterial);
-		// shapes_in_use.terrain3.draw(graphics_state, model_transform, landMaterial);
         model_transform = mult(model_transform, translation(0, 0, 100));
 
-        model_transform = mult(model_transform, translation(50, 0, -150));
-        shapes_in_use.sphere.draw(graphics_state, model_transform, sphereMaterial);
-        model_transform = mult(model_transform, translation(-50, 0, 150));
-		
-		
-		
-		
+		// DRAW PLANE
         // create tetrahedron for temp plane
 		// modify speed based on key input
 		var speed_change = 0.01;
@@ -144,24 +307,11 @@ Declare_Any_Class("Example_Animation", {
 			}
 		}
 		// modify heading and pitch based on key input
-		var pitch_change = 0.1;
-		var heading_change = 0.1;
-		if(this.shared_scratchpad.up)
-		{
-			this.shared_scratchpad.pitch += pitch_change;
-		}
-		if(this.shared_scratchpad.down)
-		{
-			this.shared_scratchpad.pitch -= pitch_change;
-		}
-			if(this.shared_scratchpad.left)
-		{
-			this.shared_scratchpad.heading += heading_change;
-		}
-			if(this.shared_scratchpad.right)
-		{
-			this.shared_scratchpad.heading -= heading_change;
-		}
+
+		this.shared_scratchpad.pitch += this.shared_scratchpad.pitch_change;
+
+		this.shared_scratchpad.heading += this.shared_scratchpad.heading_change;
+		
 		
         // move forward based on current heading
         var forward_speed = this.shared_scratchpad.speed;
@@ -181,6 +331,75 @@ Declare_Any_Class("Example_Animation", {
         model_transform = mult(model_transform, rotation(this.shared_scratchpad.heading, 0, 1, 0));
         model_transform = mult(model_transform, rotation(this.shared_scratchpad.pitch, 1, 0, 0));
         shapes_in_use.tetrahedron.draw(graphics_state, model_transform, tetraMaterial);
+
+
+		// DRAW COLLECTION_OBJECT
+		// create collection objects and check if it exists. Solid programming style right here
+		var cur_collection = shapes_in_use.collection_object1;
+		if(cur_collection.collected == false)
+		{
+			if(this.checkCollision(this.shared_scratchpad.x, this.shared_scratchpad.y, this.shared_scratchpad.z, 1, cur_collection.x, cur_collection.y, cur_collection.z, 1))
+			{
+				cur_collection.collected = true;
+				this.shared_scratchpad.numCollected += 1;
+			}
+			else
+			{
+				model_transform = mat4();
+				model_transform = mult(model_transform, translation(cur_collection.x, cur_collection.y, cur_collection.z));
+				cur_collection.draw(graphics_state, model_transform, sphereMaterial);
+			}
+		}
+		var cur_collection = shapes_in_use.collection_object2;
+		if(cur_collection.collected == false)
+		{
+			if(this.checkCollision(this.shared_scratchpad.x, this.shared_scratchpad.y, this.shared_scratchpad.z, 1, cur_collection.x, cur_collection.y, cur_collection.z, 1))
+			{
+				cur_collection.collected = true;
+				this.shared_scratchpad.numCollected += 1;
+
+			}
+			else
+			{
+				model_transform = mat4();
+				model_transform = mult(model_transform, translation(cur_collection.x, cur_collection.y, cur_collection.z));
+				cur_collection.draw(graphics_state, model_transform, sphereMaterial);
+			}
+		}
+		var cur_collection = shapes_in_use.collection_object3;
+		if(cur_collection.collected == false)
+		{
+			if(this.checkCollision(this.shared_scratchpad.x, this.shared_scratchpad.y, this.shared_scratchpad.z, 1, cur_collection.x, cur_collection.y, cur_collection.z, 1))
+			{
+				cur_collection.collected = true;
+				this.shared_scratchpad.numCollected += 1;
+
+			}
+			else
+			{
+				model_transform = mat4();
+				model_transform = mult(model_transform, translation(cur_collection.x, cur_collection.y, cur_collection.z));
+				cur_collection.draw(graphics_state, model_transform, sphereMaterial);
+			}
+		}
+		var cur_collection = shapes_in_use.collection_object4;
+		if(cur_collection.collected == false)
+		{
+			if(this.checkCollision(this.shared_scratchpad.x, this.shared_scratchpad.y, this.shared_scratchpad.z, 1, cur_collection.x, cur_collection.y, cur_collection.z, 1))
+			{
+				cur_collection.collected = true;
+				this.shared_scratchpad.numCollected += 1;
+
+			}
+			else
+			{
+				model_transform = mat4();
+				model_transform = mult(model_transform, translation(cur_collection.x, cur_collection.y, cur_collection.z));
+				shapes_in_use.imported.draw(graphics_state, model_transform, sphereMaterial);
+			}
+		}
+
+		
 		
 		// make camera follow the plane
         this.shared_scratchpad.graphics_state.camera_transform = mat4();
