@@ -36,7 +36,7 @@ Declare_Any_Class("Imported_Object",
 		tempthis.texture_coords.push(vec2(0,0));
 		tempthis.normals.push(vec3(0,0,0));
 
-		rawFile.open("GET", "./capsule/cow-nonormals.obj", false);
+		rawFile.open("GET", "./ThreePlane.obj", false);
 		rawFile.onreadystatechange = (function ()
 		{
 			if(rawFile.readyState === 4)
@@ -77,9 +77,9 @@ Declare_Any_Class("Imported_Object",
 						{
 							for(var j = 1; j < divided.length; j++)
 							{
-								tempthis.indices.push(parseFloat(divided[j]));
-							//	var temp = divided[j].split("/");
-							//	tempthis.indices.push(parseFloat(temp[0]));
+								//tempthis.indices.push(parseFloat(divided[j]));
+								var temp = divided[j].split("/");
+								tempthis.indices.push(parseFloat(temp[0]));
 							}
 						}
 					}

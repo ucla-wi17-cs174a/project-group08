@@ -395,6 +395,7 @@ Declare_Any_Class("Example_Animation", {
 			{
 				model_transform = mat4();
 				model_transform = mult(model_transform, translation(cur_collection.x, cur_collection.y, cur_collection.z));
+				model_transform = mult(model_transform, scale(5,5,5));
 				shapes_in_use.imported.draw(graphics_state, model_transform, sphereMaterial);
 			}
 		}
