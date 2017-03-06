@@ -662,29 +662,38 @@ Declare_Any_Class( "Terrain",
 	}
 }, Shape )
 
+//Need to determine what blocks to draw and at what resolution
+//This might find a new home, but this works for now
+
+
+
+
+
+
 //Stuff for a tree is below, so we can hold the block data
 //parent holds the node's parent, children holds the list of child nodes
 //Conveniently, it naturally deals with larger sizes too
-function Node(coords, size, base) {	//To make a new tree, put in (size, vec3(-size/2,-size/2,-size/2), null)
+function Node(coords, size, base) {	//To make a new tree, put in (vec3(-size/2,-size/2,-size/2), size, null)
 	this.coords = coords;
     this.size = size;	//Dimensions of the block	
 	this.checked = 0;	//0-3, corresponding to unchecked, all air, all ground, and to draw
     this.base = base;	//Because parent is reserved for something?
     this.children = [];
+	this.terrain;	//Add a terrain to this when it's generated
 }
 
 function Node_find(loc, size, node, base)	//This size is the goal size - for the current size, use node.size
 {
-	if(size > 0.01)
-		console.log(loc, size);
 	//Should probably be recursive
 	//When first calling the function, give it the root
 	if(!node)	
+	{
 		node = Node_add(vec3(Math.floor(loc[0]/base.size/2)*base.size/2, Math.floor(loc[1]/base.size/2)*base.size/2, Math.floor(loc[2]/base.size/2)*base.size/2), base.size/2, base);
+	}
 	if(node.size == size)
 		return node;
 	var found;	
-	if(loc[0] < node.coords[0]+node.size/2)
+	if(loc[0] < node.coords[0]+node.size/2)	//If equal, this should never be true - might cause errors if using floats and rounding goes badly
 		if(loc[1] < node.coords[1]+node.size/2)
 			if(loc[2] < node.coords[2]+node.size/2)			
 				found = Node_find(loc, size, node.children[0], node);
@@ -711,33 +720,37 @@ function Node_find(loc, size, node, base)	//This size is the goal size - for the
 
 function Node_add(loc, size, tree)
 {
-	if(size > 0.01)
-		console.log("add", loc, size);
 	var base = Node_find(loc, size*2, tree, null);
 	var node = new Node(loc, size, base);
 	if(loc[0] < base.coords[0]+size)
-		if(loc[1] < node.coords[1]+size)
-			if(loc[2] < node.coords[2]+size)	
+		if(loc[1] < base.coords[1]+size)
+			if(loc[2] < base.coords[2]+size)
 				base.children[0] = node;
 			else
 				base.children[4] = node;
 		else
-			if(loc[2] < node.coords[2]+size)	
+			if(loc[2] < base.coords[2]+size)	
 				base.children[2] = node;
 			else
-				base.children[6] = node;
+				base.children[6] = node;		
 	else
-		if(loc[1] < node.coords[1]+size)
-			if(loc[2] < node.coords[2]+size)	
+		if(loc[1] < base.coords[1]+size)
+			if(loc[2] < base.coords[2]+size)	
 				base.children[1] = node;
 			else
 				base.children[5] = node;
 		else
-			if(loc[2] < node.coords[2]+size)	
+			if(loc[2] < base.coords[2]+size)	
 				base.children[3] = node;
 			else
 				base.children[7] = node;
 	return node;
+}
+
+function Node_terrain(node)
+{
+	//node.coords and node.size are the necessary parameters here
+	node.terrain = new Terrain(node.coords, node.size);
 }
 
 

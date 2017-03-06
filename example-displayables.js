@@ -25,11 +25,24 @@ Declare_Any_Class("Example_Animation", {
         shapes_in_use.sphere = new Subdivision_Sphere(4);
 		shapes_in_use.heightmap = new Heightmap;
 		shapes_in_use.terrain1 = new Terrain(vec3(0, -32, -32), 32);
-		// shapes_in_use.terrain2 = new Terrain(vec3(0, -32, -64), 32);
+		shapes_in_use.terrain2 = new Terrain(vec3(0, -32, -64), 32);
 		// shapes_in_use.terrain3 = new Terrain(vec3(0, -32, -96), 32);
 		
-		//tree = new Node(1024, vec3(-512,-512,-512), null);
-		//node = Node_add(vec3(0, -32, -64), 32, tree);
+		var world_size = 2048;
+		var world_tree = new Node(vec3(-world_size/2, -world_size/2, -world_size/2), world_size, null);
+		// var node = Node_add(vec3(0, -32, -64), 32, tree);
+		// var node2 = Node_find(vec3(0, -32, -64), 32, tree, null);
+		// shapes_in_use.length++;
+		// Node_terrain(node2);
+		// console.log(shapes_in_use);
+		
+		//Arrays to hold important info for terrain (in the form of nodes):
+		var to_check = [];	//First, add a bunch of blocks to this list, then check it over subsequent iterations
+		var to_create = [];	//After the blocks are checked and need to be drawn, add them to this list
+		var to_purge = [];	//Also part of this process, the old low-res geometry should no longer be drawn - use this to update to_draw when it's time
+			//Over more iterations, create the geometry for the list above, several blocks per iteration depending on speed
+			//After geometry is made, add it to the list of stuff to draw, and purge the lower resolution geometry that is replaced
+		var to_draw = []	//All the geometry in here is what gets drawn
 		
         this.shared_scratchpad.heading = 0;
         this.shared_scratchpad.pitch = 0;
@@ -112,8 +125,8 @@ Declare_Any_Class("Example_Animation", {
         model_transform = mult(model_transform, translation(0, 0, -100));
         //shapes_in_use.sphere.draw(graphics_state, model_transform, sphereMaterial);
 		//shapes_in_use.heightmap.draw(graphics_state, model_transform, landMaterial);
-		shapes_in_use.terrain1.draw(graphics_state, model_transform, landMaterial);
-		// shapes_in_use.terrain2.draw(graphics_state, model_transform, landMaterial);
+		//node2.terrain.draw(graphics_state, model_transform, landMaterial);
+		shapes_in_use.terrain2.draw(graphics_state, model_transform, landMaterial);
 		// shapes_in_use.terrain3.draw(graphics_state, model_transform, landMaterial);
         model_transform = mult(model_transform, translation(0, 0, 100));
 
