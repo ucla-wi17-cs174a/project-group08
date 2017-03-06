@@ -1,7 +1,7 @@
 // UCLA's Graphics Example Code (Javascript and C++ translations available), by Garett Ridge for CS174a.
 // tinywebgl_ucla.js - A file to show how to organize a complete graphics program.  It wraps common WebGL commands.
 
-var shapes_in_use = [], shaders_in_use = [], textures_in_use = [], active_shader, texture_filenames_to_load = [], gl, g_addrs;    // ****** GLOBAL VARIABLES *******
+var shapes_in_use = [], shaders_in_use = [], framebuffers = [], textures_in_use = [], active_shader, texture_filenames_to_load = [], gl, g_addrs;    // ****** GLOBAL VARIABLES *******
 
 function Declare_Any_Class( name, methods, superclass = Object, scope = window )              // Making javascript behave more like Object Oriented C++
   {
@@ -14,6 +14,75 @@ function Declare_Any_Class( name, methods, superclass = Object, scope = window )
     scope[ name ].prototype = p;                                                                      // The class and its prototype are complete.
   }
 
+  
+ Declare_Any_Class("FBO",
+{
+	'construct': function(width,height,layers){
+		this.fb = gl.createFramebuffer();
+		gl.bindFramebuffer(gl.FRAMEBUFFER, fb);
+		this.fb.width = width;
+		this.fb.height = height;
+		var buffs = [];
+		switch(layers){
+			case 4:
+				this.tx[3] = gl.createTexture();
+				gl.bindTexture(gl.TEXTURE_2D, this.tx[3]);
+				gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+				gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+				gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE); //Enables NPOT Textures
+				gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+				gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, this.fb.width, this.fb.height, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
+				gl.framebufferTexture2D(gl.FRAMEBUFFER, ext_db.COLOR_ATTACHMENT3_WEBGL, gl.TEXTURE_2D, this.tx[3], 0);
+				buffs[3] = ext_db.COLOR_ATTACHMENT3_WEBGL;
+			case 3:
+				this.tx[2] = gl.createTexture();
+				gl.bindTexture(gl.TEXTURE_2D, this.tx[2]);
+				gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+				gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+				gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE); //Enables NPOT Textures
+				gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+				gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, this.fb.width, this.fb.height, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
+				gl.framebufferTexture2D(gl.FRAMEBUFFER, ext_db.COLOR_ATTACHMENT2_WEBGL, gl.TEXTURE_2D, this.tx[2], 0);
+				buffs[2] = ext_db.COLOR_ATTACHMENT2_WEBGL;
+			case 2:
+				this.tx[1] = gl.createTexture();
+				gl.bindTexture(gl.TEXTURE_2D, this.tx[1]);
+				gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+				gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+				gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE); //Enables NPOT Textures
+				gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+				gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, this.fb.width, this.fb.height, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
+				gl.framebufferTexture2D(gl.FRAMEBUFFER, ext_db.COLOR_ATTACHMENT1_WEBGL, gl.TEXTURE_2D, this.tx[1], 0);
+				buffs[1] = ext_db.COLOR_ATTACHMENT1_WEBGL;
+				default:
+				this.tx[0] = gl.createTexture();
+				gl.bindTexture(gl.TEXTURE_2D, this.tx[0]);
+				gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+				gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+				gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE); //Enables NPOT Textures
+				gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+				gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, this.fb.width, this.fb.height, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
+				gl.framebufferTexture2D(gl.FRAMEBUFFER, ext_db.COLOR_ATTACHMENT0_WEBGL, gl.TEXTURE_2D, this.tx[0], 0);
+				buffs[0] = ext_db.COLOR_ATTACHMENT0_WEBGL;
+		}
+	
+		this.rb = gl.createRenderbuffer();
+		gl.bindRenderbuffer(gl.RENDERBUFFER, this.rb);
+		gl.renderbufferStorage(gl.RENDERBUFFER, gl.DEPTH_COMPONENT16, this.fb.width, this.fb.height);
+		gl.framebufferRenderbuffer(gl.FRAMEBUFFER, gl.DEPTH_ATTACHMENT, gl.RENDERBUFFER, this.rb);
+		ext_db.drawBuffersWEBGL(buffs);
+		
+		gl.bindTexture(gl.TEXTURE_2D, null);
+		gl.bindRenderbuffer(gl.RENDERBUFFER, null);
+		gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+	},
+	'activate': function() {gl.bindFramebuffer(gl.FRAMEBUFFER,this.fb);gl.bindRenderbuffer(gl.RENDERBUFFER,this.rb);},
+	'deactivate': function() {gl.bindFramebuffer(gl.FRAMEBUFFER,null); gl.bindRenderbuffer(gl.RENDERBUFFER,null);},
+	'getTextures': function() {return this.tx;},
+	
+	
+}
+);
 // *********** SHAPE SUPERCLASS ***********
 // Each shape manages lists of its own vertex positions, vertex normals, and texture coordinates per vertex, and can copy them into a buffer in the graphics card's memory.
 // IMPORTANT: When you extend the Shape class, you must supply a populate() function that fills in four arrays: One list enumerating all the vertices' (vec3) positions,
