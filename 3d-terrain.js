@@ -753,6 +753,12 @@ function Node_terrain(node)
 	node.terrain = new Terrain(node.coords, node.size);
 }
 
+// function choose_seen_terrain(to_check, plane_pos, plane_dir)
+// {
+	// Everything within some radius, modified by angle, should be drawn nicely
+	
+// }
+
 
 
 
