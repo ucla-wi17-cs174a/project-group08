@@ -184,13 +184,13 @@ Declare_Any_Class( "Funny_Shader",                    // This one borrows almost
 		  
 	  },
 	  'vertex_glsl_code_string': function()           // ********* FRAGMENT SHADER *********
-      { return '
+      { return `
 	  
-	  '},
+	  `},
 	  'fragment_glsl_code_string': function()           // ********* FRAGMENT SHADER *********
-      { return '
+      { return `
 	  
-	  '},
+	  `},
 	  
   },Shader);
   
@@ -200,12 +200,12 @@ Declare_Any_Class( "Funny_Shader",                    // This one borrows almost
 		  
 	  },
 	  'vertex_glsl_code_string': function()           // ********* FRAGMENT SHADER *********
-      { return '
+      { return `
 	  
-	  '},
+	  `},
 	  'fragment_glsl_code_string': function()           // ********* FRAGMENT SHADER *********
-      { return '
+      { return `
 	  
-	  '},
+	  `},
 	  
   },Shader);
