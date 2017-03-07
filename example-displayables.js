@@ -61,26 +61,15 @@ Declare_Any_Class("Example_Animation", {
 		shapes_in_use.imported = Imported_Object.prototype.auto_flat_shaded_version();;
 		shapes_in_use.square = new Square();
 		
-		shapes_in_use.heightmap = new Heightmap;
-		shapes_in_use.terrain1 = new Terrain(vec3(0, -32, -32), 32);
-		shapes_in_use.terrain2 = new Terrain(vec3(0, -32, -64), 32);
-		// shapes_in_use.terrain3 = new Terrain(vec3(0, -32, -96), 32);
-		
 		var world_size = 2048;
+		shapes_in_use.terrain = new Terrain();
 		var world_tree = new Node(vec3(-world_size/2, -world_size/2, -world_size/2), world_size, null);
-		// var node = Node_add(vec3(0, -32, -64), 32, tree);
-		// var node2 = Node_find(vec3(0, -32, -64), 32, tree, null);
-		// shapes_in_use.length++;
-		// Node_terrain(node2);
-		// console.log(shapes_in_use);
+		var test_node = Node_add(vec3(0,0,0), 32, world_tree);			
+		shapes_in_use.terrain.to_draw[0] = test_node;
+		shapes_in_use.terrain.populate(vec3(0,0,0), 32);
 		
-		//Arrays to hold important info for terrain (in the form of nodes):
-		var to_check = [];	//First, add a bunch of blocks to this list, then check it over subsequent iterations
-		var to_create = [];	//After the blocks are checked and need to be drawn, add them to this list
-		var to_purge = [];	//Also part of this process, the old low-res geometry should no longer be drawn - use this to update to_draw when it's time
-			//Over more iterations, create the geometry for the list above, several blocks per iteration depending on speed
-			//After geometry is made, add it to the list of stuff to draw, and purge the lower resolution geometry that is replaced
-		var to_draw = []	//All the geometry in here is what gets drawn
+		
+		
 		
         this.shared_scratchpad.heading = 0;
         this.shared_scratchpad.pitch = 0;
@@ -301,8 +290,9 @@ Declare_Any_Class("Example_Animation", {
 
 
 		// Draw map
-        model_transform = mult(model_transform, translation(0, 0, -100));;
-		shapes_in_use.terrain1.draw(graphics_state, model_transform, landMaterial);
+        model_transform = mult(model_transform, translation(0, 0, -100));
+		shapes_in_use.terrain.to_draw[0].contents.copy_onto_graphics_card();
+		shapes_in_use.terrain.to_draw[0].contents.draw(graphics_state, model_transform, landMaterial);
         model_transform = mult(model_transform, translation(0, 0, 100));
 
 		// DRAW PLANE This is rather verbose and should get fixed

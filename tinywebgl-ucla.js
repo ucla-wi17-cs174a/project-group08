@@ -21,9 +21,10 @@ function Declare_Any_Class( name, methods, superclass = Object, scope = window )
 {
 	'construct': function(width,height,layers){
 		this.fb = gl.createFramebuffer();
-		gl.bindFramebuffer(gl.FRAMEBUFFER, fb);
+		gl.bindFramebuffer(gl.FRAMEBUFFER, this.fb);
 		this.fb.width = width;
 		this.fb.height = height;
+		this.tx = [];
 		var buffs = [];
 		for (var i = 0; i < layers; i++){
 			this.tx[i] = gl.createTexture();
@@ -33,8 +34,8 @@ function Declare_Any_Class( name, methods, superclass = Object, scope = window )
 			gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE); //Enables NPOT Textures
 			gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);	//Ditto
 			gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, this.fb.width, this.fb.height, 0, gl.RGBA, gl.UNSIGNED_BYTE, null); //Allocate memory to draw into
-			gl.framebufferTexture2D(gl.FRAMEBUFFER, attach_Points_Color, gl.TEXTURE_2D, this.tx[i], 0); //Attach texture to FBO
-			buffs[i] = ext_db.COLOR_ATTACHMENT0_WEBGL;
+			gl.framebufferTexture2D(gl.FRAMEBUFFER, attach_Points_Color[i], gl.TEXTURE_2D, this.tx[i], 0); //Attach texture to FBO
+			buffs[i] = attach_Points_Color[i];
 		}
 	
 		//Create and associate renderbuffer for Z-buffer
@@ -84,12 +85,12 @@ Declare_Any_Class( "Shape",
       { this.graphics_card_buffers = [];  // Send the completed vertex and index lists to their own buffers in the graphics card.
         for( var i = 0; i < 4; i++ )      // Memory addresses of the buffers given to this shape in the graphics card.
         { this.graphics_card_buffers.push( gl.createBuffer() );
-          gl.bindBuffer(gl.ARRAY_BUFFER, this.graphics_card_buffers[i] );
+          gl.bindBuffer(gl.ARRAY_BUFFER, this.graphics_card_buffers[i] );		  
           switch(i) {
             case 0: gl.bufferData(gl.ARRAY_BUFFER, flatten(this.positions), gl.STATIC_DRAW); break;
             case 1: gl.bufferData(gl.ARRAY_BUFFER, flatten(this.normals), gl.STATIC_DRAW); break;
             case 2: gl.bufferData(gl.ARRAY_BUFFER, flatten(this.texture_coords), gl.STATIC_DRAW); break;  }
-        }
+        }		
         if( this.indexed )
         { gl.getExtension("OES_element_index_uint");
           this.index_buffer = gl.createBuffer();
