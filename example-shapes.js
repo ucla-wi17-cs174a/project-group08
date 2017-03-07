@@ -22,7 +22,28 @@ Declare_Any_Class( "Tetrahedron",
         this.indices.push( 0, 1, 2,    3, 4, 5,    6, 7, 8,    9, 10, 11 ); 
         
       }
-  }, Shape )
+  }, Shape );
+  
+  Declare_Any_Class( "Square",
+  { 'populate': function() 
+      {
+        var a = 1;
+		this.positions = [
+			vec3(-a,-a,0),vec3(a,a,0),vec3(-a,a,0),
+			vec3(-a,-a,0),vec3(a,-a,0),vec3(a,a,0)
+		];
+	
+		this.normals.push(vec3(0,0,1),vec3(0,0,1),vec3(0,0,1),vec3(0,0,1),vec3(0,0,1),vec3(0,0,1));
+	
+		this.texture_coords = [
+			vec2(0,0),vec2(1,1),vec2(0,1),
+			vec2(0,0),vec2(1,0),vec2(1,1)
+		];
+		
+		this.indices.push(0,1,2,3,4,5);
+		
+      }
+  }, Shape );
   
 Declare_Any_Class("Imported_Object",
 {

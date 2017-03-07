@@ -1,7 +1,9 @@
 // UCLA's Graphics Example Code (Javascript and C++ translations available), by Garett Ridge for CS174a.
 // tinywebgl_ucla.js - A file to show how to organize a complete graphics program.  It wraps common WebGL commands.
 
-var shapes_in_use = [], shaders_in_use = [], framebuffers = [], textures_in_use = [], active_shader, texture_filenames_to_load = [], gl, g_addrs;    // ****** GLOBAL VARIABLES *******
+var shapes_in_use = [], shaders_in_use = [], framebuffers = [], textures_in_use = [], active_shader, texture_filenames_to_load = [], gl, g_addrs, ext_db;    // ****** GLOBAL VARIABLES *******
+
+var attach_Points_Color;
 
 function Declare_Any_Class( name, methods, superclass = Object, scope = window )              // Making javascript behave more like Object Oriented C++
   {
@@ -23,55 +25,26 @@ function Declare_Any_Class( name, methods, superclass = Object, scope = window )
 		this.fb.width = width;
 		this.fb.height = height;
 		var buffs = [];
-		switch(layers){
-			case 4:
-				this.tx[3] = gl.createTexture();
-				gl.bindTexture(gl.TEXTURE_2D, this.tx[3]);
-				gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
-				gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
-				gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE); //Enables NPOT Textures
-				gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
-				gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, this.fb.width, this.fb.height, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
-				gl.framebufferTexture2D(gl.FRAMEBUFFER, ext_db.COLOR_ATTACHMENT3_WEBGL, gl.TEXTURE_2D, this.tx[3], 0);
-				buffs[3] = ext_db.COLOR_ATTACHMENT3_WEBGL;
-			case 3:
-				this.tx[2] = gl.createTexture();
-				gl.bindTexture(gl.TEXTURE_2D, this.tx[2]);
-				gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
-				gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
-				gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE); //Enables NPOT Textures
-				gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
-				gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, this.fb.width, this.fb.height, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
-				gl.framebufferTexture2D(gl.FRAMEBUFFER, ext_db.COLOR_ATTACHMENT2_WEBGL, gl.TEXTURE_2D, this.tx[2], 0);
-				buffs[2] = ext_db.COLOR_ATTACHMENT2_WEBGL;
-			case 2:
-				this.tx[1] = gl.createTexture();
-				gl.bindTexture(gl.TEXTURE_2D, this.tx[1]);
-				gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
-				gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
-				gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE); //Enables NPOT Textures
-				gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
-				gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, this.fb.width, this.fb.height, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
-				gl.framebufferTexture2D(gl.FRAMEBUFFER, ext_db.COLOR_ATTACHMENT1_WEBGL, gl.TEXTURE_2D, this.tx[1], 0);
-				buffs[1] = ext_db.COLOR_ATTACHMENT1_WEBGL;
-				default:
-				this.tx[0] = gl.createTexture();
-				gl.bindTexture(gl.TEXTURE_2D, this.tx[0]);
-				gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
-				gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
-				gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE); //Enables NPOT Textures
-				gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
-				gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, this.fb.width, this.fb.height, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
-				gl.framebufferTexture2D(gl.FRAMEBUFFER, ext_db.COLOR_ATTACHMENT0_WEBGL, gl.TEXTURE_2D, this.tx[0], 0);
-				buffs[0] = ext_db.COLOR_ATTACHMENT0_WEBGL;
+		for (var i = 0; i < layers; i++){
+			this.tx[i] = gl.createTexture();
+			gl.bindTexture(gl.TEXTURE_2D, this.tx[i]);
+			gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+			gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);	//No mips because NPOT
+			gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE); //Enables NPOT Textures
+			gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);	//Ditto
+			gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, this.fb.width, this.fb.height, 0, gl.RGBA, gl.UNSIGNED_BYTE, null); //Allocate memory to draw into
+			gl.framebufferTexture2D(gl.FRAMEBUFFER, attach_Points_Color, gl.TEXTURE_2D, this.tx[i], 0); //Attach texture to FBO
+			buffs[i] = ext_db.COLOR_ATTACHMENT0_WEBGL;
 		}
 	
+		//Create and associate renderbuffer for Z-buffer
 		this.rb = gl.createRenderbuffer();
 		gl.bindRenderbuffer(gl.RENDERBUFFER, this.rb);
 		gl.renderbufferStorage(gl.RENDERBUFFER, gl.DEPTH_COMPONENT16, this.fb.width, this.fb.height);
 		gl.framebufferRenderbuffer(gl.FRAMEBUFFER, gl.DEPTH_ATTACHMENT, gl.RENDERBUFFER, this.rb);
-		ext_db.drawBuffersWEBGL(buffs);
+		ext_db.drawBuffersWEBGL(buffs); //Tell GPU which outputs are active
 		
+		//Reset state
 		gl.bindTexture(gl.TEXTURE_2D, null);
 		gl.bindRenderbuffer(gl.RENDERBUFFER, null);
 		gl.bindFramebuffer(gl.FRAMEBUFFER, null);
@@ -311,7 +284,9 @@ Declare_Any_Class( "Canvas_Manager",                      // This class performs
         for ( let name of [ "webgl", "experimental-webgl", "webkit-3d", "moz-webgl" ] )
           if ( this.gl = gl = canvas.getContext( name ) ) break;                                            // Get the GPU ready, creating a new WebGL context for this canvas
         if (  !gl && canvas.parentNode ) canvas.parentNode.innerHTML = "Canvas failed to make a WebGL context.";
-
+		ext_db = gl.getExtension("WEBGL_draw_buffers"); //Acquire Extension for MRT
+		attach_Points_Color = [ext_db.COLOR_ATTACHMENT0_WEBGL,ext_db.COLOR_ATTACHMENT1_WEBGL,ext_db.COLOR_ATTACHMENT2_WEBGL,ext_db.COLOR_ATTACHMENT3_WEBGL,
+							ext_db.COLOR_ATTACHMENT4_WEBGL,ext_db.COLOR_ATTACHMENT5_WEBGL,ext_db.COLOR_ATTACHMENT6_WEBGL,ext_db.COLOR_ATTACHMENT7_WEBGL]; //"const" array to refer to attach points
         gl.clearColor.apply( gl, background_color );    // Tell the GPU which color to clear the canvas with each frame
         gl.viewport( 0, 0, canvas.width, canvas.height );
         gl.enable( gl.DEPTH_TEST );

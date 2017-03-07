@@ -1,7 +1,52 @@
 
 
 Declare_Any_Class( "Terrain",
-{ 'populate': function(coords, c_size) 
+{ 
+	'construct': function( args )
+      { this.define_data_members( { positions: [], normals: [], texture_coords: [], indices: [], indexed: true, sent_to_GPU: false } );
+        this.populate.apply( this, arguments ); // Immediately fill in appropriate vertices via polymorphism, calling whichever sub-class's populate().
+      },
+	  
+	'initialize': function(){
+		var density_Pass_FBO = new FBO(RES_RATIO+1,(RES_RATIO+1)*(RES_RATIO+1),2); //One 32bit buffer for density, one for normals
+		var almanac_Pass_FBO = new FBO(RES_RATIO,RES_RATIO*RES_RATIO,2); // 1/2 Byte for numTris, 7.5 bytes for edges
+		
+	},
+
+	'populate_GPU': function(coords,c_size){
+		/*
+			Workflow:
+			screenQuad = new Square();
+			var eye = new mat4();
+			density_Pass_FBO.activate();
+			shaders_in_use["c_Density_Shader"].activate();//Use built in template code to correctly bind textures and uniforms etc.
+			screenQuad.draw(graphics_state, eye, material); //material is uselessish, but you can use it to pass some uniforms into your shader if you want. 
+			var denseArray = []; //May need to setup as var denseArray = new Uint8Array(length);
+			var normArray = [];
+			density_Pass_FBO.deactivate();
+			gl.bindTexture(gl.TEXTURE_2D,density_Pass_FBO.tx[0]);
+			glReadPixels(0,0,density_Pass_FBO.fb.width,density_Pass_FBO.fb.height,gl.RGBA,gl.UNSIGNED_BYTE,denseArray);
+			gl.bindTexture(gl.TEXTURE_2D,density_Pass_FBO.tx[1]);
+			glReadPixels(0,0,density_Pass_FBO.fb.width,density_Pass_FBO.fb.height,gl.RGBA,gl.UNSIGNED_BYTE,normArray);
+			
+			// Process data between GPU stages if necessary//
+			
+			almanac_Pass_FBO.activate();
+			shaders_in_use["c_Almanac_Shader"].activate();//Use built in template code to correctly bind textures and uniforms etc.
+			screenQuad.draw(graphics_state,eye,material);
+			var alm1 = []; //May need to setup as var alm1 = new Uint8Array(length);
+			var alm2 = [];
+			almanac_Pass_FBO.deactivate();
+			gl.bindTexture(gl.TEXTURE_2D,almanac_Pass_FBO.tx[0]);
+			glReadPixels(0,0,almanac_Pass_FBO.fb.width,almanac_Pass_FBO.fb.height,gl.RGBA,gl.UNSIGNED_BYTE,denseArray);
+			gl.bindTexture(gl.TEXTURE_2D,almanac_FBO.tx[1]);
+			glReadPixels(0,0,almanac_Pass_FBO.fb.width,almanac_Pass_FBO.fb.height,gl.RGBA,gl.UNSIGNED_BYTE,normArray);
+			
+
+		*/
+	},
+	
+	'populate': function(coords, c_size) 
     {
 		res = c_size/RES_RATIO
 		//Paul Bourke's implementation of the marching cubes algorithm, rewritten in javascript and adapted here to make us a surface

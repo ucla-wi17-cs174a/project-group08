@@ -276,10 +276,15 @@ Declare_Any_Class("Example_Animation", {
 		return true;// Exit if separated along an axis
 	},
     'display': function(time) {
-        var graphics_state = this.shared_scratchpad.graphics_state,
+		shaders_in_use["Default"].activate();
+        this.generate_G_Buffer(time);
+    },
+	'generate_G_Buffer': function(time){
+		var graphics_state = this.shared_scratchpad.graphics_state,
             model_transform = mat4();
-        shaders_in_use["Default"].activate();
+        
 
+		//Lights section to be revamped folowing renderer implementation
         // *** Lights: *** Values of vector or point lights over time.  Arguments to construct a Light(): position or vector (homogeneous coordinates), color, size
         // If you want more than two lights, you're going to need to increase a number in the vertex shader file (index.html).  For some reason this won't work in Firefox.
         graphics_state.lights = []; // First clear the light list each frame so we can replace & update lights.
@@ -295,12 +300,12 @@ Declare_Any_Class("Example_Animation", {
 
 
 
-		// create map
+		// Draw map
         model_transform = mult(model_transform, translation(0, 0, -100));;
 		shapes_in_use.terrain1.draw(graphics_state, model_transform, landMaterial);
         model_transform = mult(model_transform, translation(0, 0, 100));
 
-		// DRAW PLANE
+		// DRAW PLANE This is rather verbose and should get fixed
         // create tetrahedron for temp plane
 		// modify speed based on key input
 		var speed_change = 0.01;
@@ -423,5 +428,5 @@ Declare_Any_Class("Example_Animation", {
         this.shared_scratchpad.graphics_state.camera_transform = mult(this.shared_scratchpad.graphics_state.camera_transform, rotation(this.shared_scratchpad.heading, 0, -1, 0));
         this.shared_scratchpad.graphics_state.camera_transform = mult(this.shared_scratchpad.graphics_state.camera_transform, rotation(this.shared_scratchpad.pitch, -1, 0, 0));
         this.shared_scratchpad.graphics_state.camera_transform = mult(this.shared_scratchpad.graphics_state.camera_transform, translation(-1 * this.shared_scratchpad.x, -1 * this.shared_scratchpad.y, -1 * this.shared_scratchpad.z));
-    }
+	}
 }, Animation);
