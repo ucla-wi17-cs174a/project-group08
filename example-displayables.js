@@ -265,8 +265,14 @@ Declare_Any_Class("Example_Animation", {
 		return true;// Exit if separated along an axis
 	},
     'display': function(time) {
+		//bind GBuffer
+		
 		shaders_in_use["Default"].activate();
         this.generate_G_Buffer(time);
+		//Bind Screen FBO
+		//Setup Attribs and Uniforms
+		//activate appropo shaders
+		//Render to screen
     },
 	'generate_G_Buffer': function(time){
 		var graphics_state = this.shared_scratchpad.graphics_state,
