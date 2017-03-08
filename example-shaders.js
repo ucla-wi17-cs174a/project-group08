@@ -33,6 +33,8 @@ Declare_Any_Class( "Phong_or_Gouraud_Shader",
         gl.uniform4fv( g_addrs.lightPosition_loc,       lightPositions_flattened );
         gl.uniform4fv( g_addrs.lightColor_loc,          lightColors_flattened );
         gl.uniform1fv( g_addrs.attenuation_factor_loc,  lightAttenuations_flattened );
+		
+		
       },
     'vertex_glsl_code_string'  : function()           // ********* VERTEX SHADER *********
       { return `
@@ -177,35 +179,3 @@ Declare_Any_Class( "Funny_Shader",                    // This one borrows almost
           }`;
       }
   }, Phong_or_Gouraud_Shader );
-  
-  Declare_Any_Class("c_Density_Shader",
-  {
-	  'update_uniforms'          : function( g_state, model_transform, material ){
-		  
-	  },
-	  'vertex_glsl_code_string': function()           // ********* FRAGMENT SHADER *********
-      { return `
-	  
-	  `},
-	  'fragment_glsl_code_string': function()           // ********* FRAGMENT SHADER *********
-      { return `
-	  
-	  `},
-	  
-  },Shader);
-  
-   Declare_Any_Class("c_Almanac_Shader",
-  {
-	  'update_uniforms'          : function( g_state, model_transform, material ){
-		  
-	  },
-	  'vertex_glsl_code_string': function()           // ********* FRAGMENT SHADER *********
-      { return `
-	  
-	  `},
-	  'fragment_glsl_code_string': function()           // ********* FRAGMENT SHADER *********
-      { return `
-	  
-	  `},
-	  
-  },Shader);
