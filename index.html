@@ -16,8 +16,8 @@
           
       shaders_in_use[ "Default"     ] = new Phong_or_Gouraud_Shader	( g_state );    // Put all our shader programs in the GPU.
       shaders_in_use[ "Phong_Pass" ] = new Funny_Shader           	( g_state );
-	  shaders_in_use[ "c_Densities" ] = new c_Density_Shader		( g_state );
-	  shaders_in_use[ "c_Almanac" ] = new c_Almanac_Shader			( g_state );
+//	  shaders_in_use[ "c_Densities" ] = new c_Density_Shader		( g_state );
+//	  shaders_in_use[ "c_Almanac" ] = new c_Almanac_Shader			( g_state );
                                                                                 // IMPORTANT: -- You have to include all your new images in here:
       texture_filenames_to_load.push( "text.png");                             // Put all our texture images in the GPU.
       for( var i = 0; i < texture_filenames_to_load.length; i++ ) textures_in_use[ texture_filenames_to_load[i] ] = ( new Texture( texture_filenames_to_load[i], false ) );
