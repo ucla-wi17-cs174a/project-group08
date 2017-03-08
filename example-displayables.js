@@ -1,4 +1,6 @@
+
 var RES_RATIO = 32;	
+var SPEED_INC = .01;
 
 // Create the textbox
 Declare_Any_Class( "Debug_Screen",
@@ -245,7 +247,7 @@ Declare_Any_Class("Example_Animation", {
 
         // slow down
         controls.add(",", this, function() {
-			this.shared_scratchpad.speed_change = -1;
+			this.shared_scratchpad.speed_change = -SPEED_INC;
 			}
         );
 		controls.add( ",", this, function() { 
@@ -254,7 +256,7 @@ Declare_Any_Class("Example_Animation", {
 
         // speed up
         controls.add(".", this, function() {
-			this.shared_scratchpad.speed_change = 1;
+			this.shared_scratchpad.speed_change = SPEED_INC;
             }
         );
 		controls.add( ".", this, function() { 
@@ -290,27 +292,32 @@ Declare_Any_Class("Example_Animation", {
 	},
     'display': function(time) {
 		
-		var aMaterial = new Material(Color(0.4, 0.5, 0, 1), .6, .8, .4, 4);	//Just a placeholder for now
+		var aMaterial = new Material(Color(0.4, 0.5, 0, 1), .6, .8, .4, 4,"FAKE.CHICKEN");	//Just a placeholder for now
 
 		
 		////bind GBuffer
-		//this.GBuffer.activate();
-		shaders_in_use["Default"].activate();
-        this.generate_G_Buffer(time);
-		////Bind Screen FBO
-		//this.GBuffer.deactivate();
-		////Setup Attribs and Uniforms
-		////Implicit?
-		////activate appropo shaders
+		this.GBuffer.activate();
+		shaders_in_use["G_buf_gen"].activate();
+		
+		gl.clear( gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+       this.generate_G_Buffer(time);
+		//Bind Screen FBO
+		this.GBuffer.deactivate();
+		//Setup Attribs and Uniforms
+		//Implicit?
+		//activate appropo shaders
+		gl.clear( gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+		gl.activeTexture(gl.TEXTURE0);
+		gl.bindTexture(gl.TEXTURE_2D, this.GBuffer.tx[0]);
+		gl.activeTexture(gl.TEXTURE1);
+		gl.bindTexture(gl.TEXTURE_2D, this.GBuffer.tx[1]);
+		shaders_in_use["G_buf_phong"].activate();
 
-		//gl.activeTexture(gl.TEXTURE0);
-		//gl.bindTexture(gl.TEXTURE_2D, this.GBuffer.tx[0]);
-		//gl.activeTexture(gl.TEXTURE1);
-		//gl.bindTexture(gl.TEXTURE_2D, this.GBuffer.tx[1]);
-		//shaders_in_use["G_buf_phong"].activate();
-
-		////Render to screen
-		//shapes_in_use.square.draw(this.shared_scratchpad.graphics_state,new mat4(),aMaterial );
+		//Render to screen
+		shapes_in_use.square.draw(this.shared_scratchpad.graphics_state,new mat4(),aMaterial );
+		gl.activeTexture(gl.TEXTURE0);
+		gl.bindTexture(gl.TEXTURE_2D, null);
+		
     },
 	'generate_G_Buffer': function(time){
 		var graphics_state = this.shared_scratchpad.graphics_state,
@@ -337,18 +344,18 @@ Declare_Any_Class("Example_Animation", {
 		// DRAW PLANE This is rather verbose and should get fixed
         // create tetrahedron for temp plane
 		// modify speed based on key input
-		var speed_change = 0.01;
-		if(this.shared_scratchpad.speed_change < 0 && this.shared_scratchpad.speed > 0) // slowing down. Min speed is 0
-		{
-			this.shared_scratchpad.speed -= speed_change;
-			if(this.shared_scratchpad.speed < 0)
-				this.shared_scratchpad.speed = 0;
-		}
-		else if(this.shared_scratchpad.speed_change > 0 && this.shared_scratchpad.speed < 1) // speeding up. Max speed is 1
-		{
-			this.shared_scratchpad.speed += speed_change;
-		}
-		
+		// var speed_change = 0.01;
+		// if(this.shared_scratchpad.speed_change < 0 && this.shared_scratchpad.speed > 0) // slowing down. Min speed is 0
+		// {
+			// this.shared_scratchpad.speed -= speed_change;
+			// if(this.shared_scratchpad.speed < 0)
+				// this.shared_scratchpad.speed = 0;
+		// }
+		// else if(this.shared_scratchpad.speed_change > 0 && this.shared_scratchpad.speed < 1) // speeding up. Max speed is 1
+		// {
+			// this.shared_scratchpad.speed += speed_change;
+		// }
+		this.shared_scratchpad.speed = Math.min(1,Math.max(0,this.shared_scratchpad.speed + this.shared_scratchpad.speed_change));
 		// modify heading and pitch based on key input
 		if(this.shared_scratchpad.pitch <= 90 && this.shared_scratchpad.pitch >= -90)
 		{
@@ -407,7 +414,17 @@ Declare_Any_Class("Example_Animation", {
         model_transform = mult(model_transform, rotation(90, 0, 1, 0)); // current model is 90 degrees off
         shapes_in_use.plane.draw(graphics_state, model_transform, tetraMaterial);
 
-
+		this.drawCollectables(graphics_state, collectableMaterial); //HACK FIX. <- make collectables a class and/or interface for object oriented happiness :D
+		
+		// make camera follow the plane
+        this.shared_scratchpad.graphics_state.camera_transform = mat4();
+        this.shared_scratchpad.graphics_state.camera_transform = mult(this.shared_scratchpad.graphics_state.camera_transform, rotation(10, 1, 0, 0));
+        this.shared_scratchpad.graphics_state.camera_transform = mult(this.shared_scratchpad.graphics_state.camera_transform, translation(0, -5, -10));
+        this.shared_scratchpad.graphics_state.camera_transform = mult(this.shared_scratchpad.graphics_state.camera_transform, rotation(this.shared_scratchpad.heading, 0, -1, 0));
+        this.shared_scratchpad.graphics_state.camera_transform = mult(this.shared_scratchpad.graphics_state.camera_transform, rotation(this.shared_scratchpad.pitch, -1, 0, 0));
+        this.shared_scratchpad.graphics_state.camera_transform = mult(this.shared_scratchpad.graphics_state.camera_transform, translation(-1 * this.shared_scratchpad.x, -1 * this.shared_scratchpad.y, -1 * this.shared_scratchpad.z));
+	},
+	'drawCollectables': function(graphics_state, collectableMaterial){
 		// DRAW COLLECTION_OBJECT
 		// create collection objects and check if it exists
 		for(var i = 0; i < shapes_in_use.collection_object.length; i++)
@@ -422,19 +439,11 @@ Declare_Any_Class("Example_Animation", {
 				}
 				else
 				{
-					model_transform = mat4();
+					var model_transform = mat4();
 					model_transform = mult(model_transform, translation(cur_collection.x, cur_collection.y, cur_collection.z));
 					cur_collection.draw(graphics_state, model_transform, collectableMaterial);
 				}
 			}
 		}
-		
-		// make camera follow the plane
-        this.shared_scratchpad.graphics_state.camera_transform = mat4();
-        this.shared_scratchpad.graphics_state.camera_transform = mult(this.shared_scratchpad.graphics_state.camera_transform, rotation(10, 1, 0, 0));
-        this.shared_scratchpad.graphics_state.camera_transform = mult(this.shared_scratchpad.graphics_state.camera_transform, translation(0, -5, -10));
-        this.shared_scratchpad.graphics_state.camera_transform = mult(this.shared_scratchpad.graphics_state.camera_transform, rotation(this.shared_scratchpad.heading, 0, -1, 0));
-        this.shared_scratchpad.graphics_state.camera_transform = mult(this.shared_scratchpad.graphics_state.camera_transform, rotation(this.shared_scratchpad.pitch, -1, 0, 0));
-        this.shared_scratchpad.graphics_state.camera_transform = mult(this.shared_scratchpad.graphics_state.camera_transform, translation(-1 * this.shared_scratchpad.x, -1 * this.shared_scratchpad.y, -1 * this.shared_scratchpad.z));
 	}
 }, Animation);
