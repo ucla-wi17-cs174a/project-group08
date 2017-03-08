@@ -12,7 +12,7 @@
 	    precision mediump float;
 	   
 	    attribute vec3 vPosition;				
-		uniform vec4 coords;	//4th value means nothing	  	  
+		//uniform vec4 coords;	//4th value means nothing	  	  
 	  
 	  void main()
 	  {
@@ -112,23 +112,33 @@
 		}
 		//End simplex noise
 		
-				
+		
 		void f_density(in vec3 ws, out float ret)	//Positive corresponds to ground
 		{
 			ret = -1.0*ws[1] - 5.0;
 			float add_dens;		
-			
-			snoise(vec3(ws[0]*0.046, ws[1]*0.026, ws[2]*0.026), add_dens);			ret += add_dens*32.0;			
-			snoise(vec3(ws[0]*0.066, ws[1]*0.046, ws[2]*0.056), add_dens);			ret += add_dens*16.0;
-			snoise(vec3(ws[0]*0.091, ws[1]*0.111, ws[2]*0.091), add_dens);			ret += add_dens*8.0;
-			snoise(vec3(ws[0]*0.191, ws[1]*0.291, ws[2]*0.191), add_dens);			ret += add_dens*4.0;
-			snoise(vec3(ws[0]*0.391, ws[1]*0.391, ws[2]*0.391), add_dens);			ret += add_dens*2.0;
+			vec3 freq0 = vec3(0.046, 0.026, 0.026);
+			vec3 freq1 = vec3(0.066, 0.046, 0.056);
+			vec3 freq2 = vec3(0.091, 0.111, 0.091);
+			vec3 freq3 = vec3(0.191, 0.291, 0.191);
+			vec3 freq4 = vec3(0.391, 0.391, 0.391);
+			float ampl0 = 32.0;
+			float ampl1 = 16.0;
+			float ampl2 = 8.0;
+			float ampl3 = 4.0;
+			float ampl4 = 2.0;
+			snoise(vec3(ws[0]*freq0.x, ws[1]*freq0.y, ws[2]*freq0.z), add_dens);			ret += add_dens*ampl0;			
+			snoise(vec3(ws[0]*freq1.x, ws[1]*freq1.y, ws[2]*freq1.z), add_dens);			ret += add_dens*ampl1;
+			snoise(vec3(ws[0]*freq2.x, ws[1]*freq2.y, ws[2]*freq2.z), add_dens);			ret += add_dens*ampl2;
+			snoise(vec3(ws[0]*freq3.x, ws[1]*freq3.y, ws[2]*freq3.z), add_dens);			ret += add_dens*ampl3;
+			snoise(vec3(ws[0]*freq4.x, ws[1]*freq4.y, ws[2]*freq4.z), add_dens);			ret += add_dens*ampl4;
 		}
 	
 	  void main()
 	  {	 	  
 		float density; 
-		f_density(vec3(coords[0], coords[1], coords[2]), density);
+		vec3 mod_coords = vec3(coords[0]+mod(gl_FragCoord.x-0.5,33.0), coords[1]+gl_FragCoord.y-0.5, coords[2]+floor((gl_FragCoord.x-0.5)/33.0));
+		f_density(mod_coords, density);
 		density = floor(density*1048576.0);	//mult by 2^20 for packing purposes - compatible with densities up to 2^11 or so, which should be plenty (we can change this scaling if it's not, doesn't really matter)
 		vec4 pack_shift = vec4( 256.0 * 256.0 * 256.0, 256.0 * 256.0, 256.0, 1.0);	
 		vec4 pack_mask = vec4( 0.0, 1.0/256.0, 1.0/256.0, 1.0/256.0);
@@ -139,9 +149,9 @@
 		float x_grad_dens;
 		float y_grad_dens;
 		float z_grad_dens;
-		f_density(vec3(coords[0], coords[1], coords[2]) + vec3(0.1, 0, 0), x_grad_dens);
-		f_density(vec3(coords[0], coords[1], coords[2]) + vec3(0, 0.1, 0), y_grad_dens);
-		f_density(vec3(coords[0], coords[1], coords[2]) + vec3(0, 0, 0.1), z_grad_dens);
+		f_density(mod_coords + vec3(0.1, 0, 0), x_grad_dens);
+		f_density(mod_coords + vec3(0, 0.1, 0), y_grad_dens);
+		f_density(mod_coords + vec3(0, 0, 0.1), z_grad_dens);
 		
 		float x_grad = density - x_grad_dens;
 		float y_grad = density - y_grad_dens;
