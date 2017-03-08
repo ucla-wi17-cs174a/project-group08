@@ -1,4 +1,4 @@
-var RES_RATIO = 16;	
+var RES_RATIO = 32;	
 
 // Create the textbox
 Declare_Any_Class( "Debug_Screen",
@@ -74,7 +74,7 @@ Declare_Any_Class("Example_Animation", {
 		var test_node = Node_add(vec3(0,0,0), 32, world_tree);			
 		shapes_in_use.terrain.to_draw[0] = test_node;
 		shapes_in_use.terrain.populate(vec3(0,0,0), 32);
-		shapes_in_use.terrain.populate_GPU(vec3(0,0,0), 32, this.shared_scratchpad.graphics_state);
+		shapes_in_use.terrain.populate_GPU(vec3(32,-32,0), 32, this.shared_scratchpad.graphics_state);
 		
 		
 		

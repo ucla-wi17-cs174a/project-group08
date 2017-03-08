@@ -14,7 +14,7 @@ Declare_Any_Class( "Terrain",
 	'construct': function( args )
       { this.define_data_members( { positions: [], normals: [], texture_coords: [], indices: [], indexed: true, sent_to_GPU: false } );
         this.populate.apply( this, arguments ); // Immediately fill in appropriate vertices via polymorphism, calling whichever sub-class's populate().
-		this.density_Pass_FBO = new FBO(RES_RATIO+1,(RES_RATIO+1)*(RES_RATIO+1),2); //One 32bit buffer for density, one for normals
+		this.density_Pass_FBO = new FBO((RES_RATIO+1)*(RES_RATIO+1), RES_RATIO+1, 2); //One 32bit buffer for density, one for normals
 		//this.almanac_Pass_FBO = new FBO(RES_RATIO,RES_RATIO*RES_RATIO,2); // 1/2 Byte for numTris, 7.5 bytes for edges
 		
 		//Arrays to hold important info for terrain (in the form of nodes):
@@ -48,14 +48,24 @@ Declare_Any_Class( "Terrain",
 			// gl.drawArrays( gl.TRIANGLES, 0, 4);
 			shapes_in_use.screenQuad.copy_onto_graphics_card();
 			shapes_in_use.screenQuad.draw(graphics_state, eye, mat_coords); 
-			var denseArray = new Uint8Array(143748); //May need to setup as var denseArray = new Uint8Array(length);
-			var normArray = new Uint8Array(143748);	//Where length is 4(bytes)*33*33*33
-			this.density_Pass_FBO.deactivate();
+			var denseArray = new Uint8Array(4*(RES_RATIO+1)*(RES_RATIO+1)*(RES_RATIO+1)); //May need to setup as var denseArray = new Uint8Array(length);
+			console.log(denseArray);
+			console.log(this.density_Pass_FBO.fb.width, this.density_Pass_FBO.fb.height);
+			var normArray = new Uint8Array(4*(RES_RATIO+1)*(RES_RATIO+1)*(RES_RATIO+1));	//Where length is 4(bytes)*33*33*33			
 			gl.bindTexture(gl.TEXTURE_2D,this.density_Pass_FBO.tx[0]);
 			gl.readPixels(0,0,this.density_Pass_FBO.fb.width,this.density_Pass_FBO.fb.height,gl.RGBA,gl.UNSIGNED_BYTE,denseArray);
-			gl.bindTexture(gl.TEXTURE_2D,this.density_Pass_FBO.tx[1]);
+			//gl.bindTexture(gl.TEXTURE_2D,this.density_Pass_FBO.tx[1]);
+			var stupidDummy = gl.createFramebuffer();
+			gl.bindFramebuffer(gl.FRAMEBUFFER, stupidDummy);
+			gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, this.density_Pass_FBO.tx[1], 0); 
+			console.log(gl.checkFramebufferStatus(gl.FRAMEBUFFER)==gl.FRAMEBUFFER_COMPLETE);
 			gl.readPixels(0,0,this.density_Pass_FBO.fb.width,this.density_Pass_FBO.fb.height,gl.RGBA,gl.UNSIGNED_BYTE,normArray);
 			console.log(denseArray);
+			console.log(normArray);
+			this.density_Pass_FBO.deactivate();
+			
+			
+			
 		/*	
 			// Process data between GPU stages if necessary//
 			
@@ -176,6 +186,11 @@ function grad(hash, x, y, z)	//Choose a vector
 	}
 }
 
+//Paul Bourke's implementation of the marching cubes algorithm, rewritten in javascript and adapted here to make us a surface
+/*
+   Linearly interpolate the position where an isosurface cuts
+   an edge between two vertices, each with their own scalar value
+*/
 function perlin(x, y, z)
 {	
 	x += 1048576;	//Makes it positive
@@ -224,11 +239,7 @@ function perlin(x, y, z)
 	return (lerp (y1, y2, w)+1)/2 - 0.5; 	//Output from -0.5 to 0.5; change this to change that range
 }		
 
-//Paul Bourke's implementation of the marching cubes algorithm, rewritten in javascript and adapted here to make us a surface
-/*
-   Linearly interpolate the position where an isosurface cuts
-   an edge between two vertices, each with their own scalar value
-*/
+
 function VertexInterp(isolevel,p1,p2,valp1,valp2)
 {
    var mu;
