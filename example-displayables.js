@@ -67,12 +67,6 @@ Declare_Any_Class("Example_Animation", {
 		
 		shapes_in_use.square = new Square();
 		this.GBuffer = new FBO(canvas.width,canvas.height,4);
-
-		// declare heightmap variables
-		shapes_in_use.heightmap = new Heightmap;
-		shapes_in_use.terrain1 = new Terrain(vec3(0, -32, -32), 32);
-		shapes_in_use.terrain2 = new Terrain(vec3(0, -32, -64), 32);
-		// shapes_in_use.terrain3 = new Terrain(vec3(0, -32, -96), 32);
 		
 		var world_size = 2048;
 		shapes_in_use.terrain = new Terrain();
@@ -297,14 +291,14 @@ Declare_Any_Class("Example_Animation", {
     'display': function(time) {
 		//bind GBuffer
 		this.GBuffer.activate();
-		shaders_in_use["G_buff_gen"].activate();
+		shaders_in_use["G_buf_gen"].activate();
         this.generate_G_Buffer(time);
 		//Bind Screen FBO
 		this.GBuffer.deactivate();
 		//Setup Attribs and Uniforms
 		//Implicit?
 		//activate appropo shaders
-		shaders_in_use["G_buff_phong"].activate();
+		shaders_in_use["G_buf_phong"].activate();
 		//Render to screen
 		shapes_in_use.square.draw();
     },
@@ -327,11 +321,7 @@ Declare_Any_Class("Example_Animation", {
         var tetraMaterial = new Material(Color(0, 1, 1, 1), .4, .4, .4, 40); // Omit the final (string) parameter if you want no texture
 		var landMaterial = new Material(Color(0.4, 0.5, 0, 1), .6, .8, .4, 4);	//Just a placeholder for now
 
-		// Draw map
-        model_transform = mult(model_transform, translation(0, 0, -100));
-		shapes_in_use.terrain.to_draw[0].contents.copy_onto_graphics_card();
-		shapes_in_use.terrain.to_draw[0].contents.draw(graphics_state, model_transform, landMaterial);
-        model_transform = mult(model_transform, translation(0, 0, 100));
+
 
 		
 		// DRAW PLANE This is rather verbose and should get fixed
