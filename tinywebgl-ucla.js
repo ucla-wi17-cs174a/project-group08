@@ -303,8 +303,17 @@ Declare_Any_Class( "Canvas_Manager",                      // This class performs
         if( this.shared_scratchpad.animate ) this.shared_scratchpad.graphics_state.animation_time      += this.shared_scratchpad.graphics_state.animation_delta_time;
         this.prev_time = time;
 
-        for ( let name in shapes_in_use ) if( !shapes_in_use[name].sent_to_GPU ) shapes_in_use[name].copy_onto_graphics_card();
-
+        for ( let name in shapes_in_use ) 
+		{
+			if(Array.isArray(shapes_in_use[name]))
+			{
+				for(var i = 0; i < shapes_in_use[name].length; i++)
+				{
+					if( !shapes_in_use[name][i].sent_to_GPU ) shapes_in_use[name][i].copy_onto_graphics_card();
+				}
+			}
+			else if( !shapes_in_use[name].sent_to_GPU ) shapes_in_use[name].copy_onto_graphics_card();
+		}
         gl = this.gl;                                                     // Set the global gl variable to the current one that is drawing, belonging to this canvas.
         gl.clear( gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);             // Clear its pixels and z-buffer.           
         for( var i = 0; i < this.displayables.length; i++ )
