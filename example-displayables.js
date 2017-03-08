@@ -290,27 +290,32 @@ Declare_Any_Class("Example_Animation", {
 	},
     'display': function(time) {
 		
-		var aMaterial = new Material(Color(0.4, 0.5, 0, 1), .6, .8, .4, 4);	//Just a placeholder for now
+		var aMaterial = new Material(Color(0.4, 0.5, 0, 1), .6, .8, .4, 4,"FAKE.CHICKEN");	//Just a placeholder for now
 
 		
 		////bind GBuffer
-		//this.GBuffer.activate();
-		shaders_in_use["Default"].activate();
-        this.generate_G_Buffer(time);
-		////Bind Screen FBO
-		//this.GBuffer.deactivate();
-		////Setup Attribs and Uniforms
-		////Implicit?
-		////activate appropo shaders
+		this.GBuffer.activate();
+		shaders_in_use["G_buf_gen"].activate();
+		
+		gl.clear( gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+       this.generate_G_Buffer(time);
+		//Bind Screen FBO
+		this.GBuffer.deactivate();
+		//Setup Attribs and Uniforms
+		//Implicit?
+		//activate appropo shaders
+		gl.clear( gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+		gl.activeTexture(gl.TEXTURE0);
+		gl.bindTexture(gl.TEXTURE_2D, this.GBuffer.tx[0]);
+		gl.activeTexture(gl.TEXTURE1);
+		gl.bindTexture(gl.TEXTURE_2D, this.GBuffer.tx[1]);
+		shaders_in_use["G_buf_phong"].activate();
 
-		//gl.activeTexture(gl.TEXTURE0);
-		//gl.bindTexture(gl.TEXTURE_2D, this.GBuffer.tx[0]);
-		//gl.activeTexture(gl.TEXTURE1);
-		//gl.bindTexture(gl.TEXTURE_2D, this.GBuffer.tx[1]);
-		//shaders_in_use["G_buf_phong"].activate();
-
-		////Render to screen
-		//shapes_in_use.square.draw(this.shared_scratchpad.graphics_state,new mat4(),aMaterial );
+		//Render to screen
+		shapes_in_use.square.draw(this.shared_scratchpad.graphics_state,new mat4(),aMaterial );
+		gl.activeTexture(gl.TEXTURE0);
+		gl.bindTexture(gl.TEXTURE_2D, null);
+		
     },
 	'generate_G_Buffer': function(time){
 		var graphics_state = this.shared_scratchpad.graphics_state,

@@ -110,6 +110,10 @@ Declare_Any_Class( "Shape",
         }
         else  { gl.uniform1f ( g_addrs.USE_TEXTURE_loc, 0 );   g_addrs.shader_attributes[2].enabled = false; }
 
+		//Catch case of "null" texture. Need texCoords, but nothing else.
+		if(material.texture_filename && material.texture_filename == "FAKE.CHICKEN")
+			g_addrs.shader_attributes[2].enabled = true;
+		
         for( var i = 0, it = g_addrs.shader_attributes[0]; i < g_addrs.shader_attributes.length, it = g_addrs.shader_attributes[i]; i++ )
           if( it.enabled && it.index != -1)
           { gl.enableVertexAttribArray( it.index );
@@ -315,7 +319,7 @@ Declare_Any_Class( "Canvas_Manager",                      // This class performs
 			else if( !shapes_in_use[name].sent_to_GPU ) shapes_in_use[name].copy_onto_graphics_card();
 		}
         gl = this.gl;                                                     // Set the global gl variable to the current one that is drawing, belonging to this canvas.
-        gl.clear( gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);             // Clear its pixels and z-buffer.           
+        //gl.clear( gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);             // Clear its pixels and z-buffer.           
         for( var i = 0; i < this.displayables.length; i++ )
         {
           this.displayables[ i ].display( time );                                 // Draw each registered displayable.
