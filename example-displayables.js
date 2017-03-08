@@ -298,7 +298,13 @@ Declare_Any_Class("Example_Animation", {
 		//Setup Attribs and Uniforms
 		//Implicit?
 		//activate appropo shaders
+
+		gl.activeTexture(gl.TEXTURE0);
+		gl.bindTexture(GBuffer.tx[0]);
+		gl.activeTexture(gl.TEXTURE1);
+		gl.bindTexture(GBuffer.tx[1]);
 		shaders_in_use["G_buf_phong"].activate();
+
 		//Render to screen
 		shapes_in_use.square.draw();
     },
