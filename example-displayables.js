@@ -60,7 +60,7 @@ Declare_Any_Class("Example_Animation", {
 		
 		shapes_in_use.imported = Imported_Object.prototype.auto_flat_shaded_version();;
 		shapes_in_use.square = new Square();
-		
+		this.GBuffer = new FBO(canvas.width,canvas.height,4);
 		var world_size = 2048;
 		shapes_in_use.terrain = new Terrain();
 		var world_tree = new Node(vec3(-world_size/2, -world_size/2, -world_size/2), world_size, null);
@@ -266,13 +266,17 @@ Declare_Any_Class("Example_Animation", {
 	},
     'display': function(time) {
 		//bind GBuffer
-		
-		shaders_in_use["Default"].activate();
+		this.GBuffer.activate();
+		shaders_in_use["G_buff_gen"].activate();
         this.generate_G_Buffer(time);
 		//Bind Screen FBO
+		this.GBuffer.deactivate();
 		//Setup Attribs and Uniforms
+		//Implicit?
 		//activate appropo shaders
+		shaders_in_use["G_buff_phong"].activate();
 		//Render to screen
+		shapes_in_use.square.draw();
     },
 	'generate_G_Buffer': function(time){
 		var graphics_state = this.shared_scratchpad.graphics_state,
