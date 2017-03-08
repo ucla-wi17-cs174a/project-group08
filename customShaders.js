@@ -13,8 +13,10 @@ Declare_Any_Class( "G_buf_gen",
         varying vec2 fTexCoord;
 		varying vec3 fNormal;
 		varying vec4 pos;
-		void
-		main()
+		
+		uniform mat4 projection_camera_model_transform;
+		
+		void main()
 		{
 			
             vec4 object_space_pos = vec4(vPosition, 1.0);
@@ -32,8 +34,7 @@ Declare_Any_Class( "G_buf_gen",
 	
 		varying vec3 fNormal;
 		varying vec2 fTexCoord;
-		void
-		main()
+		void main()
 		{
 		float x_com = abs(dot(fNormal,vec3(1,0,0)));
 		float y_com = abs(dot(fNormal,vec3(0,1,0)));
@@ -60,8 +61,10 @@ Declare_Any_Class( "G_buf_gen",
         varying vec2 fTexCoord;
 		varying vec3 fNormal;
 		varying vec4 pos;
-		void
-		main()
+		
+		uniform mat4 projection_camera_model_transform;
+		
+		void main()
 		{
 			
             vec4 object_space_pos = vec4(vPosition, 1.0);
@@ -79,8 +82,7 @@ Declare_Any_Class( "G_buf_gen",
 	
 		varying vec3 fNormal;
 		varying vec2 fTexCoord;
-		void
-		main()
+		void main()
 		{
 		float x_com = abs(dot(fNormal,vec3(1,0,0)));
 		float y_com = abs(dot(fNormal,vec3(0,1,0)));

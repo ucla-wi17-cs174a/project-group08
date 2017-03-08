@@ -289,24 +289,28 @@ Declare_Any_Class("Example_Animation", {
 		return true;// Exit if separated along an axis
 	},
     'display': function(time) {
-		//bind GBuffer
-		this.GBuffer.activate();
-		shaders_in_use["G_buf_gen"].activate();
+		
+		var aMaterial = new Material(Color(0.4, 0.5, 0, 1), .6, .8, .4, 4);	//Just a placeholder for now
+
+		
+		////bind GBuffer
+		//this.GBuffer.activate();
+		shaders_in_use["Default"].activate();
         this.generate_G_Buffer(time);
-		//Bind Screen FBO
-		this.GBuffer.deactivate();
-		//Setup Attribs and Uniforms
-		//Implicit?
-		//activate appropo shaders
+		////Bind Screen FBO
+		//this.GBuffer.deactivate();
+		////Setup Attribs and Uniforms
+		////Implicit?
+		////activate appropo shaders
 
-		gl.activeTexture(gl.TEXTURE0);
-		gl.bindTexture(GBuffer.tx[0]);
-		gl.activeTexture(gl.TEXTURE1);
-		gl.bindTexture(GBuffer.tx[1]);
-		shaders_in_use["G_buf_phong"].activate();
+		//gl.activeTexture(gl.TEXTURE0);
+		//gl.bindTexture(gl.TEXTURE_2D, this.GBuffer.tx[0]);
+		//gl.activeTexture(gl.TEXTURE1);
+		//gl.bindTexture(gl.TEXTURE_2D, this.GBuffer.tx[1]);
+		//shaders_in_use["G_buf_phong"].activate();
 
-		//Render to screen
-		shapes_in_use.square.draw();
+		////Render to screen
+		//shapes_in_use.square.draw(this.shared_scratchpad.graphics_state,new mat4(),aMaterial );
     },
 	'generate_G_Buffer': function(time){
 		var graphics_state = this.shared_scratchpad.graphics_state,
