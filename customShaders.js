@@ -29,11 +29,11 @@ Declare_Any_Class( "G_buf_gen_NormalSpray",
 		void main()
 		{
 			
-            vec4 object_space_pos = vec4(vPosition, 1.0);
-            gl_Position = projection_camera_model_transform * object_space_pos;
+            vec4 ospos = vec4(vPosition, 1.0);
+            gl_Position = projection_camera_model_transform * ospos;
             fTexCoord = vTexCoord;
 			fNormal = vNormal;
-			pos = gl_Position;
+			pos = ospos;
 		}
 	  `;
       },
