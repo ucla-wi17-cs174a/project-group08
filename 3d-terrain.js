@@ -23,30 +23,39 @@ Declare_Any_Class( "Terrain",
 		this.to_purge = [];	//Also part of this process, the old low-res geometry should no longer be drawn - use this to update to_draw when it's time
 			//Over more iterations, create the geometry for the list above, several blocks per iteration depending on speed
 			//After geometry is made, add it to the list of stuff to draw, and purge the lower resolution geometry that is replaced
-		this.to_draw = []	//All the geometry in here is what gets drawn
+		this.to_draw = [];	//All the geometry in here is what gets drawn
       },
 	  
 	// 'initialize': function()
 	// {												
 	// },
 
-	'populate_GPU': function(coords,c_size){
+	'populate_GPU': function(coords, c_size, graphics_state){
 		
 		
-			// screenQuad = new Square();
-			// var eye = new mat4();
-			// var mat_coords = new Material(Color(32.0, 32.0, 32.0, 1.0), 0, 0, 0, 0);
-			// density_Pass_FBO.activate();
-			// shaders_in_use["c_Density_Shader"].activate();	//Use built in template code to correctly bind textures and uniforms etc.
-			// screenQuad.draw(graphics_state, eye, mat_coords); 
-			// var denseArray = []; //May need to setup as var denseArray = new Uint8Array(length);
-			// var normArray = [];
-			// density_Pass_FBO.deactivate();
-			// gl.bindTexture(gl.TEXTURE_2D,density_Pass_FBO.tx[0]);
-			// glReadPixels(0,0,density_Pass_FBO.fb.width,density_Pass_FBO.fb.height,gl.RGBA,gl.UNSIGNED_BYTE,denseArray);
-			// gl.bindTexture(gl.TEXTURE_2D,density_Pass_FBO.tx[1]);
-			// glReadPixels(0,0,density_Pass_FBO.fb.width,density_Pass_FBO.fb.height,gl.RGBA,gl.UNSIGNED_BYTE,normArray);
-			// console.log(denseArray);
+			shapes_in_use.screenQuad = new Square();
+			var eye = new mat4();
+			var mat_coords = new Material(Color(32.0, 32.0, 32.0, 1.0), 0, 0, 0, 0);
+			this.density_Pass_FBO.activate();
+			shaders_in_use["c_Density_Shader"].activate();
+			////Set uniforms + attributes
+			// var buffer_dens = gl.createBuffer();
+			// gl.bindBuffer( gl.ARRAY_BUFFER, buffer_dens );
+			// gl.bufferData( gl.ARRAY_BUFFER, flatten(screenQuad.positions), gl.STATIC_DRAW );	
+			// var coords_4 = vec4(coords[0], coords[1], coords[2], 0);
+			// var coords_4_u = gl.getUniformLocation(graphics_state, "coords_4");
+			// gl.uniform4fv(coords_4_u, false, vec4(32.0, 32.0, 32.0, 1.0)); 	//This should be done by material
+			// gl.drawArrays( gl.TRIANGLES, 0, 4);
+			shapes_in_use.screenQuad.copy_onto_graphics_card();
+			shapes_in_use.screenQuad.draw(graphics_state, eye, mat_coords); 
+			var denseArray = new Uint8Array(143748); //May need to setup as var denseArray = new Uint8Array(length);
+			var normArray = new Uint8Array(143748);	//Where length is 4(bytes)*33*33*33
+			this.density_Pass_FBO.deactivate();
+			gl.bindTexture(gl.TEXTURE_2D,this.density_Pass_FBO.tx[0]);
+			gl.readPixels(0,0,this.density_Pass_FBO.fb.width,this.density_Pass_FBO.fb.height,gl.RGBA,gl.UNSIGNED_BYTE,denseArray);
+			gl.bindTexture(gl.TEXTURE_2D,this.density_Pass_FBO.tx[1]);
+			gl.readPixels(0,0,this.density_Pass_FBO.fb.width,this.density_Pass_FBO.fb.height,gl.RGBA,gl.UNSIGNED_BYTE,normArray);
+			console.log(denseArray);
 		/*	
 			// Process data between GPU stages if necessary//
 			

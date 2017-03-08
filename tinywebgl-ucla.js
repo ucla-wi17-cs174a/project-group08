@@ -111,12 +111,12 @@ Declare_Any_Class( "Shape",
         else  { gl.uniform1f ( g_addrs.USE_TEXTURE_loc, 0 );   g_addrs.shader_attributes[2].enabled = false; }
 
         for( var i = 0, it = g_addrs.shader_attributes[0]; i < g_addrs.shader_attributes.length, it = g_addrs.shader_attributes[i]; i++ )
-          if( it.enabled )
+          if( it.enabled && it.index != -1)
           { gl.enableVertexAttribArray( it.index );
             gl.bindBuffer( gl.ARRAY_BUFFER, this.graphics_card_buffers[i] );
             gl.vertexAttribPointer( it.index, it.size, it.type, it.normalized, it.stride, it.pointer );
           }
-          else  gl.disableVertexAttribArray( it.index );
+          else if(it.index!=-1) gl.disableVertexAttribArray( it.index );
 
         if( this.indexed )
         { gl.bindBuffer( gl.ELEMENT_ARRAY_BUFFER, this.index_buffer );
