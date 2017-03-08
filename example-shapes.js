@@ -175,3 +175,55 @@ Declare_Any_Class( "Text_Line", // Draws a rectangle textured with images of ASC
         gl.bufferData( gl.ARRAY_BUFFER, flatten(this.texture_coords), gl.STATIC_DRAW );
       }
   }, Shape )
+  
+  Declare_Any_Class( "Cube",            
+  { 'populate': function(s = 1) 
+      {
+       
+	   //Creates a Cube in the most brute force way possible. 
+	   
+		this.positions.push( vec3(-.5,-.5,-.5), vec3(.5,-.5,-.5), vec3(.5,.5,-.5));//-z
+		this.positions.push( vec3(-.5,-.5,-.5),vec3(.5,.5,-.5), vec3(-.5,.5,-.5) );//-z
+		this.positions.push( vec3(-.5,-.5,-.5), vec3(.5,-.5,-.5), vec3(.5,-.5,.5));//-y 
+		this.positions.push( vec3(-.5,-.5,-.5), vec3(.5,-.5,.5), vec3(-.5,-.5,.5));//-y 
+		this.positions.push( vec3(-.5,.5,-.5), vec3(.5,.5,.5), vec3(.5,.5,-.5));//+y 
+		this.positions.push( vec3(-.5,.5,-.5), vec3(-.5,.5,.5), vec3(.5,.5,.5));//+y 
+		this.positions.push( vec3(-.5,.5,.5), vec3(.5,-.5,.5), vec3(.5,.5,.5));//+z
+		this.positions.push( vec3(-.5,.5,.5),vec3(-.5,-.5,.5), vec3(.5,-.5,.5) );//+z 	
+		this.positions.push( vec3(-.5,-.5,-.5), vec3(-.5,.5,.5), vec3(-.5,.5,-.5));//-x 
+		this.positions.push( vec3(-.5,-.5,-.5),vec3(-.5,-.5,.5), vec3(-.5,.5,.5) );//-x 	
+		this.positions.push( vec3(.5,-.5,-.5), vec3(.5,.5,-.5), vec3(.5,.5,.5));//+x 
+		this.positions.push( vec3(.5,-.5,-.5),vec3(.5,.5,.5), vec3(.5,-.5,.5) );//+x
+	
+        this.normals.push( vec3(0,0,-1), vec3(0,0,-1), vec3(0,0,-1) ); 
+		this.normals.push( vec3(0,0,-1), vec3(0,0,-1), vec3(0,0,-1) );		
+		this.normals.push( vec3(0,-1,0), vec3(0,-1,0), vec3(0,-1,0) );
+		this.normals.push( vec3(0,-1,0), vec3(0,-1,0), vec3(0,-1,0) );
+		this.normals.push( vec3(0,1,0), vec3(0,1,0), vec3(0,1,0) );
+		this.normals.push( vec3(0,1,0), vec3(0,1,0), vec3(0,1,0) );
+		this.normals.push( vec3(0,0,1), vec3(0,0,1), vec3(0,0,1) ); 
+		this.normals.push( vec3(0,0,1), vec3(0,0,1), vec3(0,0,1) );
+        this.normals.push( vec3(-1,0,0), vec3(-1,0,0), vec3(-1,0,0) );
+		this.normals.push( vec3(-1,0,0), vec3(-1,0,0), vec3(-1,0,0) );
+		this.normals.push( vec3(1,0,0), vec3(1,0,0), vec3(1,0,0) );
+		this.normals.push( vec3(1,0,0), vec3(1,0,0), vec3(1,0,0) );
+
+		//Texture Co-ords. Correspond 1:1 with the vertices and normals above
+		this.texture_coords.push( vec2(s,0), vec2(0,0), vec2(0,s) );    
+        this.texture_coords.push( vec2(s,0), vec2(0,s), vec2(s,s) ); 
+		this.texture_coords.push( vec2(0,s), vec2(s,s), vec2(s,0) );    
+        this.texture_coords.push( vec2(0,s), vec2(s,0), vec2(0,0) ); 
+		this.texture_coords.push( vec2(0,s), vec2(s,0), vec2(s,s) );    
+        this.texture_coords.push( vec2(0,s), vec2(0,0), vec2(s,0) ); 
+		this.texture_coords.push( vec2(0,s), vec2(s,0), vec2(s,s) );    
+        this.texture_coords.push( vec2(0,s), vec2(0,0), vec2(s,0) ); 
+		this.texture_coords.push( vec2(0,s), vec2(s,0), vec2(s,s) );    
+        this.texture_coords.push( vec2(0,s), vec2(0,0), vec2(s,0) ); 
+		this.texture_coords.push( vec2(s,0), vec2(s,s), vec2(0,s) );    
+        this.texture_coords.push( vec2(s,0), vec2(0,s), vec2(0,0) ); 
+
+		//The following line is not using memory at all efficiently and should be used for its actual purpose correctly.
+        this.indices.push( 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31,32,33,34,35);     
+        
+      }
+  }, Shape )

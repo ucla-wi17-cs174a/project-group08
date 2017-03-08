@@ -1,7 +1,7 @@
 // UCLA's Graphics Example Code (Javascript and C++ translations available), by Garett Ridge for CS174a.
 // tinywebgl_ucla.js - A file to show how to organize a complete graphics program.  It wraps common WebGL commands.
 
-var shapes_in_use = [], shaders_in_use = [], framebuffers = [], textures_in_use = [], active_shader, texture_filenames_to_load = [], gl, g_addrs, ext_db;    // ****** GLOBAL VARIABLES *******
+var shapes_in_use = [], shaders_in_use = [], framebuffers = [], textures_in_use = [], active_shader, texture_filenames_to_load = [], gl, g_addrs, ext_db, ext_hf;    // ****** GLOBAL VARIABLES *******
 
 var attach_Points_Color;
 
@@ -19,13 +19,14 @@ function Declare_Any_Class( name, methods, superclass = Object, scope = window )
   
  Declare_Any_Class("FBO",
 {
-	'construct': function(width,height,layers){
+	'construct': function(width,height,layers,floats = false){
 		this.fb = gl.createFramebuffer();
 		gl.bindFramebuffer(gl.FRAMEBUFFER, this.fb);
 		this.fb.width = width;
 		this.fb.height = height;
 		this.tx = [];
 		var buffs = [];
+		var type = floats ? ext_hf.HALF_FLOAT : gl.UNSIGNED_BYTE;
 		for (var i = 0; i < layers; i++){
 			this.tx[i] = gl.createTexture();
 			gl.bindTexture(gl.TEXTURE_2D, this.tx[i]);
@@ -33,7 +34,7 @@ function Declare_Any_Class( name, methods, superclass = Object, scope = window )
 			gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);	//No mips because NPOT
 			gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE); //Enables NPOT Textures
 			gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);	//Ditto
-			gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, this.fb.width, this.fb.height, 0, gl.RGBA, gl.UNSIGNED_BYTE, null); //Allocate memory to draw into
+			gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, this.fb.width, this.fb.height, 0, gl.RGBA, type, null); //Allocate memory to draw into
 			gl.framebufferTexture2D(gl.FRAMEBUFFER, attach_Points_Color[i], gl.TEXTURE_2D, this.tx[i], 0); //Attach texture to FBO
 			buffs[i] = attach_Points_Color[i];
 		}
@@ -290,6 +291,9 @@ Declare_Any_Class( "Canvas_Manager",                      // This class performs
           if ( this.gl = gl = canvas.getContext( name ) ) break;                                            // Get the GPU ready, creating a new WebGL context for this canvas
         if (  !gl && canvas.parentNode ) canvas.parentNode.innerHTML = "Canvas failed to make a WebGL context.";
 		ext_db = gl.getExtension("WEBGL_draw_buffers"); //Acquire Extension for MRT
+		ext_hf = gl.getExtension("OES_texture_half_float");
+		console.log("ext_db", ext_db);
+		console.log("ext_hf", ext_hf);
 		attach_Points_Color = [ext_db.COLOR_ATTACHMENT0_WEBGL,ext_db.COLOR_ATTACHMENT1_WEBGL,ext_db.COLOR_ATTACHMENT2_WEBGL,ext_db.COLOR_ATTACHMENT3_WEBGL,
 							ext_db.COLOR_ATTACHMENT4_WEBGL,ext_db.COLOR_ATTACHMENT5_WEBGL,ext_db.COLOR_ATTACHMENT6_WEBGL,ext_db.COLOR_ATTACHMENT7_WEBGL]; //"const" array to refer to attach points
         gl.clearColor.apply( gl, background_color );    // Tell the GPU which color to clear the canvas with each frame

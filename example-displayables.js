@@ -52,6 +52,7 @@ Declare_Any_Class("Example_Camera", {
 Declare_Any_Class("Example_Animation", {
     'construct': function(context) {
         this.shared_scratchpad = context.shared_scratchpad;
+		this.sbtrans = mat4();
 
 		// declare all variables
 		// creating collection objects
@@ -66,6 +67,7 @@ Declare_Any_Class("Example_Animation", {
 		shapes_in_use.plane = Imported_Object.prototype.auto_flat_shaded_version();;
 		
 		shapes_in_use.square = new Square();
+		shapes_in_use.skybox = new Cube();
 		this.GBuffer = new FBO(canvas.width,canvas.height,4);
 		
 		var world_size = 2048;
@@ -83,6 +85,7 @@ Declare_Any_Class("Example_Animation", {
         this.shared_scratchpad.heading = 0;
         this.shared_scratchpad.pitch = 0;
 		this.shared_scratchpad.roll = 0;
+		this.shared_scratchpad.dirVec = vec4(0,0,-1,1.0);
 
         this.shared_scratchpad.x = 0;
         this.shared_scratchpad.y = 0;
@@ -291,13 +294,14 @@ Declare_Any_Class("Example_Animation", {
     'display': function(time) {
 		
 		var aMaterial = new Material(Color(0.4, 0.5, 0, 1), .6, .8, .4, 4,"FAKE.CHICKEN");	//Just a placeholder for now
-
+		var skyMat = new Material(Color(1.0,1.0,1.0,1.0), 1.0, 1.0, 0.0, 0.0, "LameBox.png");
 		
 		////bind GBuffer
 		this.GBuffer.activate();
 		shaders_in_use["G_buf_gen"].activate();
-		
 		gl.clear( gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+		shapes_in_use.skybox.draw(this.shared_scratchpad.graphics_state,this.sbtrans, skyMat);
+		gl.clear(gl.DEPTH_BUFFER_BIT);
        this.generate_G_Buffer(time);
 		//Bind Screen FBO
 		this.GBuffer.deactivate();
@@ -413,7 +417,7 @@ Declare_Any_Class("Example_Animation", {
         shapes_in_use.plane.draw(graphics_state, model_transform, tetraMaterial);
 
 		this.drawCollectables(graphics_state, collectableMaterial); //HACK FIX. <- make collectables a class and/or interface for object oriented happiness :D
-		
+
 		// make camera follow the plane
         this.shared_scratchpad.graphics_state.camera_transform = mat4();
         this.shared_scratchpad.graphics_state.camera_transform = mult(this.shared_scratchpad.graphics_state.camera_transform, rotation(10, 1, 0, 0));
@@ -421,6 +425,14 @@ Declare_Any_Class("Example_Animation", {
         this.shared_scratchpad.graphics_state.camera_transform = mult(this.shared_scratchpad.graphics_state.camera_transform, rotation(this.shared_scratchpad.heading, 0, -1, 0));
         this.shared_scratchpad.graphics_state.camera_transform = mult(this.shared_scratchpad.graphics_state.camera_transform, rotation(this.shared_scratchpad.pitch, -1, 0, 0));
         this.shared_scratchpad.graphics_state.camera_transform = mult(this.shared_scratchpad.graphics_state.camera_transform, translation(-1 * this.shared_scratchpad.x, -1 * this.shared_scratchpad.y, -1 * this.shared_scratchpad.z));
+	
+		//Hacky skyboxes, do properly later
+		this.sbtrans = new mat4();
+		var invRot = mat4();
+		invRot = mult(rotation(10,1,0,0),invRot);
+		invRot = mult(rotation(this.shared_scratchpad.heading, 0, -1, 0),invRot);
+		invRot = mult(rotation(this.shared_scratchpad.pitch, -1, 0, 0),invRot);
+		this.sbtrans = mult(inverse(this.shared_scratchpad.graphics_state.camera_transform),invRot);
 	},
 	'drawCollectables': function(graphics_state, collectableMaterial){
 		// DRAW COLLECTION_OBJECT
