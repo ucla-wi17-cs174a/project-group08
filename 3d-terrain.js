@@ -35,9 +35,11 @@ Declare_Any_Class( "Terrain",
 		
 			shapes_in_use.screenQuad = new Square();
 			var eye = new mat4();
-			var mat_coords = new Material(Color(32.0, 32.0, 32.0, 1.0), 0, 0, 0, 0);
+			var mat_coords = new Material(Color(coords[0], coords[1], coords[2], 1.0), 0.0, 0.0, 0.0, 0.0, "perlin_array_test.png");	//UN-HARDCODE THIS LATER
+						
 			this.density_Pass_FBO.activate();
 			shaders_in_use["c_Density_Shader"].activate();
+			//console.log(textures_in_use["perlin_array.png"]);
 			////Set uniforms + attributes
 			// var buffer_dens = gl.createBuffer();
 			// gl.bindBuffer( gl.ARRAY_BUFFER, buffer_dens );
@@ -48,23 +50,84 @@ Declare_Any_Class( "Terrain",
 			// gl.drawArrays( gl.TRIANGLES, 0, 4);
 			shapes_in_use.screenQuad.copy_onto_graphics_card();
 			shapes_in_use.screenQuad.draw(graphics_state, eye, mat_coords); 
-			var denseArray = new Uint8Array(4*(RES_RATIO+1)*(RES_RATIO+1)*(RES_RATIO+1)); //May need to setup as var denseArray = new Uint8Array(length);
-			console.log(denseArray);
-			console.log(this.density_Pass_FBO.fb.width, this.density_Pass_FBO.fb.height);
+			var densArray = new Uint8Array(4*(RES_RATIO+1)*(RES_RATIO+1)*(RES_RATIO+1)); //May need to setup as var densArray = new Uint8Array(length);
+			
+			//console.log(this.density_Pass_FBO.fb.width, this.density_Pass_FBO.fb.height);
 			var normArray = new Uint8Array(4*(RES_RATIO+1)*(RES_RATIO+1)*(RES_RATIO+1));	//Where length is 4(bytes)*33*33*33			
 			gl.bindTexture(gl.TEXTURE_2D,this.density_Pass_FBO.tx[0]);
-			gl.readPixels(0,0,this.density_Pass_FBO.fb.width,this.density_Pass_FBO.fb.height,gl.RGBA,gl.UNSIGNED_BYTE,denseArray);
+			gl.readPixels(0,0,this.density_Pass_FBO.fb.width,this.density_Pass_FBO.fb.height,gl.RGBA,gl.UNSIGNED_BYTE,densArray);
 			//gl.bindTexture(gl.TEXTURE_2D,this.density_Pass_FBO.tx[1]);
 			var stupidDummy = gl.createFramebuffer();
 			gl.bindFramebuffer(gl.FRAMEBUFFER, stupidDummy);
 			gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, this.density_Pass_FBO.tx[1], 0); 
-			console.log(gl.checkFramebufferStatus(gl.FRAMEBUFFER)==gl.FRAMEBUFFER_COMPLETE);
+			//console.log(gl.checkFramebufferStatus(gl.FRAMEBUFFER)==gl.FRAMEBUFFER_COMPLETE);
 			gl.readPixels(0,0,this.density_Pass_FBO.fb.width,this.density_Pass_FBO.fb.height,gl.RGBA,gl.UNSIGNED_BYTE,normArray);
-			console.log(denseArray);
-			console.log(normArray);
+			//console.log(densArray, "After running density shader");
+			//console.log(normArray);
 			this.density_Pass_FBO.deactivate();
+			//Now, densArray holds all the densities but needs to be unpacked - do this next:
+			var dens_unpacked = [];			
+			for(var i = 0; i < 4*(RES_RATIO+1)*(RES_RATIO+1)*(RES_RATIO+1); i+=4)
+			{
+				var sign = 1;
+				if(densArray[i] == 0)
+					sign = -1;
+				dens_unpacked.push(sign*(densArray[i+1] + densArray[i+2]/256));	//Yep, the 4th value does nothing (as of right now)
+				//dens_unpacked[(i/4)%(RES_RATIO+1)][(i/(4*(RES_RATIO+1)))%(RES_RATIO+1)][i/(4*(RES_RATIO+1)*(RES_RATIO+1))] = sign*(densArray[i+1] + densArray[i+2]*256)	//
+			}
+			//Now, dens_unpacked is an array of each density
+			//console.log(dens_unpacked);
+			//Unpacked as (0,0,0), (1,0,0), ..., (0,0,1), (1,0,1),... (y changes the slowest)
 			
 			
+						
+			var coord0;
+			var coord1;
+			var coord2;
+			var coord3;
+			var coord4;
+			var coord5;
+			var coord6;
+			var coord7;
+			var dens0;
+			var dens1;
+			var dens2;
+			var dens3;
+			var dens4;
+			var dens5;
+			var dens6;
+			var dens7;
+			var ntriang = 0;
+			var new_ntriang;
+			var res = c_size/RES_RATIO
+			for(var i=0; i < RES_RATIO; i++)	//Remember to change these if the c_size isn't all the same
+				for(var j=0; j < RES_RATIO; j++)
+					for(var k=0; k < RES_RATIO; k++)
+					{
+						coord0 = vec3(i*res+coords[0],j*res+coords[1],k*res+coords[2]);
+						coord1 = vec3(i*res+res+coords[0],j*res+coords[1],k*res+coords[2]);
+						coord2 = vec3(i*res+res+coords[0],j*res+coords[1],k*res+res+coords[2]);
+						coord3 = vec3(i*res+coords[0],j*res+coords[1],k*res+res+coords[2]);
+						coord4 = vec3(i*res+coords[0],j*res+res+coords[1],k*res+coords[2]);
+						coord5 = vec3(i*res+res+coords[0],j*res+res+coords[1],k*res+coords[2]);
+						coord6 = vec3(i*res+res+coords[0],j*res+res+coords[1],k*res+res+coords[2]);
+						coord7 = vec3(i*res+coords[0],j*res+res+coords[1],k*res+res+coords[2]);
+						dens0 = dens_unpacked[j*RES_RATIO*RES_RATIO+k*RES_RATIO+i];
+						dens1 = dens_unpacked[j*RES_RATIO*RES_RATIO+k*RES_RATIO+(i+1)];
+						dens2 = dens_unpacked[j*RES_RATIO*RES_RATIO+(k+1)*RES_RATIO+(i+1)];
+						dens3 = dens_unpacked[j*RES_RATIO*RES_RATIO+(k+1)*RES_RATIO+i];
+						dens4 = dens_unpacked[(j+1)*RES_RATIO*RES_RATIO+k*RES_RATIO+i];
+						dens5 = dens_unpacked[(j+1)*RES_RATIO*RES_RATIO+k*RES_RATIO+(i+1)];
+						dens6 = dens_unpacked[(j+1)*RES_RATIO*RES_RATIO+(k+1)*RES_RATIO+(i+1)];
+						dens7 = dens_unpacked[(j+1)*RES_RATIO*RES_RATIO+(k+1)*RES_RATIO+i];
+						new_ntriang = march([coord0, coord1, coord2, coord3, coord4, coord5, coord6, coord7],
+							[dens0, dens1, dens2, dens3, dens4, dens5, dens6, dens7], this.to_draw[0].contents, ntriang, edge_table, tri_table);	//CHANGE THE TO_DRAW LATER
+						//if new_ntriang is the same as the old one, we didnt generate any geometry and we shouldn't try again - use this info later
+						ntriang = new_ntriang;
+					}
+					this.to_draw[0].checked = 3;
+				
+				
 			
 		/*	
 			// Process data between GPU stages if necessary//
@@ -76,7 +139,7 @@ Declare_Any_Class( "Terrain",
 			var alm2 = [];
 			almanac_Pass_FBO.deactivate();
 			gl.bindTexture(gl.TEXTURE_2D,almanac_Pass_FBO.tx[0]);
-			glReadPixels(0,0,almanac_Pass_FBO.fb.width,almanac_Pass_FBO.fb.height,gl.RGBA,gl.UNSIGNED_BYTE,denseArray);
+			glReadPixels(0,0,almanac_Pass_FBO.fb.width,almanac_Pass_FBO.fb.height,gl.RGBA,gl.UNSIGNED_BYTE,densArray);
 			gl.bindTexture(gl.TEXTURE_2D,almanac_FBO.tx[1]);
 			glReadPixels(0,0,almanac_Pass_FBO.fb.width,almanac_Pass_FBO.fb.height,gl.RGBA,gl.UNSIGNED_BYTE,normArray);
 			
