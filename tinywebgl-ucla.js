@@ -26,7 +26,7 @@ function Declare_Any_Class( name, methods, superclass = Object, scope = window )
 		this.fb.height = height;
 		this.tx = [];
 		var buffs = [];
-		var type = floats ? ext_hf.HALF_FLOAT : gl.UNSIGNED_BYTE;
+		var type = floats ? ext_hf.HALF_FLOAT_OES : gl.UNSIGNED_BYTE;
 		for (var i = 0; i < layers; i++){
 			this.tx[i] = gl.createTexture();
 			gl.bindTexture(gl.TEXTURE_2D, this.tx[i]);

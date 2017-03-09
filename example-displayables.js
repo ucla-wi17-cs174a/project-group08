@@ -71,7 +71,7 @@ Declare_Any_Class("Example_Animation", {
 		
 		shapes_in_use.square = new Square();
 		shapes_in_use.skybox = new Cube();
-		this.GBuffer = new FBO(canvas.width,canvas.height,4);
+		this.GBuffer = new FBO(canvas.width,canvas.height,4,false);
 		
 		var world_size = 2048;
 		shapes_in_use.terrain = new Terrain();
@@ -331,7 +331,7 @@ Declare_Any_Class("Example_Animation", {
 		
 		////bind GBuffer
 		this.GBuffer.activate();
-		shaders_in_use["G_buf_gen"].activate();
+		shaders_in_use["G_buf_gen_ns_hf"].activate();
 		gl.clear( gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 		shapes_in_use.skybox.draw(this.shared_scratchpad.graphics_state,this.sbtrans, skyMat);
 		gl.clear(gl.DEPTH_BUFFER_BIT);
@@ -346,7 +346,11 @@ Declare_Any_Class("Example_Animation", {
 		gl.bindTexture(gl.TEXTURE_2D, this.GBuffer.tx[0]);
 		gl.activeTexture(gl.TEXTURE1);
 		gl.bindTexture(gl.TEXTURE_2D, this.GBuffer.tx[1]);
-		shaders_in_use["G_buf_phong"].activate();
+		gl.activeTexture(gl.TEXTURE2);
+		gl.bindTexture(gl.TEXTURE_2D, this.GBuffer.tx[2]);
+		gl.activeTexture(gl.TEXTURE3);
+		gl.bindTexture(gl.TEXTURE_2D, this.GBuffer.tx[3]);
+		shaders_in_use["G_buf_light_ns_hf"].activate();
 
 		//Render to screen
 		shapes_in_use.square.draw(this.shared_scratchpad.graphics_state,new mat4(),aMaterial );

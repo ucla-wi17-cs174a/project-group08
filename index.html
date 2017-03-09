@@ -16,10 +16,12 @@
       var main_canvas = new Canvas_Manager( "gl-canvas", Color( 0, 0, 0, 1 ) ),    // Make the master canvas manager.  Set your background color here too.
           g_state = main_canvas.shared_scratchpad.graphics_state;
           
-	  shaders_in_use[ "G_buf_gen" ] = new G_buf_gen_NormalSpray		( g_state );
-	  shaders_in_use[ "G_buf_phong" ] = new G_buf_light_NormalSpray		( g_state );
-      shaders_in_use[ "Default"     ] = new Phong_or_Gouraud_Shader	( g_state );    // Put all our shader programs in the GPU.
-      shaders_in_use[ "Phong_Pass" ] = new Funny_Shader           	( g_state );
+	  shaders_in_use[ "G_buf_gen_ns" ] = new G_buf_gen_NormalSpray					( g_state );
+	  shaders_in_use[ "G_buf_light_ns" ] = new G_buf_light_NormalSpray				( g_state );
+	  shaders_in_use[ "G_buf_gen_ns_hf" ] = new G_buf_gen_NormalSpray_hf			( g_state );
+	  shaders_in_use[ "G_buf_light_ns_hf" ] = new G_buf_light_NormalSpray_hf		( g_state );
+      shaders_in_use[ "Default"     ] = new Phong_or_Gouraud_Shader					( g_state );    // Put all our shader programs in the GPU.
+      shaders_in_use[ "Phong_Pass" ] = new Funny_Shader           					( g_state );
 
 	  shaders_in_use[ "c_Density_Shader" ] = new c_Density_Shader		( g_state );
 	  //shaders_in_use[ "c_Almanac_Shader" ] = new c_Almanac_Shader			( g_state );
