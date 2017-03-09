@@ -296,6 +296,31 @@ function translation( x, y, z )
 }
 
 //----------------------------------------------------------------------------
+function quaternion_rotation(angle, axis)
+{
+	if ( !Array.isArray(axis) ) {
+        axis = [ arguments[1], arguments[2], arguments[3] ];
+    }
+	
+	
+	
+	var q = vec4(angle, axis[0], axis[1], axis[2]);
+	var q = normalize(q);
+	
+	var w = q[0];
+	var x = q[1];
+	var y = q[2];
+	var z = q[3];
+	
+	var result = mat4(
+		vec4(1-2*(y*y+z*z),	2*(x*y-w*z),	2*(x*z+w*y),	0.0),
+		vec4(2*(x*y+w*z),	1-2*(x*x+z*z),	2*(y*z-w*x),	0.0),
+		vec4(2*(x*z-w*y),	2*(y*z+w*x),	1-2*(x*x+y*y),	0.0),
+		vec4(0.0,0.0,0.0,1.0));
+
+	return result;
+}
+
 
 function rotation( angle, axis )
 {
@@ -303,7 +328,7 @@ function rotation( angle, axis )
         axis = [ arguments[1], arguments[2], arguments[3] ];
     }
 
-    var v = normalize( axis.slice() );
+    var v = normalize(axis.slice());
 
     var x = v[0];
     var y = v[1];
@@ -317,7 +342,7 @@ function rotation( angle, axis )
         vec4( x*x*omc + c,   x*y*omc - z*s, x*z*omc + y*s, 0.0 ),
         vec4( x*y*omc + z*s, y*y*omc + c,   y*z*omc - x*s, 0.0 ),
         vec4( x*z*omc - y*s, y*z*omc + x*s, z*z*omc + c,   0.0 ),
-        vec4()
+        vec4(0,0,0,1)
     );
 
     return result;
@@ -370,7 +395,7 @@ function lookAt( eye, at, up )
       throw "lookAt(): two parallel vectors were given";
     var u = normalize( cross(n, v) );        // "new" up vector
 
-    v = negate( v );
+		v = negate( v );
 
     var result = mat4(
         n.concat( -dot(n, eye) ),
@@ -654,6 +679,20 @@ function inverse( m )
   return mult (result, mat4( one_over_determinant ) );
 }
 
+function mult_vec_scalar(v, scalar)
+{
+	var retVec = new vec3();
+	retVec[0] = scalar*v[0];
+	retVec[1] = scalar*v[1];		
+	retVec[2] = scalar*v[2];
+	
+	return retVec;
+}
+  
+function magnitude(v)
+{
+	return Math.sqrt(Math.pow(v[0],2)+Math.pow(v[1],2)+Math.pow(v[2],2));
+}
   
 function mult_vec( M, v )
   {
@@ -684,4 +723,5 @@ function hermite_curve_point( a, b, da, db, t, epsilon = .0001 )      // Static 
       point2 = mult_vec( mult( transpose( curveMatrix ), hermiteMatrix ), vec4( t_next*t_next*t_next, t_next*t_next, t_next, 1 ) ); //Also generate another point slightly ahead of that
       return { position: vec3( point1 ), normal: vec3( subtract( point2, point1 ) ) };
     }
+	
 	

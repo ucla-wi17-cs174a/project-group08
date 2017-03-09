@@ -13,21 +13,29 @@
 <script type="text/javascript"> "use strict"  
   window.onload = function init() 
     {	
+	
       var main_canvas = new Canvas_Manager( "gl-canvas", Color( 0, 0, 0, 1 ) ),    // Make the master canvas manager.  Set your background color here too.
           g_state = main_canvas.shared_scratchpad.graphics_state;
           
-	  shaders_in_use[ "G_buf_gen" ] = new G_buf_gen_NormalSpray		( g_state );
-	  shaders_in_use[ "G_buf_phong" ] = new G_buf_light_NormalSpray		( g_state );
-      shaders_in_use[ "Default"     ] = new Phong_or_Gouraud_Shader	( g_state );    // Put all our shader programs in the GPU.
-      shaders_in_use[ "Phong_Pass" ] = new Funny_Shader           	( g_state );
+	  //shaders_in_use[ "G_buf_gen_ns" ] = new G_buf_gen_NormalSpray					( g_state );
+	  //shaders_in_use[ "G_buf_light_ns" ] = new G_buf_light_NormalSpray				( g_state );
+	  //shaders_in_use[ "G_buf_gen_ns_hf" ] = new G_buf_gen_NormalSpray_hf			( g_state );
+	  //shaders_in_use[ "G_buf_light_ns_hf" ] = new G_buf_light_NormalSpray_hf		( g_state );
+	  shaders_in_use[ "G_buf_gen_phong" ] = new G_buf_gen_phong						( g_state );
+	  shaders_in_use[ "G_buf_light_phong" ] = new G_buf_light_phong					( g_state );
+      shaders_in_use[ "Default"     ] = new Phong_or_Gouraud_Shader					( g_state );    // Put all our shader programs in the GPU.
+      shaders_in_use[ "Phong_Pass" ] = new Funny_Shader           					( g_state );
 
 	  shaders_in_use[ "c_Density_Shader" ] = new c_Density_Shader		( g_state );
 	  //shaders_in_use[ "c_Almanac_Shader" ] = new c_Almanac_Shader			( g_state );
 	  shaders_in_use[ "G_buf_light_NormalSpray" ] = new G_buf_light_NormalSpray          	( g_state );
 	  
 
-                                                                                // IMPORTANT: -- You have to include all your new images in here:
-      texture_filenames_to_load.push( "text.png", "perlin_array.png");                             // Put all our texture images in the GPU.
+
+      texture_filenames_to_load.push( "text.png");                             // Put all our texture images in the GPU.
+	  texture_filenames_to_load.push( "LameBox.png" );
+	  texture_filenames_to_load.push( "perlin_array.png" );
+	  
       for( var i = 0; i < texture_filenames_to_load.length; i++ ) textures_in_use[ texture_filenames_to_load[i] ] = ( new Texture( texture_filenames_to_load[i], false ) );
 	  
       main_canvas.register_display_object( new Debug_Screen     ( main_canvas ) ); 
