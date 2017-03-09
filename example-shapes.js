@@ -24,6 +24,7 @@ Declare_Any_Class( "Tetrahedron",
       }
   }, Shape );
   
+  
   Declare_Any_Class( "Square",
   { 'populate': function() 
       {
