@@ -513,7 +513,7 @@ Declare_Any_Class("Example_Animation", {
 		var transition = new mat4();
 		transition = mult(transition, translation(this.shared_scratchpad.position[0], this.shared_scratchpad.position[1], this.shared_scratchpad.position[2]));
 		transition = mult(transition, cameraRotation);
-		transition = mult(transition, translation(0,0,5));
+		transition = mult(transition, translation(0,1,5));
         graphics_state.camera_transform = inverse(transition);
 
 	}
