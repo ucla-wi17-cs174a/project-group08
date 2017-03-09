@@ -685,3 +685,4 @@ function hermite_curve_point( a, b, da, db, t, epsilon = .0001 )      // Static 
       return { position: vec3( point1 ), normal: vec3( subtract( point2, point1 ) ) };
     }
 	
+	

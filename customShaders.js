@@ -1,3 +1,4 @@
+/*
 Declare_Any_Class( "G_buf_gen_NormalSpray_hf",
   { 'update_uniforms'          : function( g_state, model_transform, material )     // Send javascrpt's variables to the GPU to update its overall state.
       {
@@ -44,19 +45,16 @@ Declare_Any_Class( "G_buf_gen_NormalSpray_hf",
 		
 		precision mediump float;
 		
-		// const float x = 1.0/255.0;
-		// const float y = 1.0/65025.0;
-		// const float z = 1.0/16581375.0;
-		
-		// vec4 EncodeFloatRGBA( float v ) {
-		  // vec4 enc = vec4(1.0, 255.0, 65025.0, 16581375.0) * v;
-		  // enc = fract(enc);
-		  // enc -= enc.yzww * vec4(x,x,x,0.0);
-		  // return enc;
-		// }
-		// float DecodeFloatRGBA( vec4 rgba ) {
-		  // return dot( rgba, vec4(1.0, x, y, z) );
-		// }
+		void float16toRG(in float v, out vec2 ret)
+		{
+			v = v+65504.0;
+			
+			ret = vec2(floor(v/512.0),fract(v/512.0)*512.0);
+		}
+		void RGtofloat16 ( in vec2 rg, out float ret )
+		{
+		  ret = dot( rg, vec2(512.0,1.0) )-65504.0;
+		}
 	  
 		
 	
@@ -69,25 +67,22 @@ Declare_Any_Class( "G_buf_gen_NormalSpray_hf",
 		
 		void main()
 		{
-		float x_com = abs(dot(fNormal,vec3(1,0,0)));
-		float y_com = abs(dot(fNormal,vec3(0,1,0)));
-		float z_com = abs(dot(fNormal,vec3(0,0,1)));
-		//gl_FragColor = vec4(x_com,y_com,z_com,1.0);
-		//gl_FragData[0] = vec4(pos.x,pos.y,pos.z,1.0);
-		gl_FragData[0] = vec4(x_com,y_com,z_com,1.0);
-		vec3 biasedNorm = (fNormal+1.0)*.5;
-		gl_FragData[1] = vec4(biasedNorm,1.0);
-		gl_FragData[2] = pos;
-		// gl_FragData[0] = vec4(.25,.25,.25,1.0);
-		// gl_FragData[1] = vec4(.5,.5,.5,1.0);
-		// gl_FragData[2] = vec4(.75,.75,.75,1.0);
-		gl_FragData[3] = vec4(1.0,1.0,1.0,1.0);
-		
-		
-		
-		// if(USE_TEXTURE)
-			// gl_FragData[0] = texture2D(texture,fTexCoord);
-		}
+			float x_com = abs(dot(fNormal,vec3(1,0,0)));
+			float y_com = abs(dot(fNormal,vec3(0,1,0)));
+			float z_com = abs(dot(fNormal,vec3(0,0,1)));
+			//gl_FragColor = vec4(x_com,y_com,z_com,1.0);
+			//gl_FragData[0] = vec4(pos.x,pos.y,pos.z,1.0);
+			gl_FragData[0] = vec4(x_com,y_com,z_com,1.0);
+			gl_FragData[1] = vec4(int(fNormal.x),int(fNormal.y),int(fNormal.z),1.0);
+			if(USE_TEXTURE)
+				gl_FragData[0] = texture2D(texture,fTexCoord);
+			// vec3 biasedNorm = (fNormal+1.0)*.5;
+			// gl_FragData[2] = vec4(biasedNorm,1.0);
+			// gl_FragData[0] = shapeColor;
+			// gl_FragData[1] = vec4(ambient,diffusivity,shininess,smoothness);
+			// gl_FragData[3] = vec4(float16toRG(pos.x),float16toRG(pos.z));
+
+			}
 	  `;
       }
   }, Shader );
@@ -137,12 +132,13 @@ Declare_Any_Class( "G_buf_gen_NormalSpray_hf",
 			float x_com = abs(dot(fNormal,vec3(1,0,0)));
 			float y_com = abs(dot(fNormal,vec3(0,1,0)));
 			float z_com = abs(dot(fNormal,vec3(0,0,1)));
+			
 			// vec4 err = vec4(x_com,y_com,z_com,0.0);
 			// err = p-err;
 			//gl_FragColor = vec4(p.x,p.y,p.z,1.0);
-			gl_FragColor = vec4(x_com,y_com,z_com,1.0);
-			//vec4 pos = texture2D(tex3,fTexCoord);
-			//gl_FragColor = vec4(abs(pos.x),abs(pos.y),abs(pos.z),1.0);
+			//gl_FragColor = vec4(x_com,y_com,z_com,1.0);
+			vec4 pos = texture2D(tex3,fTexCoord);
+			gl_FragColor = vec4(abs(pos.z),abs(pos.z),abs(pos.z),1.0);
 			//gl_FragColor = vec4(1.0,0.0,1.0,1.0);
 			//gl_FragColor = err;
 		}
@@ -267,8 +263,129 @@ Declare_Any_Class( "G_buf_gen_NormalSpray",
 	  `;
       }
   }, Shader );
+ */ 
+Declare_Any_Class( "G_buf_gen_phong",
+  { 'update_uniforms'          : function( g_state, model_transform, material )     // Send javascrpt's variables to the GPU to update its overall state.
+      {
+		
+          let [ P, C, M ]  = [ g_state.projection_transform, g_state.camera_transform, model_transform ],   // PCM will mean Projection * Camera * Model
+          CM             = mult( C,  M ),
+          PCM            = mult( P, CM ),                               // Send the current matrices to the shader.  Go ahead and pre-compute the products
+          inv_trans_CM   = toMat3( transpose( inverse( CM ) ) );        // we'll need of the of the three special matrices and just send those, since these
+                                                                        // will be the same throughout this draw call & across each instance of the vertex shader.
+        gl.uniformMatrix4fv( g_addrs.camera_transform_loc,                  false, flatten(  C  ) );
+        gl.uniformMatrix4fv( g_addrs.camera_model_transform_loc,            false, flatten(  CM ) );
+        gl.uniformMatrix4fv( g_addrs.projection_camera_model_transform_loc, false, flatten( PCM ) );
+        gl.uniformMatrix3fv( g_addrs.camera_model_transform_normal_loc,     false, flatten( inv_trans_CM ) );
+		
+        gl.uniform4fv( g_addrs.shapeColor_loc,     material.color       );    // Send a desired shape-wide color to the graphics card
+        gl.uniform1f ( g_addrs.ambient_loc,        material.ambient     );
+        gl.uniform1f ( g_addrs.diffusivity_loc,    material.diffusivity );
+        gl.uniform1f ( g_addrs.shininess_loc,      material.shininess   );
+        gl.uniform1f ( g_addrs.smoothness_loc,     material.smoothness  );
+
+        if( !g_state.lights.length )  return;
+        var lightPositions_flattened = [], lightColors_flattened = []; lightAttenuations_flattened = [];
+        for( var i = 0; i < 4 * g_state.lights.length; i++ )
+          { lightPositions_flattened                  .push( g_state.lights[ Math.floor(i/4) ].position[i%4] );
+            lightColors_flattened                     .push( g_state.lights[ Math.floor(i/4) ].color[i%4] );
+            lightAttenuations_flattened[ Math.floor(i/4) ] = g_state.lights[ Math.floor(i/4) ].attenuation;
+          }
+        gl.uniform4fv( g_addrs.lightPosition_loc,       lightPositions_flattened );
+        gl.uniform4fv( g_addrs.lightColor_loc,          lightColors_flattened );
+        gl.uniform1fv( g_addrs.attenuation_factor_loc,  lightAttenuations_flattened );
+		
+		
+		
+      },
+    'vertex_glsl_code_string'  : function()           // ********* VERTEX SHADER *********
+      { return `
+	  
+        uniform mat4 projection_camera_model_transform;
+		uniform mat3 camera_model_transform_normal;
+		  
+        attribute vec3 vPosition, vNormal;
+        attribute vec2 vTexCoord;
+        varying vec2 fTexCoord;
+		varying vec3 fNormal;
+		varying vec4 pos;
+		
+		void float16toRG(in float v, out vec2 ret)
+		{
+			v = v+65504.0;
+			
+			ret = vec2(floor(v/512.0),fract(v/512.0)*512.0);
+		}
+		void RGtofloat16 ( in vec2 rg, out float ret )
+		{
+		  ret = dot( rg, vec2(512.0,1.0) )-65504.0;
+		}
+		
+		void main()
+		{
+			
+            vec4 ospos = vec4(vPosition, 1.0);
+            gl_Position = projection_camera_model_transform * ospos;
+            fTexCoord = vTexCoord;
+			fNormal = normalize( camera_model_transform_normal * vNormal );
+			//fNormal = vNormal; //Pass-Through for debug
+			pos = ospos;
+		}
+	  `;
+      },
+    'fragment_glsl_code_string': function()           // ********* FRAGMENT SHADER *********
+      { return `
+	  #extension GL_EXT_draw_buffers : require
+
+		precision mediump float;
+	
+		void float16toRG(in float v, out vec2 ret)
+		{
+			v = v+65504.0;
+			
+			ret = vec2(floor(v/512.0),fract(v/512.0)*512.0);
+			ret *= 1.0/256.0;
+		}
+		void RGtofloat16 ( in vec2 rg, out float ret )
+		{
+			rg *= 256.0;
+			ret = dot( rg, vec2(512.0,1.0) )-65504.0;
+		}
+	  
+	
+		varying vec3 fNormal;
+		varying vec2 fTexCoord;
+		varying vec4 pos;
+		
+		uniform float ambient, diffusivity, shininess, smoothness;
+		uniform vec4 shapeColor;
+		
+		uniform sampler2D texture;
+		uniform bool USE_TEXTURE;
+		
+		void main()
+		{
+			vec3 biasedNorm = normalize(fNormal);
+			biasedNorm = .5*biasedNorm+.5;
+			gl_FragData[2] = vec4(biasedNorm,1.0);
+			gl_FragData[0] = shapeColor;
+			gl_FragData[1] = vec4(ambient,diffusivity,shininess,smoothness/255.0);
+			vec2 posZ;
+			vec2 posX;
+			vec2 posY;
+			float16toRG(pos.x,posX);
+			float16toRG(pos.z,posZ);
+			float16toRG(pos.y,posY);
+			gl_FragData[3] = vec4(posX,posY);
+			gl_FragData[4] = vec4(posZ, 1.0,1.0);
+			if(USE_TEXTURE)
+				gl_FragData[0] = texture2D(texture,fTexCoord);
+			}
+	  `;
+      }
+  }, Shader );
   
-    Declare_Any_Class( "G_buf_light_Phong",
+   Declare_Any_Class( "G_buf_light_phong",
   { 'update_uniforms'          : function( g_state, model_transform, material )     // Send javascrpt's variables to the GPU to update its overall state.
       {
 		          let [ P, C, M ]  = [ g_state.projection_transform, g_state.camera_transform, model_transform ],   // PCM will mean Projection * Camera * Model
@@ -302,6 +419,12 @@ Declare_Any_Class( "G_buf_gen_NormalSpray",
         gl.uniform4fv( g_addrs.lightPosition_loc,       lightPositions_flattened );
         gl.uniform4fv( g_addrs.lightColor_loc,          lightColors_flattened );
         gl.uniform1fv( g_addrs.attenuation_factor_loc,  lightAttenuations_flattened );
+		
+		gl.uniform1i(g_addrs.col_loc, 0);
+		gl.uniform1i(g_addrs.matl_loc, 1);
+		gl.uniform1i(g_addrs.norm_loc, 2);
+		gl.uniform1i(g_addrs.posxy_loc, 3);
+		gl.uniform1i(g_addrs.posz_loc, 4);
       },
     'vertex_glsl_code_string'  : function()           // ********* VERTEX SHADER *********
       { return `
@@ -324,24 +447,70 @@ Declare_Any_Class( "G_buf_gen_NormalSpray",
       { return `
 		precision mediump float;
 	
+		void float16toRG(in float v, out vec2 ret)
+		{
+			v = v+65504.0;
+			
+			ret = vec2(floor(v/512.0),fract(v/512.0)*512.0);
+			ret *= 1.0/256.0;
+		}
+		void RGtofloat16 ( in vec2 rg, out float ret )
+		{
+			rg *= 256.0;
+			ret = dot( rg, vec2(512.0,1.0) )-65504.0;
+		}
+	
+		const int MAX_LIGHTS = 2;
 		varying vec2 fTexCoord;
 		
-		uniform sampler2D tex1;
-		uniform sampler2D tex2;
+		uniform vec4 lightPosition[MAX_LIGHTS], lightColor[MAX_LIGHTS];
+		uniform float attenuation_factor[MAX_LIGHTS];
+		
+		uniform mat4 camera_transform, camera_model_transform, projection_camera_model_transform;
+        uniform mat3 camera_model_transform_normal;
+		
+		uniform sampler2D posxy;
+		uniform sampler2D norm;
+		uniform sampler2D col;
+		uniform sampler2D matl;
+		uniform sampler2D posz;
 		
 		void main()
 		{
-			vec4 tex_color = texture2D( texture, fTexCoord );
-            gl_FragColor = tex_color * ( USE_TEXTURE ? ambient : 0.0 ) + vec4( shapeColor.xyz * ambient, USE_TEXTURE ? shapeColor.w * tex_color.w : shapeColor.w ) ;
-            for( int i = 0; i < N_LIGHTS; i++ )
-            {
-              float attenuation_multiplier = 1.0 / (1.0 + attenuation_factor[i] * (dist[i] * dist[i]));
-              float diffuse  = max(dot(L[i], N), 0.0);
-              float specular = pow(max(dot(N, H[i]), 0.0), shininess);
+			vec4 tex_color = texture2D( col, fTexCoord );
+			vec4 fMatl = texture2D( matl, fTexCoord );
+			vec4 inPosxy = texture2D(posxy,fTexCoord);
+			vec4 inPosz = texture2D(posz, fTexCoord);
+			vec3 N = texture2D(norm, fTexCoord).xyz;
+			N = (N-.5)*2.0;
+			float xx,yy,zz;
+			RGtofloat16(inPosxy.rg,xx);
+			RGtofloat16(inPosxy.ba,yy);
+			vec4 fPos = vec4(xx,yy,zz,1.0);
+			float ambient = fMatl.r;
+			float diffusivity = fMatl.g;
+			float shininess = fMatl.b;
+			float smoothness = fMatl.a*255.0;
+			gl_FragColor = tex_color * ambient;
+			vec3 pos = ( camera_model_transform * fPos ).xyz;
+			vec3 E = normalize( -pos );
+             for( int i = 0; i < MAX_LIGHTS; i++ )
+             {
+				vec3 L = normalize( ( camera_transform * lightPosition[i] ).xyz - lightPosition[i].w * pos );   // Use w = 0 for a directional light -- a vector instead of a point.
+				vec3 H = normalize( L + E );
+				float dist = distance(fPos,lightPosition[i]);
+				float attenuation_multiplier = 1.0 / (1.0 + attenuation_factor[i] * (dist * dist));
+               float diffuse  = max(dot(L, N), 0.0);
+               float specular = pow(max(dot(N, H), 0.0), shininess);
 
-              gl_FragColor.xyz += attenuation_multiplier * (shapeColor.xyz * diffusivity * diffuse  + lightColor[i].xyz * shininess * specular );
-            }
+               gl_FragColor.xyz += attenuation_multiplier * (tex_color.xyz * diffusivity * diffuse  + lightColor[i].xyz * shininess * specular );
+			}
+			//gl_FragColor = tex_color;
+			//gl_FragColor = vec4(vec3(length(fPos)/2550.0),1.0);
+			
 		}
 	  `;
       }
   }, Shader );
+  
+  

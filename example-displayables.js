@@ -1,6 +1,7 @@
 
 var RES_RATIO = 32;	
 var SPEED_INC = .01;
+var DEFERRED = false;
 
 // Create the textbox
 Declare_Any_Class( "Debug_Screen",
@@ -70,7 +71,7 @@ Declare_Any_Class("Example_Animation", {
 		
 		shapes_in_use.square = new Square();
 		shapes_in_use.skybox = new Cube();
-		this.GBuffer = new FBO(canvas.width,canvas.height,4,false);
+		this.GBuffer = new FBO(canvas.width,canvas.height,5,false);
 		
 		var world_size = 2048;
 		shapes_in_use.terrain = new Terrain();
@@ -265,7 +266,11 @@ Declare_Any_Class("Example_Animation", {
 		controls.add( ".", this, function() { 
 			this.shared_scratchpad.speed_change =  0; }, {'type':'keyup'} 
 		);
-		
+		// Shading DEBUG Toggle
+		controls.add("x", this, function(){
+			DEFERRED = !DEFERRED;
+			console.log("Swapped to DEFERRED = ", DEFERRED);
+		});
 		// reset
 		controls.add("ctrl+r", this, function() {
 			this.shared_scratchpad.heading = 0;
@@ -298,33 +303,42 @@ Declare_Any_Class("Example_Animation", {
 		var aMaterial = new Material(Color(0.4, 0.5, 0, 1), .6, .8, .4, 4,"FAKE.CHICKEN");	//Just a placeholder for now
 		var skyMat = new Material(Color(1.0,1.0,1.0,1.0), 1.0, 1.0, 0.0, 0.0, "LameBox.png");
 		
-		////bind GBuffer
-		this.GBuffer.activate();
-		shaders_in_use["G_buf_gen_ns_hf"].activate();
-		gl.clear( gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
-		shapes_in_use.skybox.draw(this.shared_scratchpad.graphics_state,this.sbtrans, skyMat);
-		gl.clear(gl.DEPTH_BUFFER_BIT);
-       this.generate_G_Buffer(time);
-		//Bind Screen FBO
-		this.GBuffer.deactivate();
-		//Setup Attribs and Uniforms
-		//Implicit?
-		//activate appropo shaders
-		gl.clear( gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
-		gl.activeTexture(gl.TEXTURE0);
-		gl.bindTexture(gl.TEXTURE_2D, this.GBuffer.tx[0]);
-		gl.activeTexture(gl.TEXTURE1);
-		gl.bindTexture(gl.TEXTURE_2D, this.GBuffer.tx[1]);
-		gl.activeTexture(gl.TEXTURE2);
-		gl.bindTexture(gl.TEXTURE_2D, this.GBuffer.tx[2]);
-		gl.activeTexture(gl.TEXTURE3);
-		gl.bindTexture(gl.TEXTURE_2D, this.GBuffer.tx[3]);
-		shaders_in_use["G_buf_light_ns_hf"].activate();
+		if(DEFERRED){
+			////bind GBuffer
+			this.GBuffer.activate();
+			shaders_in_use["G_buf_gen_phong"].activate();
+			gl.clear( gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+			shapes_in_use.skybox.draw(this.shared_scratchpad.graphics_state,this.sbtrans, skyMat);
+			gl.clear(gl.DEPTH_BUFFER_BIT);
+		   this.generate_G_Buffer(time);
+			//Bind Screen FBO
+			this.GBuffer.deactivate();
+			//Setup Attribs and Uniforms
+			//Implicit?
+			//activate appropo shaders
+			gl.clear( gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+			gl.activeTexture(gl.TEXTURE0);
+			gl.bindTexture(gl.TEXTURE_2D, this.GBuffer.tx[0]);
+			gl.activeTexture(gl.TEXTURE1);
+			gl.bindTexture(gl.TEXTURE_2D, this.GBuffer.tx[1]);
+			gl.activeTexture(gl.TEXTURE2);
+			gl.bindTexture(gl.TEXTURE_2D, this.GBuffer.tx[2]);
+			gl.activeTexture(gl.TEXTURE3);
+			gl.bindTexture(gl.TEXTURE_2D, this.GBuffer.tx[3]);
+			gl.activeTexture(gl.TEXTURE4);
+			gl.bindTexture(gl.TEXTURE_2D, this.GBuffer.tx[4]);
+			shaders_in_use["G_buf_light_phong"].activate();
 
-		//Render to screen
-		shapes_in_use.square.draw(this.shared_scratchpad.graphics_state,new mat4(),aMaterial );
-		gl.activeTexture(gl.TEXTURE0);
-		gl.bindTexture(gl.TEXTURE_2D, null);
+			//Render to screen
+			shapes_in_use.square.draw(this.shared_scratchpad.graphics_state,new mat4(),aMaterial );
+			gl.activeTexture(gl.TEXTURE0);
+			gl.bindTexture(gl.TEXTURE_2D, null);
+		}
+		else{
+			shaders_in_use["Default"].activate();
+			gl.clear( gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+			this.generate_G_Buffer(time);
+		}
 		
     },
 	'generate_G_Buffer': function(time){
@@ -339,7 +353,7 @@ Declare_Any_Class("Example_Animation", {
 
         var t = graphics_state.animation_time / 1000,
             light_orbit = [Math.cos(t), Math.sin(t)];
-        graphics_state.lights.push(new Light(vec4(-10, 10, 0, 1), Color(1, 0, 0, 1), 100000));
+        graphics_state.lights.push(new Light(vec4(-10, 10, 0, 1), Color(1, 1, 1, 1), 100000));
         // *** Materials: *** Declare new ones as temps when needed; they're just cheap wrappers for some numbers.
         // 1st parameter:  Color (4 floats in RGBA format), 2nd: Ambient light, 3rd: Diffuse reflectivity, 4th: Specular reflectivity, 5th: Smoothness exponent, 6th: Texture image.
         var collectableMaterial = new Material(Color(1, 0, 1, 1), .4, .4, .8, 40); // Omit the final (string) parameter if you want no texture
