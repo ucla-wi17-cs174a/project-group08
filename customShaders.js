@@ -218,7 +218,7 @@ Declare_Any_Class( "G_buf_gen_NormalSpray",
   Declare_Any_Class( "G_buf_light_NormalSpray",
   { 'update_uniforms'          : function( g_state, model_transform, material )     // Send javascrpt's variables to the GPU to update its overall state.
       {
-		
+		//gl.activeTexture(gl.TEXTURE0);
       },
     'vertex_glsl_code_string'  : function()           // ********* VERTEX SHADER *********
       { return `
@@ -243,22 +243,26 @@ Declare_Any_Class( "G_buf_gen_NormalSpray",
 	
 		varying vec2 fTexCoord;
 		
-		uniform sampler2D tex1;
-		uniform sampler2D tex2;
+		uniform sampler2D texture;
+		//uniform sampler2D tex2;
 		
 		void main()
 		{
-			vec3 fNormal = texture2D(tex2,fTexCoord).xyz;
-			vec4 p = texture2D(tex1,fTexCoord);
-			float x_com = abs(dot(fNormal,vec3(1,0,0)));
-			float y_com = abs(dot(fNormal,vec3(0,1,0)));
-			float z_com = abs(dot(fNormal,vec3(0,0,1)));
+			//vec3 fNormal = texture2D(tex2,fTexCoord).xyz;
+			//vec4 p = texture2D(tex1,fTexCoord);
+			//float x_com = abs(dot(fNormal,vec3(1,0,0)));
+			//float y_com = abs(dot(fNormal,vec3(0,1,0)));
+			//float z_com = abs(dot(fNormal,vec3(0,0,1)));
 			//vec4 err = vec4(x_com,y_com,z_com,0.0);
 			//err = p-err;
+<<<<<<< HEAD
+			//gl_FragColor = vec4(p.x,p.y,p.z,1.0);
+=======
 			gl_FragColor = vec4(p.x,p.y,p.z,1.0);
+>>>>>>> d8f63a515ea1d88b3b095d498d1140f77c330520
 			//gl_FragColor = vec4(x_com,y_com,z_com,1.0);
 			//gl_FragColor = vec4(1.0,0.0,1.0,1.0);
-			//gl_FragColor = err;
+			gl_FragColor = texture2D(texture,fTexCoord);
 		}
 	  `;
       }

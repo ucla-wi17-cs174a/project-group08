@@ -28,11 +28,11 @@
 
 	  shaders_in_use[ "c_Density_Shader" ] = new c_Density_Shader		( g_state );
 	  //shaders_in_use[ "c_Almanac_Shader" ] = new c_Almanac_Shader			( g_state );
-	  
 
-                                                                                // IMPORTANT: -- You have to include all your new images in here:
       texture_filenames_to_load.push( "text.png");                             // Put all our texture images in the GPU.
 	  texture_filenames_to_load.push( "LameBox.png" );
+	  texture_filenames_to_load.push( "perlin_array.png" );
+	  
       for( var i = 0; i < texture_filenames_to_load.length; i++ ) textures_in_use[ texture_filenames_to_load[i] ] = ( new Texture( texture_filenames_to_load[i], false ) );
 	  
       main_canvas.register_display_object( new Debug_Screen     ( main_canvas ) ); 
@@ -48,6 +48,6 @@
 </script>
 </head>
 <body>
-<canvas id="gl-canvas" width="800" height="600"></canvas><p>
+<canvas id="gl-canvas" width="1200" height="600"></canvas><p>
 </body>
 </html>

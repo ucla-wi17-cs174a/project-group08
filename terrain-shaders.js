@@ -40,26 +40,34 @@
       { return `	
 	    precision mediump float;
 	   
-	    attribute vec3 vPosition;				
+	   
+	    attribute vec3 vPosition;
+		//attribute vec2 a_texcoord;	
+
+		//varying vec2 v_texcoord;		
 		//uniform vec4 coords;	//4th value means nothing	  	  
 	  
 	  void main()
 	  {
 		vec4 object_space_pos = vec4(vPosition, 1.0);
 		gl_Position = object_space_pos;
+		//v_texcoord = a_texcoord;
 	  }	  	  
 	  
 	  `},
 	  'fragment_glsl_code_string': function()           // ********* FRAGMENT SHADER *********
       { return `
 		#extension GL_EXT_draw_buffers : require
-		precision mediump float;
+		precision mediump float;			
 		
-		uniform vec4 coords;
+		
 		//uniform int perlin_array[512];
+		uniform vec4 coords;
+		
+		uniform sampler2D texture;
 		
 		void perm(in vec4 x, out vec4 ret){ret = mod(((x * 34.0) + 1.0) * x, 289.0);}
-		/*	 	 										
+			 	 										
 		void fade(in float t, out float ret) {ret = t*t*t*(t*(t*6.0-15.0)+10.0);}		
 		void lerp(in float a, in float b, in float x, out float ret){ret = a + x * (b - a);}
 		void grad(in int hash, in float x, in float y, in float z, out float ret)	//Choose a vector
@@ -80,7 +88,7 @@
 			if(check == 12) ret =  y + x;
 			if(check == 13) ret = -y + z;
 			if(check == 14) ret =  y - x;
-			if(check == 15) ret = -y - z;			
+			if(check == 15) ret = -y - z;	
 		}
 		
 		void perlin(in float x, in float y, in float z, out float ret)
@@ -89,9 +97,9 @@
 			y += 1048576.0;
 			z += 1048576.0;
 
-			int xi = int(mod(floor(x), 256.0));
-			int yi = int(mod(floor(y), 256.0));
-			int zi = int(mod(floor(z), 256.0));	
+			float xi = mod(floor(x), 256.0);
+			float yi = mod(floor(y), 256.0);
+			float zi = mod(floor(z), 256.0);	
 
 			float xf = mod(x, 1.0);
 			float yf = mod(y, 1.0);
@@ -105,15 +113,40 @@
 			fade(zf, z);
 			
 			int aaa, aba, aab, abb, baa, bba, bab, bbb;
-			aaa = perlin_array[perlin_array[perlin_array[    xi ]+    yi ]+    zi ];
-			aba = perlin_array[perlin_array[perlin_array[    xi ]+ yi + 1]+    zi ];
-			aab = perlin_array[perlin_array[perlin_array[    xi ]+    yi ]+ zi + 1];
-			abb = perlin_array[perlin_array[perlin_array[    xi ]+ yi + 1]+ zi + 1];
-			baa = perlin_array[perlin_array[perlin_array[ xi + 1]+    yi ]+    zi ];
-			bba = perlin_array[perlin_array[perlin_array[ xi + 1]+ yi + 1]+    zi ];
-			bab = perlin_array[perlin_array[perlin_array[ xi + 1]+    yi ]+ zi + 1];
-			bbb = perlin_array[perlin_array[perlin_array[ xi + 1]+ yi + 1]+ zi + 1];
+			float aaa2, aba2, aab2, abb2, baa2, bba2, bab2, bbb2;
+			
+			aaa2 = texture2D( texture, vec2( (mod(xi, 16.0) + 0.5)/16.0, (15.5-(xi/16.0))/16.0 )).x + yi;		//These three lines compute the final aaa - the first 2 values are meaningless
+			aaa2 = texture2D( texture, vec2( (mod(aaa2, 16.0) + 0.5)/16.0, (15.5-(aaa2/16.0))/16.0 )).x + zi;	//It's the replacement for aaa = perlin_array[perlin_array[perlin_array[ xi ]+ yi ]+ zi ];
+			aaa = int(texture2D( texture, vec2( (mod(aaa2, 16.0) + 0.5)/16.0, (15.5-(aaa2/16.0))/16.0 )).x);	//Except without using arrays, and this is the end result	
+		
+			aba2 = texture2D( texture, vec2( (mod(xi, 16.0) + 0.5)/16.0, (15.5-(xi/16.0))/16.0 )).x + yi+1.0;
+			aba2 = texture2D( texture, vec2( (mod(aba2, 16.0) + 0.5)/16.0, (15.5-(aba2/16.0))/16.0 )).x + zi;
+			aba = int(texture2D( texture, vec2( (mod(aba2, 16.0) + 0.5)/16.0, (15.5-(aba2/16.0))/16.0 )).x);
 						
+			aab2 = texture2D( texture, vec2( (mod(xi, 16.0) + 0.5)/16.0, (15.5-(xi/16.0))/16.0 )).x + yi;
+			aab2 = texture2D( texture, vec2( (mod(aab2, 16.0) + 0.5)/16.0, (15.5-(aab2/16.0))/16.0 )).x + zi+1.0;
+			aab = int(texture2D( texture, vec2( (mod(aab2, 16.0) + 0.5)/16.0, (15.5-(aab2/16.0))/16.0 )).x);
+			
+			abb2 = texture2D( texture, vec2( (mod(xi, 16.0) + 0.5)/16.0, (15.5-(xi/16.0))/16.0 )).x + yi+1.0;
+			abb2 = texture2D( texture, vec2( (mod(abb2, 16.0) + 0.5)/16.0, (15.5-(abb2/16.0))/16.0 )).x + zi+1.0;
+			abb = int(texture2D( texture, vec2( (mod(abb2, 16.0) + 0.5)/16.0, (15.5-(abb2/16.0))/16.0 )).x);
+			
+			baa2 = texture2D( texture, vec2( (mod((xi+1.0), 16.0) + 0.5)/16.0, (15.5-((xi+1.0)/16.0))/16.0 )).x + yi;	
+			baa2 = texture2D( texture, vec2( (mod(baa2, 16.0) + 0.5)/16.0, (15.5-(baa2/16.0))/16.0 )).x + zi;
+			baa = int(texture2D( texture, vec2( (mod(baa2, 16.0) + 0.5)/16.0, (15.5-(baa2/16.0))/16.0 )).x);	
+			
+			bba2 = texture2D( texture, vec2( (mod((xi+1.0), 16.0) + 0.5)/16.0, (15.5-((xi+1.0)/16.0))/16.0 )).x + yi+1.0;
+			bba2 = texture2D( texture, vec2( (mod(bba2, 16.0) + 0.5)/16.0, (15.5-(bba2/16.0))/16.0 )).x + zi;
+			bba = int(texture2D( texture, vec2( (mod(bba2, 16.0) + 0.5)/16.0, (15.5-(bba2/16.0))/16.0 )).x);
+			
+			bab2 = texture2D( texture, vec2( (mod((xi+1.0), 16.0) + 0.5)/16.0, (15.5-((xi+1.0)/16.0))/16.0 )).x + yi;
+			bab2 = texture2D( texture, vec2( (mod(bab2, 16.0) + 0.5)/16.0, (15.5-(bab2/16.0))/16.0 )).x + zi+1.0;
+			bab = int(texture2D( texture, vec2( (mod(bab2, 16.0) + 0.5)/16.0, (15.5-(bab2/16.0))/16.0 )).x);
+			
+			bbb2 = texture2D( texture, vec2( (mod((xi+1.0), 16.0) + 0.5)/16.0, (15.5-((xi+1.0)/16.0))/16.0 )).x + yi+1.0;
+			bbb2 = texture2D( texture, vec2( (mod(bbb2, 16.0) + 0.5)/16.0, (15.5-(bbb2/16.0))/16.0 )).x + zi+1.0;
+			bbb = int(texture2D( texture, vec2( (mod(bbb2, 16.0) + 0.5)/16.0, (15.5-(bbb2/16.0))/16.0 )).x);	
+			
 			float x1, x2, y1, y2;
 			float temp1, temp2;
 			
@@ -142,41 +175,15 @@
 			ret = (temp1)/2.0 - 0.5; 	//Output from -0.5 to 0.5; change this to change that range
 		}		
 		//End perlin noise
-		*/
 		
-		//And, because those arrays aren't working, using this instead:
-		void noise(in vec3 p, out float ret){
-			vec3 a = floor(p);
-			vec3 d = p - a;
-			d = d * d * (3.0 - 2.0 * d);
 
-			vec4 b = a.xxyy + vec4(0.0, 1.0, 0.0, 1.0);
-			vec4 k1;
-			perm(b.xyxy, k1);
-			vec4 k2; 
-			perm(k1.xyxy + b.zzww, k2);
-
-			vec4 c = k2 + a.zzzz;
-			vec4 k3;
-			perm(c, k3);
-			vec4 k4;
-			perm(c + 1.0, k4);
-
-			vec4 o1 = fract(k3 * (1.0 / 41.0));
-			vec4 o2 = fract(k4 * (1.0 / 41.0));
-
-			vec4 o3 = o2 * d.z + o1 * (1.0 - d.z);
-			vec2 o4 = o3.yw * d.x + o3.xz * (1.0 - d.x);
-
-			ret = o4.y * d.y + o4.x * (1.0 - d.y);
-		}
 		
 		void f_density(in vec3 ws, out float ret)	//Positive corresponds to ground
 		{
 			ret = -1.0*ws[1] - 5.0;
 			float add_dens;		
-			vec3 freq0 = vec3(0.046, 0.026, 0.026);
-			vec3 freq1 = vec3(0.066, 0.046, 0.056);
+			vec3 freq0 = vec3(0.036, 0.026, 0.026);
+			vec3 freq1 = vec3(0.046, 0.046, 0.056);
 			vec3 freq2 = vec3(0.091, 0.111, 0.091);
 			vec3 freq3 = vec3(0.191, 0.291, 0.191);
 			vec3 freq4 = vec3(0.391, 0.391, 0.391);
@@ -186,23 +193,28 @@
 			float ampl3 = 4.0;
 			float ampl4 = 2.0;
 			
-			noise(vec3(ws[0]*freq0.x, ws[1]*freq0.y, ws[2]*freq0.z), add_dens);			ret += add_dens*ampl0;			
-			noise(vec3(ws[0]*freq1.x, ws[1]*freq1.y, ws[2]*freq1.z), add_dens);			ret += add_dens*ampl1;
-			noise(vec3(ws[0]*freq2.x, ws[1]*freq2.y, ws[2]*freq2.z), add_dens);			ret += add_dens*ampl2;
-			noise(vec3(ws[0]*freq3.x, ws[1]*freq3.y, ws[2]*freq3.z), add_dens);			ret += add_dens*ampl3;
-			noise(vec3(ws[0]*freq4.x, ws[1]*freq4.y, ws[2]*freq4.z), add_dens);			ret += add_dens*ampl4;
+	
+			 perlin(ws[0]*freq0.x, ws[1]*freq0.y, ws[2]*freq0.z, add_dens);			ret += add_dens*ampl0;			
+			 perlin(ws[0]*freq1.x, ws[1]*freq1.y, ws[2]*freq1.z, add_dens);			ret += add_dens*ampl1;
+			 perlin(ws[0]*freq2.x, ws[1]*freq2.y, ws[2]*freq2.z, add_dens);			ret += add_dens*ampl2;
+			 perlin(ws[0]*freq3.x, ws[1]*freq3.y, ws[2]*freq3.z, add_dens);			ret += add_dens*ampl3;
+			 perlin(ws[0]*freq4.x, ws[1]*freq4.y, ws[2]*freq4.z, add_dens);			ret += add_dens*ampl4;
 		}
 	
 	  void main()
 	  {	 	  
 		float density; 
-		vec3 mod_coords = vec3(coords[0]+mod(gl_FragCoord.x-0.5,33.0), coords[1]+gl_FragCoord.y-0.5, coords[2]+floor((gl_FragCoord.x-0.5)/33.0));
+		//vec3 mod_coords = vec3(coords[0]+mod(gl_FragCoord.x-0.5,33.0), coords[1]+gl_FragCoord.y-0.5, coords[2]+floor((gl_FragCoord.x-0.5)/33.0));	//I think this is right, but it might not be
+		vec3 mod_coords = vec3(mod(gl_FragCoord.x-0.5,33.0)+coords[0], coords[1]+gl_FragCoord.y-0.5, coords[2]+floor((gl_FragCoord.x-0.5)/33.0));
 		f_density(mod_coords, density);	
 		
-		vec4 dens_pack = vec4( density/abs(density), abs(density/65536.0), mod(abs(density/256.0), 256.0), mod(abs(density), 1.0)); 	//First value is 0 if it's negative
-
-		//gl_FragData[0] = dens_pack;
-		gl_FragData[0] = vec4(0.5, 0.5, 0.5, 0.7);
+		//vec4 dens_pack = vec4( density/abs(density), abs(density/65536.0), mod(abs(density/256.0), 256.0), mod(abs(density), 1.0)); 	//First value is 0 if it's negative
+		vec4 dens_pack = vec4( density/abs(density), fract(abs((density-0.5)/256.0)), fract(abs(density)), 1.0); 	//It doesnt really matter if it's huge, so set the last value to 1.0 to unbreak things
+		
+		// float test_var = 0.2;
+		// perlin(10.5, 80.2, 0.5, test_var);
+		gl_FragData[0] = dens_pack;
+		//gl_FragData[0] = vec4(0.5, 0.5, 0.5, 1.0);
 		float x_grad_dens;
 		float y_grad_dens;
 		float z_grad_dens;
@@ -214,12 +226,11 @@
 		float y_grad = density - y_grad_dens;
 		float z_grad = density - z_grad_dens;
 		vec3 norm_grad = normalize(vec3(x_grad, y_grad, z_grad));
-		
-		vec2 blah = vec2(gl_FragCoord);
+
 		
 		//Eh, 8 bit precision for normals should be enough (instead of 10 bit)
-		//gl_FragData[1] = vec4(norm_grad.x, norm_grad.y, norm_grad.z, 0.0);	
-		gl_FragData[1] = vec4(int(128), int(128), int(0), int(1));
+		//gl_FragData[1] = vec4(norm_grad.x, norm_grad.y, norm_grad.z, 1.0);	
+		gl_FragData[1] = vec4(gl_FragCoord.x/100.0, gl_FragCoord.y/100.0, 1.0, 1.0);
 		
 	  }
 	  `},
