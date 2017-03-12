@@ -48,11 +48,14 @@ Declare_Any_Class( "Tetrahedron",
   
 Declare_Any_Class("Imported_Object",
 {
-	'populate': function(file_name, x, y, z)
+	'populate': function(file_name, x, y, z, normal_x, normal_y, normal_z)
 	{
 		this.x = x;
 		this.y = y;
 		this.z = z;
+		this.normal_x = normal_x;
+		this.normal_y = normal_y;
+		this.normal_z = normal_z;
 		
 		var allText;
 		var rawFile = new XMLHttpRequest();
@@ -120,7 +123,7 @@ Declare_Any_Class( "Collection_Object",      // A subdivision surface ( Wikipedi
   {                                           // layout.  Each act of subdivision makes it a better approximation of some desired mathematical surface by projecting each new 
                                               // point onto that surface's known implicit equation.  For a sphere, we begin with a closed 3-simplex (a tetrahedron).  For 
                                               // each face, connect the midpoints of each edge together to make more faces.  Repeat recursively until the desired level of 
-    populate: function ( file_name, x, y, z )   // detail is obtained.  Project all new vertices to unit vectors (onto the unit sphere) and group them into triangles by 
+    populate: function ( file_name, x, y, z)   // detail is obtained.  Project all new vertices to unit vectors (onto the unit sphere) and group them into triangles by 
       {                                       // following the predictable pattern of the recursion.
         this.collected = false;
 		this.touched = false;
