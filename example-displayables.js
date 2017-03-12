@@ -353,12 +353,14 @@ Declare_Any_Class("Example_Animation", {
 			gl.clear( gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 			for (var i =0; i<this.GBuffer.layers;i++){
 				gl.activeTexture(texAddrs[i]);
-				gl.bindTexture(gl.TEXTURE2D, this.GBuffer.tx[i]);
+				gl.bindTexture(gl.TEXTURE_2D, this.GBuffer.tx[i]);
 			}
 			shaders_in_use["G_buf_light_phong"].activate();
 
 			//Render to screen
 			shapes_in_use.square.draw(this.shared_scratchpad.graphics_state,new mat4(),aMaterial );
+			
+			//cleanup
 			gl.activeTexture(gl.TEXTURE0);
 			gl.bindTexture(gl.TEXTURE_2D, null);
 			gl.enable(gl.BLEND);
@@ -367,7 +369,7 @@ Declare_Any_Class("Example_Animation", {
 		else{
 			shaders_in_use["Default"].activate();
 			gl.clear( gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
-			this.generate_G_Buffer(time);
+			this.renderOpaque(time);
 		}
 		
     },
