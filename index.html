@@ -21,6 +21,7 @@
 	  //shaders_in_use[ "G_buf_gen_ns_hf" ] = new G_buf_gen_NormalSpray_hf			( g_state );
 	  //shaders_in_use[ "G_buf_light_ns_hf" ] = new G_buf_light_NormalSpray_hf		( g_state );
 	  shaders_in_use[ "G_buf_gen_phong" ] = new G_buf_gen_phong						( g_state );
+	  shaders_in_use[ "G_buf_gen_terrain" ] = new G_buf_gen_terrain					( g_state );
 	  shaders_in_use[ "G_buf_light_phong" ] = new G_buf_light_phong					( g_state );
       shaders_in_use[ "Default"     ] = new Phong_or_Gouraud_Shader					( g_state );    // Put all our shader programs in the GPU.
       shaders_in_use[ "Phong_Pass" ] = new Funny_Shader           					( g_state );
@@ -32,6 +33,8 @@
 	  texture_filenames_to_load.push( "LameBox.png" );
 	  texture_filenames_to_load.push( "perlin_array.png" );
 	  texture_filenames_to_load.push( "Grass.png" );
+	  texture_filenames_to_load.push( "ZTEX.png" );
+	  texture_filenames_to_load.push( "YTEX.png" );
 	  
       for( var i = 0; i < texture_filenames_to_load.length; i++ ) textures_in_use[ texture_filenames_to_load[i] ] = ( new Texture( texture_filenames_to_load[i], false ) );
 	  

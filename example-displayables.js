@@ -1,6 +1,6 @@
 
 var RES_RATIO = 16;	
-var RES = 4;
+var RES = 3;
 var DRAW_DIST = 2;
 var DIR_DRAW_DIST = 1;
 var WORLD_SIZE = 16384;
@@ -11,9 +11,12 @@ var DEFERRED = false;
 // Create the textbox
 Declare_Any_Class( "Debug_Screen",
   { 'construct': function( context )
-      { this.define_data_members( { shared_scratchpad: context.shared_scratchpad, numCollected: 0, graphics_state: new Graphics_State() } );
+      { this.define_data_members( { shared_scratchpad: context.shared_scratchpad, numCollected: 0, gameState: "start",numFrames: 0, graphics_state: new Graphics_State() } );
         shapes_in_use.debug_text = new Text_Line( 35 );
 		this.shared_scratchpad.numCollected = 0;
+		this.shared_scratchpad.gameState = "start";
+		this.startTime = new Date();
+		this.endTime = new Date();
       },
     'init_keys': function( controls )
       { 
@@ -22,20 +25,84 @@ Declare_Any_Class( "Debug_Screen",
     'update_strings': function( debug_screen_object )
       { 
 		this.numCollected = this.shared_scratchpad.numCollected;
+		this.gameState = this.shared_scratchpad.gameState; // start, playing, end
       },
     'display': function( time )
       {
+		this.numFrames++;
+		this.endTime = new Date();
         shaders_in_use["Default"].activate();
-        gl.uniform4fv( g_addrs.shapeColor_loc, Color( .8, .8, .8, 1 ) );
 
-        var font_scale = scale( .02, .04, 1 ),
-            model_transform = mult( translation( -.95, -.9, 0 ), font_scale );
+        var font_scale = scale( .02, .04, 1 );
+		var model_transform = mat3();
+		
+		if(this.gameState == "start")
+		{
+			var start_scale = mult(font_scale, scale(2,2,2));
+			model_transform = mult(translation(-0.6,0.3,0), start_scale);
+			shapes_in_use.debug_text.set_string("PRESS ENTER TO START");
+			shapes_in_use.debug_text.draw( this.graphics_state, model_transform, true, vec4(0,0,0,1) ); 
+			
+			// draw controls
+			model_transform = mat3();
+			model_transform = mult(translation(0.5, 0.9, 0), font_scale);
+			shapes_in_use.debug_text.set_string("CONTROLS");
+			shapes_in_use.debug_text.draw(this.graphics_state, model_transform, true, vec4(0,0,0,1));
+			
+			model_transform = mult(translation(0, -0.08, 0), model_transform);
+			shapes_in_use.debug_text.set_string("YAW:      ARROWS");
+			shapes_in_use.debug_text.draw( this.graphics_state, model_transform, true, vec4(0,0,0,1) );
+			
+			model_transform = mult(translation(0, -0.08, 0), model_transform);
+			shapes_in_use.debug_text.set_string("PITCH:    ARROWS");
+			shapes_in_use.debug_text.draw( this.graphics_state, model_transform, true, vec4(0,0,0,1) ); 
+			
+			model_transform = mult(translation(0, -0.08, 0), model_transform);
+			shapes_in_use.debug_text.set_string("ROLL:     G ; H");
+			shapes_in_use.debug_text.draw( this.graphics_state, model_transform, true, vec4(0,0,0,1) );
+		
+			model_transform = mult(translation(0, -0.08, 0), model_transform);
+			shapes_in_use.debug_text.set_string("SPEED:    Z-/");
+			shapes_in_use.debug_text.draw( this.graphics_state, model_transform, true, vec4(0,0,0,1) );
 
-	
-		// draw the text box
-		shapes_in_use.debug_text.set_string("Collected: " + this.numCollected.toString() );
-		shapes_in_use.debug_text.draw( this.graphics_state, model_transform, true, vec4(0,0,0,1) );  // Draw some UI text (strings)
-		model_transform = mult( translation( 0, .08, 0 ), model_transform );
+			model_transform = mult(translation(0, -0.08, 0), model_transform);
+			shapes_in_use.debug_text.set_string("NEW GAME: ENTER");
+			shapes_in_use.debug_text.draw( this.graphics_state, model_transform, true, vec4(0,0,0,1) );
+		
+		}
+		
+		else if(this.gameState == "playing")
+		{
+			model_transform = mult( translation( -.95, -.9, 0 ), font_scale );
+
+			// draw the text box
+			shapes_in_use.debug_text.set_string("Collected: " + this.numCollected.toString() );
+			shapes_in_use.debug_text.draw( this.graphics_state, model_transform, true, vec4(0,0,0,1) );
+			
+			var FPS = Number((this.numFrames/((this.endTime - this.startTime)/1000)).toFixed(3));
+			shapes_in_use.debug_text.set_string("FPS: " + FPS);
+			model_transform = mult( translation( 0, .08, 0 ), model_transform );
+			shapes_in_use.debug_text.draw( this.graphics_state, model_transform, true, vec4(0,0,0,1) );
+	    }
+		else if(this.gameState == "end")
+		{
+			var end_scale = mult(font_scale, scale(2,2,2));
+			model_transform = mult(translation(-0.6,0.3,0), end_scale);
+			shapes_in_use.debug_text.set_string("CRASHED INTO THE MAP!");
+			shapes_in_use.debug_text.draw( this.graphics_state, model_transform, true, vec4(0,0,0,1) );
+
+			model_transform = new mat3();
+			model_transform = mult(translation(-0.25,-0.3,0), font_scale);
+			shapes_in_use.debug_text.set_string("TOTAL COLLECTED: " + this.numCollected.toString());
+			shapes_in_use.debug_text.draw( this.graphics_state, model_transform, true, vec4(0,0,0,1) );
+			
+			model_transform = new mat3();
+			model_transform = mult(translation(-0.25,-0.45,0), font_scale);
+			shapes_in_use.debug_text.set_string("PRESS ENTER TO RESTART");
+			shapes_in_use.debug_text.draw( this.graphics_state, model_transform, true, vec4(0,0,0,1) );
+		}
+		
+		
       }
   }, Animation );
 
@@ -64,26 +131,26 @@ Declare_Any_Class("Example_Animation", {
 		shapes_in_use.collection_object = new Array();
 		
 		//Test Grass
-		shapes_in_use.grassyGnoll = new Imported_Object("Grass.obj",0,0,-100);
+		shapes_in_use.grassyGnoll = new Imported_Object("Grass.obj",0,0,-100,0,1,0);
 		
 		// add grass
-		shapes_in_use.grass.push(new Imported_Object("Grass.obj",0,0,-100)); 
+		shapes_in_use.grass.push(new Imported_Object("Grass.obj",0,0,-100,0,1,1)); 
 		
 		// declare any number of objects
-		shapes_in_use.collection_object.push(new Collection_Object("Gate.obj", 50, 0, -150));
-		shapes_in_use.collection_object.push(new Collection_Object("Gate_twirl.obj", 50, 0, -150));
+		shapes_in_use.collection_object.push(new Collection_Object("Gate.obj", 50, 50, -150));
+		shapes_in_use.collection_object.push(new Collection_Object("Gate_twirl.obj", 50, 50, -150));
 		
-		shapes_in_use.collection_object.push(new Collection_Object("Gate.obj", -50, 0, -150));
-		shapes_in_use.collection_object.push(new Collection_Object("Gate_twirl.obj", -50, 0, -150));
+		shapes_in_use.collection_object.push(new Collection_Object("Gate.obj", -50, 50, -150));
+		shapes_in_use.collection_object.push(new Collection_Object("Gate_twirl.obj", -50, 50, -150));
 		
-		shapes_in_use.collection_object.push(new Collection_Object("Gate.obj", 50, 0, -100));
-		shapes_in_use.collection_object.push(new Collection_Object("Gate_twirl.obj", 50, 0, -100));
+		shapes_in_use.collection_object.push(new Collection_Object("Gate.obj", 50, 50, -100));
+		shapes_in_use.collection_object.push(new Collection_Object("Gate_twirl.obj", 50, 50, -100));
 		
-		shapes_in_use.collection_object.push(new Collection_Object("Gate.obj", -50, 0, -100));
-		shapes_in_use.collection_object.push(new Collection_Object("Gate_twirl.obj", -50, 0, -100));
+		shapes_in_use.collection_object.push(new Collection_Object("Gate.obj", -50, 50, -100));
+		shapes_in_use.collection_object.push(new Collection_Object("Gate_twirl.obj", -50, 50, -100));
 
 		// create plane
-		shapes_in_use.plane = new Imported_Object("ThreePlane.obj",0,0,0);
+		shapes_in_use.plane = new Imported_Object("ThreePlane.obj",0,0,0,0,0,0);
 
 		
 		shapes_in_use.square = new Square();
@@ -95,9 +162,8 @@ Declare_Any_Class("Example_Animation", {
 		this.t_loop_count = 0;
 		
 		
-        this.shared_scratchpad.speed = 0.1;
+        this.shared_scratchpad.speed = 0;
 		
-		this.shared_scratchpad.speed_change = 0; // 0: no change; -1: slow down; +1: speed up;
 		this.shared_scratchpad.pitch_change = 0; // how much to change pitch
 		this.shared_scratchpad.heading_change = 0; // how much to change heading
 		this.shared_scratchpad.roll_change = 0;
@@ -105,11 +171,37 @@ Declare_Any_Class("Example_Animation", {
 		
 		this.shared_scratchpad.orientation = mat4(1); // create identity matrix as orientation
 		this.shared_scratchpad.position = vec3(0,0,0);
+		this.shared_scratchpad.position[2] = -5;
 		
 		this.shared_scratchpad.camera_extra_pitch = 0;
 		this.shared_scratchpad.camera_extra_heading = 0;
     },
     'init_keys': function(controls) {
+		controls.add("enter", this, function() {
+			if(this.shared_scratchpad.gameState == "start")
+			{
+				this.shared_scratchpad.gameState = "playing";
+				this.shared_scratchpad.speed = 0.1;
+			}
+			else
+			{
+				this.shared_scratchpad.gameState = "start";
+				
+				this.shared_scratchpad.speed = 0;
+			
+				this.shared_scratchpad.pitch_change = 0; // how much to change pitch
+				this.shared_scratchpad.heading_change = 0; // how much to change heading
+				this.shared_scratchpad.roll_change = 0;
+				this.shared_scratchpad.extra_roll = 1;
+				
+				this.shared_scratchpad.orientation = mat4(1); // create identity matrix as orientation
+				this.shared_scratchpad.position = vec3(0,0,0);
+				this.shared_scratchpad.position[2] = -5;
+				
+				this.shared_scratchpad.camera_extra_pitch = 0;
+				this.shared_scratchpad.camera_extra_heading = 0;
+			}
+		});
         controls.add("up", this, function() {
             this.shared_scratchpad.pitch_change = 0.6;
         });
@@ -149,37 +241,37 @@ Declare_Any_Class("Example_Animation", {
 			this.shared_scratchpad.heading_change =  0; }, {'type':'keyup'} 
 		);
 		controls.add("3", this, function() {
-            this.shared_scratchpad.heading_change = 0.6;
+            this.shared_scratchpad.heading_change = 0.55;
         });
 		controls.add( "3", this, function() { 
 			this.shared_scratchpad.heading_change =  0; }, {'type':'keyup'} 
 		);
 		controls.add("4", this, function() {
-            this.shared_scratchpad.heading_change = 0.4;
+            this.shared_scratchpad.heading_change = 0.3;
         });
 		controls.add( "4", this, function() { 
 			this.shared_scratchpad.heading_change =  0; }, {'type':'keyup'} 
 		);
 		controls.add("5", this, function() {
-            this.shared_scratchpad.heading_change = 0.2;
+            this.shared_scratchpad.heading_change = 0.1;
         });
 		controls.add( "5", this, function() { 
 			this.shared_scratchpad.heading_change =  0; }, {'type':'keyup'} 
 		);
 		controls.add("6", this, function() {
-            this.shared_scratchpad.heading_change = -0.2;
+            this.shared_scratchpad.heading_change = -0.1;
         });
 		controls.add( "6", this, function() { 
 			this.shared_scratchpad.heading_change =  0; }, {'type':'keyup'} 
 		);
 		controls.add("7", this, function() {
-            this.shared_scratchpad.heading_change = -0.4;
+            this.shared_scratchpad.heading_change = -0.3;
         });
 		controls.add( "7", this, function() { 
 			this.shared_scratchpad.heading_change =  0; }, {'type':'keyup'} 
 		);
 		controls.add("8", this, function() {
-            this.shared_scratchpad.heading_change = -0.6;
+            this.shared_scratchpad.heading_change = -0.55;
         });
 		controls.add( "8", this, function() { 
 			this.shared_scratchpad.heading_change =  0; }, {'type':'keyup'} 
@@ -211,37 +303,37 @@ Declare_Any_Class("Example_Animation", {
 			this.shared_scratchpad.pitch_change =  0; }, {'type':'keyup'} 
 		);
 		controls.add("e", this, function() {
-            this.shared_scratchpad.pitch_change = 0.6;
+            this.shared_scratchpad.pitch_change = 0.55;
         });
 		controls.add( "e", this, function() { 
 			this.shared_scratchpad.pitch_change =  0; }, {'type':'keyup'} 
 		);
 		controls.add("r", this, function() {
-            this.shared_scratchpad.pitch_change = 0.4;
+            this.shared_scratchpad.pitch_change = 0.3;
         });
 		controls.add( "r", this, function() { 
 			this.shared_scratchpad.pitch_change =  0; }, {'type':'keyup'} 
 		);
 		controls.add("t", this, function() {
-            this.shared_scratchpad.pitch_change = 0.2;
+            this.shared_scratchpad.pitch_change = 0.1;
         });
 		controls.add( "t", this, function() { 
 			this.shared_scratchpad.pitch_change =  0; }, {'type':'keyup'} 
 		);
 		controls.add("y", this, function() {
-            this.shared_scratchpad.pitch_change = -0.2;
+            this.shared_scratchpad.pitch_change = -0.1;
         });
 		controls.add( "y", this, function() { 
 			this.shared_scratchpad.pitch_change =  0; }, {'type':'keyup'} 
 		);
 		controls.add("u", this, function() {
-            this.shared_scratchpad.pitch_change = -0.4;
+            this.shared_scratchpad.pitch_change = -0.3;
         });
 		controls.add( "u", this, function() { 
 			this.shared_scratchpad.pitch_change =  0; }, {'type':'keyup'} 
 		);
 		controls.add("i", this, function() {
-            this.shared_scratchpad.pitch_change = -0.6;
+            this.shared_scratchpad.pitch_change = -0.55;
         });
 		controls.add( "i", this, function() { 
 			this.shared_scratchpad.pitch_change =  0; }, {'type':'keyup'} 
@@ -285,39 +377,53 @@ Declare_Any_Class("Example_Animation", {
 			this.shared_scratchpad.roll_change =  0; }, {'type':'keyup'} 
 		);
 		
-        // slow down
-        controls.add(",", this, function() {
-			this.shared_scratchpad.speed_change = -SPEED_INC;
-			}
-        );
-		controls.add( ",", this, function() { 
-			this.shared_scratchpad.speed_change =  0; }, {'type':'keyup'} 
-		);
-
-        // speed up
-        controls.add(".", this, function() {
-			this.shared_scratchpad.speed_change = SPEED_INC;
-            }
-        );
-		controls.add( ".", this, function() { 
-			this.shared_scratchpad.speed_change =  0; }, {'type':'keyup'} 
-		);
+		// set speed
+		controls.add("/", this, function() {
+			if(this.shared_scratchpad.gameState == "playing")
+				this.shared_scratchpad.speed = 0.9;
+        });
+		controls.add(".", this, function() {
+			if(this.shared_scratchpad.gameState == "playing")
+				this.shared_scratchpad.speed = 0.8;
+        });
+		controls.add(",", this, function() {
+			if(this.shared_scratchpad.gameState == "playing")
+				this.shared_scratchpad.speed = 0.7;
+        });
+		controls.add("m", this, function() {
+			if(this.shared_scratchpad.gameState == "playing")
+				this.shared_scratchpad.speed = 0.6;
+        });
+		controls.add("n", this, function() {
+			if(this.shared_scratchpad.gameState == "playing")
+				this.shared_scratchpad.speed = 0.5;
+        });
+		controls.add("b", this, function() {
+			if(this.shared_scratchpad.gameState == "playing")
+				this.shared_scratchpad.speed = 0.4;
+        });
+		controls.add("v", this, function() {
+			if(this.shared_scratchpad.gameState == "playing")
+				this.shared_scratchpad.speed = 0.3;
+        });
+		controls.add("c", this, function() {
+			if(this.shared_scratchpad.gameState == "playing")
+				this.shared_scratchpad.speed = 0.2;
+        });
+		controls.add("x", this, function() {
+			if(this.shared_scratchpad.gameState == "playing")
+				this.shared_scratchpad.speed = 0.1;
+        });
+		controls.add("z", this, function() {
+			if(this.shared_scratchpad.gameState == "playing")
+				this.shared_scratchpad.speed = 0.0;
+        });
+		
 		// Shading DEBUG Toggle
-		controls.add("x", this, function(){
+		controls.add("a", this, function(){
 			DEFERRED = !DEFERRED;
 			console.log("Swapped to DEFERRED = ", DEFERRED);
 		});
-		// reset
-		controls.add("ctrl+r", this, function() {
-			// TODO
-			this.shared_scratchpad.speed = 0.1;
-			
-			this.shared_scratchpad.speed_change = 0; // 0: no change; -1: slow down; +1: speed up;
-			this.shared_scratchpad.pitch_change = 0; // how much to change pitch
-			this.shared_scratchpad.heading_change = 0; // how much to change heading
-
-		});
-
     },
 	
 	// check collision between two spheres
@@ -373,15 +479,28 @@ Declare_Any_Class("Example_Animation", {
 			shaders_in_use["Default"].activate();
 			gl.clear( gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 			this.renderOpaque(time);
-			this.renderTransparent(time);
+			//this.renderTransparent(time);
 		}
 		
     },
 	
 	'draw_terrain': function(graphics_state, collectableMaterial){
-			
-		
-		var landMaterial = new Material(Color(0.25, 0.4, 0.0, 1.0), 0.6, 0.8, 0.2, 5);	//Just a placeholder for now
+	
+		var landMaterialYellow = new Material(Color(0.25, 0.4, 0.0, 1.0), 0.6, 0.8, 0.2, 5);	//Just a placeholder for now
+
+		var prevShader = active_shader;
+		if(DEFERRED){
+		shaders_in_use["G_buf_gen_terrain"].activate();	
+		}
+		gl.activeTexture(texAddrs[0]);
+		gl.bindTexture(gl.TEXTURE_2D, textures_in_use["ZTEX.png"].id);
+		gl.activeTexture(texAddrs[1]);
+		gl.bindTexture(gl.TEXTURE_2D, textures_in_use["YTEX.png"].id);
+		gl.activeTexture(texAddrs[2]);
+		gl.bindTexture(gl.TEXTURE_2D, textures_in_use["ZTEX.png"].id);
+		// var landMaterial = new Material(Color(0.4, 0.4, .4, 1), .6, .8, .4, 4,"FAKE.CHICKEN");	//Just a placeholder for now
+		var landMaterial = new Material(Color(0.0, 0.0, 0.0, 1), .1, .2, .1, 80);	//Just a placeholder for now
+
 
 		
 		if(this.t_loop_count == 0)
@@ -445,7 +564,7 @@ Declare_Any_Class("Example_Animation", {
 			shapes_in_use.terrain.copy_onto_graphics_card();
 		}	
 		model_transform = mat4();		
-		shapes_in_use.terrain.draw(graphics_state, model_transform, landMaterial);
+		shapes_in_use.terrain.draw(graphics_state, model_transform, landMaterialYellow);
 		this.t_loop_count++;
 		//Check for plane collision with ground:
 		//if(sign_density(add(this.shared_scratchpad.position, vec3()
@@ -459,23 +578,26 @@ Declare_Any_Class("Example_Animation", {
 			if(sign_density(plane_col[i]))
 			{
 				//We crashed!
-				console.log("Crashed into ground!");
-				this.shared_scratchpad.speed = 0.01;	//Not 0 so we can still get out for debugging purposes
-				//Also, do something more interesting eventually?
+				this.shared_scratchpad.gameState = "end";
+				this.shared_scratchpad.speed = 0;	
 			}
+
 		}	
 
 		//Put this somewhere else later
 		graphics_state.lights.push(new Light(add(vec4(this.shared_scratchpad.position[0], this.shared_scratchpad.position[1], this.shared_scratchpad.position[2], 1), mult_vec(this.shared_scratchpad.orientation, vec4(-0.5,0,0.3,0))), Color(0.8, 0.8, 0.8, 1), 1000));
 		
 		
+
+		
+		//cleanup
+		gl.activeTexture(gl.TEXTURE0);
+		gl.bindTexture(gl.TEXTURE_2D, null);
+		prevShader.activate();	
 	},	
 	
 	'renderTransparent': function(time){
 		var graphics_state = this.shared_scratchpad.graphics_state;
-        var grassMat = new Material(Color(0.0,0.0,0.0, 1), .3, .4, .8, 40,"Grass.png"); // Omit the final (string) parameter if you want no texture
-		this.drawGrass(graphics_state,grassMat);
-		shapes_in_use.grassyGnoll.draw(graphics_state,translation(20,20,-50),grassMat);
 	},
 	'renderOpaque': function(time){
 		var graphics_state = this.shared_scratchpad.graphics_state;
@@ -491,6 +613,7 @@ Declare_Any_Class("Example_Animation", {
         var collectableMaterial = new Material(Color(1, 0, 1, 1), .4, .4, .8, 40); // Omit the final (string) parameter if you want no texture
         var tetraMaterial = new Material(Color(0, 1, 1, 1), .4, .4, .4, 40); // Omit the final (string) parameter if you want no texture
 		var landMaterial = new Material(Color(0.4, 0.5, 0, 1), .6, .8, .4, 4);	//Just a placeholder for now
+        var grassMat = new Material(Color(0.0,0.0,0.0, 1), .3, .6, .3, 80,"Grass.png"); 
 
 		var current_orientation = this.shared_scratchpad.orientation;
 		// draw plane
@@ -503,13 +626,11 @@ Declare_Any_Class("Example_Animation", {
 		
 		// draw collectable
 		this.drawCollectables(graphics_state, collectableMaterial); 
-		
-		//this.drawGrass(graphics_state, collectableMaterial);
-		
 
 		// draw grass
-		this.drawGrass(graphics_state, collectableMaterial);
-		
+		this.drawGrass(graphics_state, grassMat);
+
+
 	
 		//Hacky skyboxes, do properly later
 		this.sbtrans = new mat4();
@@ -520,13 +641,33 @@ Declare_Any_Class("Example_Animation", {
 		this.sbtrans = mult(inverse(this.shared_scratchpad.graphics_state.camera_transform),invRot);
 		
 	},
+	// pass in array of positions and normals
+	'addGrass': function(positions, normals) {
+		for(var i = 0; i < positions.length; i++)
+		{
+			shapes_in_use.grass.push(new Imported_Object("Grass.obj",positions[i][0], positions[i][1], positions[i][2], normals[i][0], normals[i][1], normals[i][2]));
+		}
+	},
+	// draws all grass in shapes_in_use.grass
 	'drawGrass': function(graphics_state, material) {
 		for(var i = 0; i < shapes_in_use.grass.length; i++)
 		{
 			var cur_grass = shapes_in_use.grass[i];
-			var model_transform = mat4();
-			model_transform = mult(model_transform, translation(cur_grass.x, cur_grass.y, cur_grass.z));
-			cur_grass.draw(graphics_state, model_transform, material);
+			
+			var orientation = new mat4(1);
+			// calculate pitch, yaw, and roll change based on normal
+			var yaw_change = 0;
+			var normal = normalize(vec3(cur_grass.normal_x, cur_grass.normal_y, cur_grass.normal_z));
+			var vertical = vec3(0,1,0);
+			var crossed = cross(normal, vertical);
+			var angle = degrees(Math.asin(magnitude(crossed)));
+			
+			var transition = new mat4();
+			transition = mult(transition, translation(cur_grass.x, cur_grass.y, cur_grass.z));
+			if(angle != 0)
+				transition = mult(transition, rotation(angle, crossed));
+			
+			cur_grass.draw(graphics_state, transition, material);
 		}
 	},
 	'drawCollectables': function(graphics_state, collectableMaterial){
@@ -564,10 +705,6 @@ Declare_Any_Class("Example_Animation", {
 	},
 	'drawPlane': function(graphics_state, material){
 		// draw plane
-				
-		// change speed
-		this.shared_scratchpad.speed = Math.min(1,Math.max(0,this.shared_scratchpad.speed + this.shared_scratchpad.speed_change));
-		
 		// change roll based on if yaw is changing
 		var max_roll = 20;
 		var frame_change = 1;

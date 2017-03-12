@@ -143,13 +143,21 @@ Declare_Any_Class( "Phong_or_Gouraud_Shader",
             for( int i = 0; i < N_LIGHTS; i++ )
             {
               float attenuation_multiplier = 1.0 / (1.0 + attenuation_factor[i] * (dist[i] * dist[i]));
+<<<<<<< HEAD
               float diffuse  = max(dot(L[i], N), 0.001);
               float specular = pow(max(dot(N, H[i]), 0.001), shininess);
+=======
+              float diffuse  = max(dot(L[i], N), 0.0001);
+              float specular = pow(max(dot(N, H[i]), 0.0001), shininess);
+>>>>>>> 5a332730f48c458ea6dd59a62c07b526e77b3a76
 
               gl_FragColor.xyz += attenuation_multiplier * (shapeColor.xyz * diffusivity * diffuse  + lightColor[i].xyz * shininess * specular );
             }
 
             gl_FragColor.a = gl_FragColor.w;
+			//DEBUG DELETE ME PLS
+			//gl_FragColor.xyz = abs(pos/10.0);
+			//DEBUG DELETE ME PLS
 			if(gl_FragColor.a < 0.5)
 				discard;
           }`;
