@@ -515,7 +515,7 @@ Declare_Any_Class("Example_Animation", {
 		gl.activeTexture(texAddrs[2]);
 		gl.bindTexture(gl.TEXTURE_2D, textures_in_use["ZTEX.png"].id);
 		// var landMaterial = new Material(Color(0.4, 0.4, .4, 1), .6, .8, .4, 4,"FAKE.CHICKEN");	//Just a placeholder for now
-		var landMaterial = new Material(Color(0.8, 0.5, 0.1, 1), .3, .7, .1, 80);	//Just a placeholder for now
+		var landMaterial = new Material(Color(0.8, 0.5, 0.1, 1), .1, .7, .1, 80);	//Just a placeholder for now
 		
 
 
@@ -628,7 +628,9 @@ Declare_Any_Class("Example_Animation", {
 
         var t = graphics_state.animation_time / 1000,
             light_orbit = [Math.cos(t), Math.sin(t)];
-        graphics_state.lights.push(new Light(vec4(-10, 10, 0, 1), Color(1, 1, 1, 1), 100000));
+        //graphics_state.lights.push(new Light(vec4(-10, 10, 0, 1), Color(1, 1, 1, 1), 1000));
+		graphics_state.lights.push(new Light(vec4(2.0, 1.0, 0.0, 0.0), Color(1, 1, .7, 1), -1000*(t%2)));
+
 		
         // *** Materials: *** Declare new ones as temps when needed; they're just cheap wrappers for some numbers.
         // 1st parameter:  Color (4 floats in RGBA format), 2nd: Ambient light, 3rd: Diffuse reflectivity, 4th: Specular reflectivity, 5th: Smoothness exponent, 6th: Texture image.

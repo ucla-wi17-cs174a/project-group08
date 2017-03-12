@@ -142,7 +142,10 @@ Declare_Any_Class( "Phong_or_Gouraud_Shader",
 			
             for( int i = 0; i < N_LIGHTS; i++ )
             {
-              float attenuation_multiplier = 1.0 / (1.0 + attenuation_factor[i] * (dist[i] * dist[i]));
+			
+			float atFac = attenuation_factor[i] > 0.0 ? attenuation_factor[i] : 0.0;
+
+              float attenuation_multiplier = 1.0 / (1.0 + atFac * (dist[i] * dist[i]));
 
               float diffuse  = max(dot(L[i], N), 0.0001);
               float specular = pow(max(dot(N, H[i]), 0.0001), smoothness);

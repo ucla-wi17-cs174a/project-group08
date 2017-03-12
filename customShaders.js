@@ -365,7 +365,7 @@ Declare_Any_Class( "G_buf_gen_NormalSpray",
 			biasedNorm = .5*biasedNorm+.5;
 			gl_FragData[1] = vec4(biasedNorm,1.0);
 			gl_FragData[0] = shapeColor;
-			gl_FragData[2] = vec4(ambient,diffusivity,shininess,1.0);
+			gl_FragData[2] = vec4(smoothness/255.0,diffusivity,shininess,1.0);
 			vec2 posZ;
 			vec2 posX;
 			vec2 posY;
@@ -493,7 +493,7 @@ Declare_Any_Class( "G_buf_gen_phong",
 			//biasedNorm = abs(biasedNorm);
 			gl_FragData[1] = vec4(biasedNorm,1.0);
 			gl_FragData[0] = shapeColor;
-			gl_FragData[2] = vec4(smoothness,diffusivity,shininess,1.0);
+			gl_FragData[2] = vec4(smoothness/255.0,diffusivity,shininess,1.0);
 			vec2 posZ;
 			vec2 posX;
 			vec2 posY;
@@ -628,10 +628,10 @@ Declare_Any_Class( "G_buf_gen_phong",
 			RGtofloat16(inPosz.rg,zz);
 			vec4 fPos = vec4(xx,yy,zz,1.0);
 			vec3 pos = fPos.xyz;
-			float ambient = .3;
+			float ambient = .1;
 			float diffusivity = fMatl.g;
 			float shininess = fMatl.b;
-			float smoothness = fMatl.r;
+			float smoothness = fMatl.r*255.0;
 			gl_FragColor = vec4(tex_color.rgb * ambient,tex_color.a);
 			vec3 lum = vec3(0.0,0.0,0.0);
 			vec3 E = normalize( -pos );
@@ -640,13 +640,15 @@ Declare_Any_Class( "G_buf_gen_phong",
              {
 				vec3 L = normalize( ( camera_transform * lightPosition[i] ).xyz - lightPosition[i].w * pos );   // Use w = 0 for a directional light -- a vector instead of a point.
 				vec3 H = normalize( L + E );
-				dist = distance((camera_transform * lightPosition[i]).xyz, pos);
-				float attenuation_multiplier = 1.0 / (1.0 + attenuation_factor[i] * (dist * dist));
+				dist = lightPosition[i].w > 0.0 ? distance((camera_transform * lightPosition[i]).xyz, pos): 10.0;
+				float atFac = attenuation_factor[i] > 0.0 ? attenuation_factor[i] : 0.0;
+				float attenuation_multiplier = 1.0 / (1.0 + atFac * (dist * dist));
                float diffuse  = max(dot(L, N), 0.0001);
                float specular = pow(max(dot(N, H), 0.0001), smoothness);
 
                lum += attenuation_multiplier * (tex_color.xyz * diffusivity * diffuse  + lightColor[i].xyz * shininess * specular );
 			}
+			//lum = min(lum,1.0-gl_FragColor.xyz);
 			gl_FragColor = vec4(lum+gl_FragColor.xyz,1.0);
 			//Do Fog Attenuation
 			// float fogw=min(1.0,(length(pos)/200.0));
