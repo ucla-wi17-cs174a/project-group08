@@ -606,7 +606,6 @@ Declare_Any_Class("Example_Animation", {
 			}
 		}	
 		col_count = 0;
-
 		//Put this somewhere else later
 		//graphics_state.lights.push(new Light(add(vec4(this.shared_scratchpad.position[0], this.shared_scratchpad.position[1], this.shared_scratchpad.position[2], 1), mult_vec(this.shared_scratchpad.orientation, vec4(-0.5,0,0.3,0))), Color(0.8, 0.8, 0.8, 1), 1000));
 		
@@ -646,7 +645,7 @@ Declare_Any_Class("Example_Animation", {
 		// make camera follow the plane
 		this.drawCamera(graphics_state, current_orientation);
 	
-		//this.draw_terrain(graphics_state, current_orientation);
+		this.draw_terrain(graphics_state, current_orientation);
 		
 		// draw collectable
 		this.drawCollectables(graphics_state, collectableMaterial); 
@@ -877,7 +876,8 @@ Declare_Any_Class("Example_Animation", {
 		at = add(at, mult_vec_scalar(x_axis, -1*this.shared_scratchpad.camera_extra_heading));
 		
 		var distance = Math.sqrt(Math.pow(eye[0]-at[0],2) + Math.pow(eye[1]-at[1],2) + Math.pow(eye[2] - at[2],2));
-		console.log("distance between camera and plane:" + distance);
+		
+		//console.log("distance between camera and plane:" + distance);
 		// set up
 		var roll = new vec4(orientation[0][1], orientation[1][1], orientation[2][1], 1); //forward
 
