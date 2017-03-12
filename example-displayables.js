@@ -2,9 +2,9 @@
 var RES_RATIO = 16;	
 var RES = 2;
 var DRAW_DIST = 3;
-var DIR_DRAW_DIST = 1;
+var DIR_DRAW_DIST = 2;
 var WORLD_SIZE = 16384;
-var WORLD_HEIGHT = 128;
+var WORLD_HEIGHT = 64;
 var SPEED_INC = .01;
 var DEFERRED = false;
 
@@ -502,7 +502,8 @@ Declare_Any_Class("Example_Animation", {
 		var landMaterial = new Material(Color(0.0, 0.0, 0.0, 1), .1, .2, .1, 80);	//Just a placeholder for now
 
 
-		
+		console.log(this.shared_scratchpad.position[1]);
+		console.log(f_density(this.shared_scratchpad.position));
 		if(this.t_loop_count == 0)
 		{
 			//On each larger loop, first get a new to_check list	
@@ -572,16 +573,21 @@ Declare_Any_Class("Example_Animation", {
 						add(vec4(this.shared_scratchpad.position[0], this.shared_scratchpad.position[1], this.shared_scratchpad.position[2], 0), mult_vec(this.shared_scratchpad.orientation, vec4(0.5,0,0,0))),
 						add(vec4(this.shared_scratchpad.position[0], this.shared_scratchpad.position[1], this.shared_scratchpad.position[2], 0), mult_vec(this.shared_scratchpad.orientation, vec4(-0.5,0,0.3,0))),
 						add(vec4(this.shared_scratchpad.position[0], this.shared_scratchpad.position[1], this.shared_scratchpad.position[2], 0), mult_vec(this.shared_scratchpad.orientation, vec4(0.5,0,0.3,0)))];
+		var col_count = 0;
 		for(var i = 0; i < 5; i++)
 		{
 			if(sign_density(plane_col[i]))
 			{
-				//We crashed!
-				this.shared_scratchpad.gameState = "end";
-				this.shared_scratchpad.speed = 0;	
+				col_count++;
+				if(col_count >= 2)
+				{
+					//We crashed!
+					this.shared_scratchpad.gameState = "end";
+					this.shared_scratchpad.speed = 0;	
+				}
 			}
-
 		}	
+		col_count = 0;
 
 		//Put this somewhere else later
 		//graphics_state.lights.push(new Light(add(vec4(this.shared_scratchpad.position[0], this.shared_scratchpad.position[1], this.shared_scratchpad.position[2], 1), mult_vec(this.shared_scratchpad.orientation, vec4(-0.5,0,0.3,0))), Color(0.8, 0.8, 0.8, 1), 1000));

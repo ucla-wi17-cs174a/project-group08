@@ -21,7 +21,7 @@ function f_density(ws)	//Positive corresponds to ground
 	
 	
 	// ws = vec3(ws[0]+WORLD_SIZE, ws[1], ws[2]+WORLD_SIZE);
-	var dens = -ws[1] - 25;
+	var dens = -ws[1] - 30;
 	
 	//For tons of floating islands:
 	// var freq0 = vec3(0.022, 0.047, 0.026);
@@ -55,7 +55,7 @@ function f_density(ws)	//Positive corresponds to ground
 	var freq5 = vec3(0.191, 0.291, 0.191);
 	var freq6 = vec3(0.291, 0.391, 0.291);
 	var ampl0 = 128;
-	var ampl1 = 74;
+	var ampl1 = 84;
 	var ampl2 = 42;
 	var ampl3 = 21;
 	var ampl4 = 8;
@@ -72,10 +72,10 @@ function f_density(ws)	//Positive corresponds to ground
 	//Soft floor:
 	var soft_floor = -27;
 	if(ws[1] < soft_floor)
-		dens += (soft_floor - ws[1])*3;
+		dens += (soft_floor - ws[1])*1;
 	
 	//Hard floor:
-	var hard_floor = -1*WORLD_SIZE/2 + 1;
+	var hard_floor = -1*WORLD_HEIGHT/2 - 1;
 	if(ws[1] < hard_floor)
 		dens = 5000;
 	
@@ -85,7 +85,7 @@ function f_density(ws)	//Positive corresponds to ground
 		dens += (soft_ceil - ws[1])*3;
 	
 	//Hard ceiling:
-	var hard_ceil = WORLD_SIZE/2 - 1;
+	var hard_ceil = WORLD_HEIGHT/2 - 1;
 	if(ws[1] > hard_ceil)
 		dens = -5000;
 	
