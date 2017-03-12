@@ -93,9 +93,9 @@
 		
 		void perlin(in float x, in float y, in float z, out float ret)
 		{	
-			x += 1048576.0;	//Makes it positive
-			y += 1048576.0;
-			z += 1048576.0;
+			x += 65536.0;	//Makes it positive
+			y += 65535.0;
+			z += 65536.0;
 
 			float xi = mod(floor(x), 256.0);
 			float yi = mod(floor(y), 256.0);
@@ -115,37 +115,37 @@
 			int aaa, aba, aab, abb, baa, bba, bab, bbb;
 			float aaa2, aba2, aab2, abb2, baa2, bba2, bab2, bbb2;
 			
-			aaa2 = texture2D( texture, vec2( (mod(xi, 16.0) + 0.5)/16.0, (15.5-(xi/16.0))/16.0 )).x + yi;		//These three lines compute the final aaa - the first 2 values are meaningless
-			aaa2 = texture2D( texture, vec2( (mod(aaa2, 16.0) + 0.5)/16.0, (15.5-(aaa2/16.0))/16.0 )).x + zi;	//It's the replacement for aaa = perlin_array[perlin_array[perlin_array[ xi ]+ yi ]+ zi ];
-			aaa = int(texture2D( texture, vec2( (mod(aaa2, 16.0) + 0.5)/16.0, (15.5-(aaa2/16.0))/16.0 )).x);	//Except without using arrays, and this is the end result	
+			aaa2 = (texture2D( texture, vec2( (mod(xi, 16.0) + 0.5)/16.0, (15.5-(xi/16.0))/16.0 )).x)*256.0 + yi;		//These three lines compute the final aaa - the first 2 values are meaningless
+			aaa2 = (texture2D( texture, vec2( (mod(aaa2, 16.0) + 0.5)/16.0, (15.5-(aaa2/16.0))/16.0 )).x)*256.0 + zi;	//It's the replacement for aaa = perlin_array[perlin_array[perlin_array[ xi ]+ yi ]+ zi ];
+			aaa = int((texture2D( texture, vec2( (mod(aaa2, 16.0) + 0.5)/16.0, (15.5-(aaa2/16.0))/16.0 )).x)*256.0);	//Except without using arrays, and this is the end result	
 		
-			aba2 = texture2D( texture, vec2( (mod(xi, 16.0) + 0.5)/16.0, (15.5-(xi/16.0))/16.0 )).x + yi+1.0;
-			aba2 = texture2D( texture, vec2( (mod(aba2, 16.0) + 0.5)/16.0, (15.5-(aba2/16.0))/16.0 )).x + zi;
-			aba = int(texture2D( texture, vec2( (mod(aba2, 16.0) + 0.5)/16.0, (15.5-(aba2/16.0))/16.0 )).x);
+			aba2 = (texture2D( texture, vec2( (mod(xi, 16.0) + 0.5)/16.0, (15.5-(xi/16.0))/16.0 )).x)*256.0 + yi+1.0;
+			aba2 = (texture2D( texture, vec2( (mod(aba2, 16.0) + 0.5)/16.0, (15.5-(aba2/16.0))/16.0 )).x)*256.0 + zi;
+			aba = int((texture2D( texture, vec2( (mod(aba2, 16.0) + 0.5)/16.0, (15.5-(aba2/16.0))/16.0 )).x)*256.0);
 						
-			aab2 = texture2D( texture, vec2( (mod(xi, 16.0) + 0.5)/16.0, (15.5-(xi/16.0))/16.0 )).x + yi;
-			aab2 = texture2D( texture, vec2( (mod(aab2, 16.0) + 0.5)/16.0, (15.5-(aab2/16.0))/16.0 )).x + zi+1.0;
-			aab = int(texture2D( texture, vec2( (mod(aab2, 16.0) + 0.5)/16.0, (15.5-(aab2/16.0))/16.0 )).x);
+			aab2 = (texture2D( texture, vec2( (mod(xi, 16.0) + 0.5)/16.0, (15.5-(xi/16.0))/16.0 )).x)*256.0 + yi;
+			aab2 = (texture2D( texture, vec2( (mod(aab2, 16.0) + 0.5)/16.0, (15.5-(aab2/16.0))/16.0 )).x)*256.0 + zi+1.0;
+			aab = int((texture2D( texture, vec2( (mod(aab2, 16.0) + 0.5)/16.0, (15.5-(aab2/16.0))/16.0 )).x)*256.0);
 			
-			abb2 = texture2D( texture, vec2( (mod(xi, 16.0) + 0.5)/16.0, (15.5-(xi/16.0))/16.0 )).x + yi+1.0;
-			abb2 = texture2D( texture, vec2( (mod(abb2, 16.0) + 0.5)/16.0, (15.5-(abb2/16.0))/16.0 )).x + zi+1.0;
-			abb = int(texture2D( texture, vec2( (mod(abb2, 16.0) + 0.5)/16.0, (15.5-(abb2/16.0))/16.0 )).x);
+			abb2 = (texture2D( texture, vec2( (mod(xi, 16.0) + 0.5)/16.0, (15.5-(xi/16.0))/16.0 )).x)*256.0 + yi+1.0;
+			abb2 = (texture2D( texture, vec2( (mod(abb2, 16.0) + 0.5)/16.0, (15.5-(abb2/16.0))/16.0 )).x)*256.0 + zi+1.0;
+			abb = int((texture2D( texture, vec2( (mod(abb2, 16.0) + 0.5)/16.0, (15.5-(abb2/16.0))/16.0 )).x)*256.0);
 			
-			baa2 = texture2D( texture, vec2( (mod((xi+1.0), 16.0) + 0.5)/16.0, (15.5-((xi+1.0)/16.0))/16.0 )).x + yi;	
-			baa2 = texture2D( texture, vec2( (mod(baa2, 16.0) + 0.5)/16.0, (15.5-(baa2/16.0))/16.0 )).x + zi;
-			baa = int(texture2D( texture, vec2( (mod(baa2, 16.0) + 0.5)/16.0, (15.5-(baa2/16.0))/16.0 )).x);	
+			baa2 = (texture2D( texture, vec2( (mod((xi+1.0), 16.0) + 0.5)/16.0, (15.5-((xi+1.0)/16.0))/16.0 )).x)*256.0 + yi;	
+			baa2 = (texture2D( texture, vec2( (mod(baa2, 16.0) + 0.5)/16.0, (15.5-(baa2/16.0))/16.0 )).x)*256.0 + zi;
+			baa = int((texture2D( texture, vec2( (mod(baa2, 16.0) + 0.5)/16.0, (15.5-(baa2/16.0))/16.0 )).x)*256.0);	
 			
-			bba2 = texture2D( texture, vec2( (mod((xi+1.0), 16.0) + 0.5)/16.0, (15.5-((xi+1.0)/16.0))/16.0 )).x + yi+1.0;
-			bba2 = texture2D( texture, vec2( (mod(bba2, 16.0) + 0.5)/16.0, (15.5-(bba2/16.0))/16.0 )).x + zi;
-			bba = int(texture2D( texture, vec2( (mod(bba2, 16.0) + 0.5)/16.0, (15.5-(bba2/16.0))/16.0 )).x);
+			bba2 = (texture2D( texture, vec2( (mod((xi+1.0), 16.0) + 0.5)/16.0, (15.5-((xi+1.0)/16.0))/16.0 )).x)*256.0 + yi+1.0;
+			bba2 = (texture2D( texture, vec2( (mod(bba2, 16.0) + 0.5)/16.0, (15.5-(bba2/16.0))/16.0 )).x)*256.0 + zi;
+			bba = int((texture2D( texture, vec2( (mod(bba2, 16.0) + 0.5)/16.0, (15.5-(bba2/16.0))/16.0 )).x)*256.0);
 			
-			bab2 = texture2D( texture, vec2( (mod((xi+1.0), 16.0) + 0.5)/16.0, (15.5-((xi+1.0)/16.0))/16.0 )).x + yi;
-			bab2 = texture2D( texture, vec2( (mod(bab2, 16.0) + 0.5)/16.0, (15.5-(bab2/16.0))/16.0 )).x + zi+1.0;
-			bab = int(texture2D( texture, vec2( (mod(bab2, 16.0) + 0.5)/16.0, (15.5-(bab2/16.0))/16.0 )).x);
+			bab2 = (texture2D( texture, vec2( (mod((xi+1.0), 16.0) + 0.5)/16.0, (15.5-((xi+1.0)/16.0))/16.0 )).x)*256.0 + yi;
+			bab2 = (texture2D( texture, vec2( (mod(bab2, 16.0) + 0.5)/16.0, (15.5-(bab2/16.0))/16.0 )).x)*256.0 + zi+1.0;
+			bab = int((texture2D( texture, vec2( (mod(bab2, 16.0) + 0.5)/16.0, (15.5-(bab2/16.0))/16.0 )).x)*256.0);
 			
-			bbb2 = texture2D( texture, vec2( (mod((xi+1.0), 16.0) + 0.5)/16.0, (15.5-((xi+1.0)/16.0))/16.0 )).x + yi+1.0;
-			bbb2 = texture2D( texture, vec2( (mod(bbb2, 16.0) + 0.5)/16.0, (15.5-(bbb2/16.0))/16.0 )).x + zi+1.0;
-			bbb = int(texture2D( texture, vec2( (mod(bbb2, 16.0) + 0.5)/16.0, (15.5-(bbb2/16.0))/16.0 )).x);	
+			bbb2 = (texture2D( texture, vec2( (mod((xi+1.0), 16.0) + 0.5)/16.0, (15.5-((xi+1.0)/16.0))/16.0 )).x)*256.0 + yi+1.0;
+			bbb2 = (texture2D( texture, vec2( (mod(bbb2, 16.0) + 0.5)/16.0, (15.5-(bbb2/16.0))/16.0 )).x)*256.0 + zi+1.0;
+			bbb = int((texture2D( texture, vec2( (mod(bbb2, 16.0) + 0.5)/16.0, (15.5-(bbb2/16.0))/16.0 )).x)*256.0);	
 			
 			float x1, x2, y1, y2;
 			float temp1, temp2;
@@ -187,20 +187,19 @@
 			vec3 freq2 = vec3(0.091, 0.111, 0.091);
 			vec3 freq3 = vec3(0.191, 0.291, 0.191);
 			vec3 freq4 = vec3(0.391, 0.391, 0.391);
-			float ampl0 = 32.0;
-			float ampl1 = 16.0;
+			float ampl0 = 16.0;
+			float ampl1 = 8.0;
 			float ampl2 = 8.0;
 			float ampl3 = 4.0;
 			float ampl4 = 2.0;
-			
 	
-			 perlin(ws[0]*freq0.x, ws[1]*freq0.y, ws[2]*freq0.z, add_dens);			ret += add_dens*ampl0;			
-			 perlin(ws[0]*freq1.x, ws[1]*freq1.y, ws[2]*freq1.z, add_dens);			ret += add_dens*ampl1;
-			 perlin(ws[0]*freq2.x, ws[1]*freq2.y, ws[2]*freq2.z, add_dens);			ret += add_dens*ampl2;
-			 perlin(ws[0]*freq3.x, ws[1]*freq3.y, ws[2]*freq3.z, add_dens);			ret += add_dens*ampl3;
-			 perlin(ws[0]*freq4.x, ws[1]*freq4.y, ws[2]*freq4.z, add_dens);			ret += add_dens*ampl4;
+			  // perlin(ws[0]*freq0.x, ws[1]*freq0.y, ws[2]*freq0.z, add_dens);			ret += add_dens*ampl0;			
+			  // perlin(ws[0]*freq1.x, ws[1]*freq1.y, ws[2]*freq1.z, add_dens);			ret += add_dens*ampl1;
+			  // perlin(ws[0]*freq2.x, ws[1]*freq2.y, ws[2]*freq2.z, add_dens);			ret += add_dens*ampl2;
+			  // perlin(ws[0]*freq3.x, ws[1]*freq3.y, ws[2]*freq3.z, add_dens);			ret += add_dens*ampl3;
+			  // perlin(ws[0]*freq4.x, ws[1]*freq4.y, ws[2]*freq4.z, add_dens);			ret += add_dens*ampl4;
 		}
-	
+		
 	  void main()
 	  {	 	  
 		float density; 
@@ -208,8 +207,9 @@
 		vec3 mod_coords = vec3(mod(gl_FragCoord.x-0.5,33.0)+coords[0], coords[1]+gl_FragCoord.y-0.5, coords[2]+floor((gl_FragCoord.x-0.5)/33.0));
 		f_density(mod_coords, density);	
 		
-		//vec4 dens_pack = vec4( density/abs(density), abs(density/65536.0), mod(abs(density/256.0), 256.0), mod(abs(density), 1.0)); 	//First value is 0 if it's negative
-		vec4 dens_pack = vec4( density/abs(density), fract(abs((density-0.5)/256.0)), fract(abs(density)), 1.0); 	//It doesnt really matter if it's huge, so set the last value to 1.0 to unbreak things
+		vec4 dens_pack = vec4( density/abs(density), fract(abs((density)/64.0)), fract(abs(density)), 1.0); 	//It doesnt really matter if it's huge, so set the last value to 1.0 to unbreak things
+		//Also, pack that better later
+		//vec4 dens_pack = vec4(gl_FragCoord.x/255.0, gl_FragCoord.y/255.0, 1.0, 1.0);
 		
 		// float test_var = 0.2;
 		// perlin(10.5, 80.2, 0.5, test_var);
@@ -218,9 +218,9 @@
 		float x_grad_dens;
 		float y_grad_dens;
 		float z_grad_dens;
-		f_density(mod_coords + vec3(0.1, 0, 0), x_grad_dens);
-		f_density(mod_coords + vec3(0, 0.1, 0), y_grad_dens);
-		f_density(mod_coords + vec3(0, 0, 0.1), z_grad_dens);
+		f_density(mod_coords + vec3(1.0, 0.0, 0.0), x_grad_dens);
+		f_density(mod_coords + vec3(0.0, 1.0, 0.0), y_grad_dens);
+		f_density(mod_coords + vec3(0.0, 0.0, 1.0), z_grad_dens);
 		
 		float x_grad = density - x_grad_dens;
 		float y_grad = density - y_grad_dens;
@@ -228,9 +228,12 @@
 		vec3 norm_grad = normalize(vec3(x_grad, y_grad, z_grad));
 
 		
-		//Eh, 8 bit precision for normals should be enough (instead of 10 bit)
-		//gl_FragData[1] = vec4(norm_grad.x, norm_grad.y, norm_grad.z, 1.0);	
-		gl_FragData[1] = vec4(gl_FragCoord.x/100.0, gl_FragCoord.y/100.0, 1.0, 1.0);
+		//Eh, 8 bit precision for normals should be enough (instead of 10 bit) (well, 7 technically because one of them holds the sign)
+		gl_FragData[1] = vec4(norm_grad.x/2.0+0.5, norm_grad.y/2.0+0.5, norm_grad.z/2.0+0.5, 1.0);	
+		//gl_FragData[1] = vec4(norm_grad.x, norm_grad.x, norm_grad.x, 1.0);
+		//TESTING
+		//vec4 dens_pack_1 = vec4( x_grad/abs(x_grad), fract(abs((x_grad)/64.0)), fract(abs(x_grad)), 1.0); 	//It doesnt really matter if it's huge, so set the last value to 1.0 to unbreak things
+		//gl_FragData[0] = dens_pack_1;
 		
 	  }
 	  `},
