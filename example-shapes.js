@@ -67,7 +67,6 @@ Declare_Any_Class("Imported_Object",
 				if(rawFile.status === 200 || rawFile.status == 0)
 				{
 					allText = rawFile.responseText.split("\n");
-					console.log(allText[0]);
 					for(var i = 0; i < allText.length; i++)
 					{
 						// process the file line by line
