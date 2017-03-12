@@ -514,7 +514,7 @@ Declare_Any_Class( "G_buf_gen_phong",
 			//biasedNorm = abs(biasedNorm);
 			gl_FragData[1] = vec4(biasedNorm,1.0);
 			gl_FragData[0] = shapeColor;
-			gl_FragData[2] = vec4(ambient,diffusivity,shininess,1.0);
+			gl_FragData[2] = vec4(smoothness,diffusivity,shininess,1.0);
 			vec2 posZ;
 			vec2 posX;
 			vec2 posY;
@@ -526,7 +526,9 @@ Declare_Any_Class( "G_buf_gen_phong",
 			//gl_FragData[3] = vec4(1.0,0.0,1.0,1.0);
 			//gl_FragData[4] = vec4(0.0,1.0,0.0,1.0);
 			if(USE_TEXTURE)
-				gl_FragData[0] = vec4(texture2D(texture,fTexCoord).xyz,1.0);
+				gl_FragData[0] = texture2D(texture,fTexCoord);
+			if(gl_FragData[0].a < 0.5)
+				discard;
 		}
 			
 	  `;
@@ -646,11 +648,11 @@ Declare_Any_Class( "G_buf_gen_phong",
 			RGtofloat16(inPosz.rg,zz);
 			vec4 fPos = vec4(xx,yy,zz,1.0);
 			vec3 pos = fPos.xyz;
-			float ambient = fMatl.r;
+			float ambient = .3;
 			float diffusivity = fMatl.g;
 			float shininess = fMatl.b;
-			float smoothness = 40.0;
-			gl_FragColor = vec4(tex_color.xyz * ambient,1.0);
+			float smoothness = fMatl.r;
+			gl_FragColor = vec4(tex_color.rgb * ambient,tex_color.a);
 			vec3 E = normalize( -pos );
              for( int i = 0; i < MAX_LIGHTS; i++ )
              {
@@ -663,6 +665,8 @@ Declare_Any_Class( "G_buf_gen_phong",
 
                gl_FragColor.xyz += attenuation_multiplier * (tex_color.xyz * diffusivity * diffuse  + lightColor[i].xyz * shininess * specular );
 			}
+			// if(gl_FragColor.a<.5)
+				// discard;
 			//gl_FragColor = texture2D(TESTER,fTexCoord);
 			//gl_FragColor = tex_color;
 			//gl_FragColor = fPos;
