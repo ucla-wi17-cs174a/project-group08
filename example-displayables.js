@@ -655,8 +655,9 @@ Declare_Any_Class("Example_Animation", {
 	'drawPlane': function(graphics_state, material){
 		// draw plane
 		// change roll based on if yaw is changing
-		var max_roll = 20;
-		var frame_change = 1;
+		var max_roll = 50;
+		var frame_change = 2;
+		
 		var roll_amount = 0;
 		if(this.shared_scratchpad.heading_change > 0 && this.shared_scratchpad.extra_roll < max_roll)
 		{
