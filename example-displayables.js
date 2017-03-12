@@ -1,5 +1,10 @@
 
-var RES_RATIO = 32;	
+var RES_RATIO = 16;	
+var RES = 2;
+var DRAW_DIST = 3;
+var DIR_DRAW_DIST = 2;
+var WORLD_SIZE = 16384;
+var WORLD_HEIGHT = 256;
 var SPEED_INC = .01;
 var DEFERRED = false;
 
@@ -86,13 +91,9 @@ Declare_Any_Class("Example_Animation", {
 		shapes_in_use.skybox = new Cube();
 		this.GBuffer = new FBO(canvas.width,canvas.height,5,false);
 		
-		var world_size = 2048;
-		shapes_in_use.terrain = new Terrain();
-		var world_tree = new Node(vec3(-world_size/2, -world_size/2, -world_size/2), world_size, null);
-		var test_node = Node_add(vec3(0,0,0), 32, world_tree);			
-		shapes_in_use.terrain.to_draw[0] = test_node;
-		shapes_in_use.terrain.populate(vec3(0,0,0), 32);
-		shapes_in_use.terrain.populate_GPU(vec3(32,-32,0), 32, this.shared_scratchpad.graphics_state);
+		//World setup
+		shapes_in_use.terrain = new Terrain();	
+		this.t_loop_count = 0;
 		
 		
 
@@ -386,6 +387,69 @@ Declare_Any_Class("Example_Animation", {
 		}
 		
     },
+	
+	'draw_terrain': function(graphics_state, collectableMaterial){
+			
+		
+		var landMaterial = new Material(Color(0.4, 0.5, 0, 1), .6, .8, .4, 4);	//Just a placeholder for now
+
+		
+		if(this.t_loop_count == 0)
+		{
+			//On each larger loop, first get a new to_check list
+			var p_heading = 2*Math.PI - Math.acos(this.shared_scratchpad.orientation[0][0]);	//Angle in radians, going CW from -z
+			shapes_in_use.terrain.choose_to_check(this.shared_scratchpad.position, p_heading);
+			
+			//Next, check all of them
+			shapes_in_use.terrain.check_all();
+		}
+		else
+		{
+			var draw_ct = 1;	//How many blocks to draw per loop
+			//On loop 1 and subsequent loops, gradually create terrain
+			for(var i = this.t_loop_count*draw_ct - draw_ct; i < this.t_loop_count*draw_ct; i++)	//4 per loop
+			{
+				if(shapes_in_use.terrain.to_create[i])	//If the node exists, i.e. if we aren't done drawing all the geometry yet
+					shapes_in_use.terrain.populate_CPU(shapes_in_use.terrain.to_create[i]);	//Generate that block's terrain
+				else
+				{
+					//All the new geometry is drawn, yay!
+					shapes_in_use.terrain.to_draw = shapes_in_use.terrain.to_draw_new;	//Now we draw the new geometry
+					shapes_in_use.terrain.to_draw_new = [];	//Reset it for the next loop
+					shapes_in_use.terrain.to_create = [];
+					this.t_loop_count = -1;	//Because we increment it later
+					break;
+				}
+			}
+		}
+		//Draw everything, as usual
+		for(var i = 0; i < shapes_in_use.terrain.to_draw.length; i++)
+		{
+			shapes_in_use.terrain.copy_onto_graphics_card();
+		}	
+		model_transform = mat4();		
+		shapes_in_use.terrain.draw(graphics_state, model_transform, landMaterial);
+		this.t_loop_count++;
+		
+		//Check for plane collision with ground:
+		//if(sign_density(add(this.shared_scratchpad.position, vec3()
+		var plane_col = [add(vec4(this.shared_scratchpad.position[0], this.shared_scratchpad.position[1], this.shared_scratchpad.position[2], 0), mult_vec(this.shared_scratchpad.orientation, vec4(0,0,-0.5,0))),
+						add(vec4(this.shared_scratchpad.position[0], this.shared_scratchpad.position[1], this.shared_scratchpad.position[2], 0), mult_vec(this.shared_scratchpad.orientation, vec4(-0.5,0,0,0))),
+						add(vec4(this.shared_scratchpad.position[0], this.shared_scratchpad.position[1], this.shared_scratchpad.position[2], 0), mult_vec(this.shared_scratchpad.orientation, vec4(0.5,0,0,0))),
+						add(vec4(this.shared_scratchpad.position[0], this.shared_scratchpad.position[1], this.shared_scratchpad.position[2], 0), mult_vec(this.shared_scratchpad.orientation, vec4(0,0,0.3,0))),
+						add(vec4(this.shared_scratchpad.position[0], this.shared_scratchpad.position[1], this.shared_scratchpad.position[2], 0), mult_vec(this.shared_scratchpad.orientation, vec4(0,0,0.3,0)))];
+		for(var i = 0; i < 5; i++)
+		{
+			if(sign_density(plane_col[i]))
+			{
+				//We crashed!
+				console.log("Crashed into ground!");
+				this.shared_scratchpad.speed = 0.01;	//Not 0 so we can still get out for debugging purposes
+				//Also, do something more interesting eventually?
+			}
+		}			
+	},	
+	
 	'renderTransparent': function(time){
 		shaders_in_use["Default"].activate();
 		
@@ -415,6 +479,8 @@ Declare_Any_Class("Example_Animation", {
 
 		// make camera follow the plane
 		this.drawCamera(graphics_state, current_orientation);
+		
+		this.draw_terrain(graphics_state, current_orientation);
 		
 		// draw collectable
 		this.drawCollectables(graphics_state, collectableMaterial); //HACK FIX. <- make collectables a class and/or interface for object oriented happiness :D

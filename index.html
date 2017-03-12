@@ -17,8 +17,8 @@
       var main_canvas = new Canvas_Manager( "gl-canvas", Color( 0, 0, 0, 1 ) ),    // Make the master canvas manager.  Set your background color here too.
           g_state = main_canvas.shared_scratchpad.graphics_state;
           
-	  shaders_in_use[ "G_buf_gen_NormalSpray" ] = new G_buf_gen_NormalSpray					( g_state );
-	  shaders_in_use[ "G_buf_light_NormalSpray" ] = new G_buf_light_NormalSpray				( g_state );
+	  //shaders_in_use[ "G_buf_gen_NormalSpray" ] = new G_buf_gen_NormalSpray					( g_state );
+	  //shaders_in_use[ "G_buf_light_NormalSpray" ] = new G_buf_light_NormalSpray				( g_state );
 	  //shaders_in_use[ "G_buf_gen_ns_hf" ] = new G_buf_gen_NormalSpray_hf			( g_state );
 	  //shaders_in_use[ "G_buf_light_ns_hf" ] = new G_buf_light_NormalSpray_hf		( g_state );
 	  shaders_in_use[ "G_buf_gen_phong" ] = new G_buf_gen_phong						( g_state );
