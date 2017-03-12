@@ -8,23 +8,66 @@ Declare_Any_Class( "Node_contents",
       }
   }, Shape );
 
+ //First we make the density function:
+function f_density(ws)	//Positive corresponds to ground
+{
+	//ws = vec3(ws[0]+WORLD_SIZE, ws[1], ws[2]+WORLD_SIZE);
+	var dens = -ws[1] - 5;
+	dens += 64*perlin(ws[0]*0.036, ws[1]*0.016, ws[2]*0.021);
+	dens += 32*perlin(ws[0]*0.046, ws[1]*0.026, ws[2]*0.026);
+	dens += 16*perlin(ws[0]*0.066, ws[1]*0.046, ws[2]*0.056);
+	//dens += 8*perlin(ws[0]*0.091, ws[1]*0.111, ws[2]*0.091);
+	dens += 4*perlin(ws[0]*0.191, ws[1]*0.291, ws[2]*0.191);
+	//dens += 2*perlin(ws[0]*0.391, ws[1]*0.391, ws[2]*0.391);
+	// dens += 1*perlin(ws[0]*0.791, ws[1]*0.791, ws[2]*0.791);
+	// dens += 0.5*perlin(ws[0]*1.201, ws[1]*1.201, ws[2]*1.201);
+	
+	//Hard floor:
+	// if(ws[1] < -5)
+		// dens = 0.5;
+	
+	return dens;
+}  
   
 Declare_Any_Class( "Terrain",
 { 
 	'construct': function( args )
       { this.define_data_members( { positions: [], normals: [], texture_coords: [], indices: [], indexed: true, sent_to_GPU: false } );
-        this.populate.apply( this, arguments ); // Immediately fill in appropriate vertices via polymorphism, calling whichever sub-class's populate().
-		this.density_Pass_FBO = new FBO((RES_RATIO+1)*(RES_RATIO+1), RES_RATIO+1, 2); //One 32bit buffer for density, one for normals
+        //this.populate.apply( this, arguments ); // Immediately fill in appropriate vertices via polymorphism, calling whichever sub-class's populate().
+		//this.density_Pass_FBO = new FBO((RES_RATIO+1)*(RES_RATIO+1), RES_RATIO+1, 2); //One 32bit buffer for density, one for normals
 		//this.almanac_Pass_FBO = new FBO(RES_RATIO,RES_RATIO*RES_RATIO,2); // 1/2 Byte for numTris, 7.5 bytes for edges
+		
+		this.world_tree = new Node(vec3(-WORLD_SIZE/2, -WORLD_SIZE/2, -WORLD_SIZE/2), WORLD_SIZE, null);
 		
 		//Arrays to hold important info for terrain (in the form of nodes):
 		this.to_check = [];	//First, add a bunch of blocks to this list, then check it over subsequent iterations
 		this.to_create = [];	//After the blocks are checked and need to be drawn, add them to this list
-		this.to_purge = [];	//Also part of this process, the old low-res geometry should no longer be drawn - use this to update to_draw when it's time
-			//Over more iterations, create the geometry for the list above, several blocks per iteration depending on speed
-			//After geometry is made, add it to the list of stuff to draw, and purge the lower resolution geometry that is replaced
+		this.to_draw_new = [];	//When the geometry is made, replace the old to_draw with this list
 		this.to_draw = [];	//All the geometry in here is what gets drawn
       },
+	  
+	  'copy_onto_graphics_card': function()
+	  {
+		for(var i = 0; i < this.to_draw.length; i++)
+		{
+			if( !this.to_draw[i].contents.sent_to_GPU ) 
+			{
+				this.to_draw[i].contents.copy_onto_graphics_card();
+				this.to_draw[i].contents.sent_to_GPU = true;
+			}
+		}
+		  
+	  },
+	  
+	  'draw': function(graphics_state, model_transform, material)
+	  {
+		for(var i = 0; i < this.to_draw.length; i++)
+		{
+			this.to_draw[i].contents.draw(graphics_state, model_transform, material);
+		}		  
+	  },
+	  
+	  
 	  
 	// 'initialize': function()
 	// {												
@@ -39,7 +82,7 @@ Declare_Any_Class( "Terrain",
 						
 			this.density_Pass_FBO.activate();
 			shaders_in_use["c_Density_Shader"].activate();
-			//console.log(textures_in_use["perlin_array.png"]);
+			console.log(textures_in_use["perlin_array.png"]);
 			////Set uniforms + attributes
 			// var buffer_dens = gl.createBuffer();
 			// gl.bindBuffer( gl.ARRAY_BUFFER, buffer_dens );
@@ -62,8 +105,8 @@ Declare_Any_Class( "Terrain",
 			gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, this.density_Pass_FBO.tx[1], 0); 
 			//console.log(gl.checkFramebufferStatus(gl.FRAMEBUFFER)==gl.FRAMEBUFFER_COMPLETE);
 			gl.readPixels(0,0,this.density_Pass_FBO.fb.width,this.density_Pass_FBO.fb.height,gl.RGBA,gl.UNSIGNED_BYTE,normArray);
-			//console.log(densArray, "After running density shader");
-			//console.log(normArray);
+			console.log(densArray, "After running density shader");
+			console.log(normArray, "Norm array from shader");
 			this.density_Pass_FBO.deactivate();
 			//Now, densArray holds all the densities but needs to be unpacked - do this next:
 			var dens_unpacked = [];			
@@ -72,15 +115,26 @@ Declare_Any_Class( "Terrain",
 				var sign = 1;
 				if(densArray[i] == 0)
 					sign = -1;
-				dens_unpacked.push(sign*(densArray[i+1] + densArray[i+2]/256));	//Yep, the 4th value does nothing (as of right now)
+				if(densArray[i+1]%4 == 0 && densArray[i+2]/256 > 0.9)	//Deal with values like 0.95 packing badly
+					dens_unpacked.push(sign*(densArray[i+1]/4 + densArray[i+2]/256 - 1));
+				else if(densArray[i+1]%4 == 3 && densArray[i+2]/256 < 0.1 && densArray[i+1] != 255 )	//Deal with values like 1.05 packing badly
+					dens_unpacked.push(sign*(densArray[i+1]/4 + densArray[i+2]/256 + 1));
+				else 
+					dens_unpacked.push(sign*(Math.floor(densArray[i+1]/4) + densArray[i+2]/256));	//Yep, the 4th value does nothing (as of right now), and it can only read up to +/- 64
 				//dens_unpacked[(i/4)%(RES_RATIO+1)][(i/(4*(RES_RATIO+1)))%(RES_RATIO+1)][i/(4*(RES_RATIO+1)*(RES_RATIO+1))] = sign*(densArray[i+1] + densArray[i+2]*256)	//
 			}
 			//Now, dens_unpacked is an array of each density
-			//console.log(dens_unpacked);
+			console.log(dens_unpacked);
 			//Unpacked as (0,0,0), (1,0,0), ..., (0,0,1), (1,0,1),... (y changes the slowest)
 			
+			var norm_unpacked = [];		//This should be easier to unpack
+			for(var i = 0; i < 4*(RES_RATIO+1)*(RES_RATIO+1)*(RES_RATIO+1); i+=4)
+			{
+				norm_unpacked.push(vec3((normArray[i]/256-0.5)*2, (normArray[i+1]/256-0.5)*2, (normArray[i+2]/256-0.5)*2));
+			}			
+			console.log(norm_unpacked);
 			
-						
+			
 			var coord0;
 			var coord1;
 			var coord2;
@@ -112,22 +166,24 @@ Declare_Any_Class( "Terrain",
 						coord5 = vec3(i*res+res+coords[0],j*res+res+coords[1],k*res+coords[2]);
 						coord6 = vec3(i*res+res+coords[0],j*res+res+coords[1],k*res+res+coords[2]);
 						coord7 = vec3(i*res+coords[0],j*res+res+coords[1],k*res+res+coords[2]);
-						dens0 = dens_unpacked[j*RES_RATIO*RES_RATIO+k*RES_RATIO+i];
-						dens1 = dens_unpacked[j*RES_RATIO*RES_RATIO+k*RES_RATIO+(i+1)];
-						dens2 = dens_unpacked[j*RES_RATIO*RES_RATIO+(k+1)*RES_RATIO+(i+1)];
-						dens3 = dens_unpacked[j*RES_RATIO*RES_RATIO+(k+1)*RES_RATIO+i];
-						dens4 = dens_unpacked[(j+1)*RES_RATIO*RES_RATIO+k*RES_RATIO+i];
-						dens5 = dens_unpacked[(j+1)*RES_RATIO*RES_RATIO+k*RES_RATIO+(i+1)];
-						dens6 = dens_unpacked[(j+1)*RES_RATIO*RES_RATIO+(k+1)*RES_RATIO+(i+1)];
-						dens7 = dens_unpacked[(j+1)*RES_RATIO*RES_RATIO+(k+1)*RES_RATIO+i];
-						new_ntriang = march([coord0, coord1, coord2, coord3, coord4, coord5, coord6, coord7],
-							[dens0, dens1, dens2, dens3, dens4, dens5, dens6, dens7], this.to_draw[0].contents, ntriang, edge_table, tri_table);	//CHANGE THE TO_DRAW LATER
-						//if new_ntriang is the same as the old one, we didnt generate any geometry and we shouldn't try again - use this info later
+						var coordArray = [coord0, coord1, coord2, coord3, coord4, coord5, coord6, coord7];
+						dens0 = dens_unpacked[j*(RES_RATIO+1)*(RES_RATIO+1)+k*(RES_RATIO+1)+i];
+						dens1 = dens_unpacked[j*(RES_RATIO+1)*(RES_RATIO+1)+k*(RES_RATIO+1)+(i+1)];
+						dens2 = dens_unpacked[j*(RES_RATIO+1)*(RES_RATIO+1)+(k+1)*(RES_RATIO+1)+(i+1)];
+						dens3 = dens_unpacked[j*(RES_RATIO+1)*(RES_RATIO+1)+(k+1)*(RES_RATIO+1)+i];
+						dens4 = dens_unpacked[(j+1)*(RES_RATIO+1)*(RES_RATIO+1)+k*(RES_RATIO+1)+i];
+						dens5 = dens_unpacked[(j+1)*(RES_RATIO+1)*(RES_RATIO+1)+k*(RES_RATIO+1)+(i+1)];
+						dens6 = dens_unpacked[(j+1)*(RES_RATIO+1)*(RES_RATIO+1)+(k+1)*(RES_RATIO+1)+(i+1)];
+						dens7 = dens_unpacked[(j+1)*(RES_RATIO+1)*(RES_RATIO+1)+(k+1)*(RES_RATIO+1)+i];
+						var densArray = [dens0, dens1, dens2, dens3, dens4, dens5, dens6, dens7];
+						
+						new_ntriang = march_gpu(coordArray, densArray, norm_unpacked, this.to_draw[0].contents, ntriang, edge_table, tri_table);	//CHANGE THE TO_DRAW LATER
+						
+						//if new_ntriang is the same as the old one, we didnt generate any geometry and we shouldn't try again - use this info later maybe
 						ntriang = new_ntriang;
 					}
 					this.to_draw[0].checked = 3;
-				
-				
+		
 			
 		/*	
 			// Process data between GPU stages if necessary//
@@ -147,10 +203,14 @@ Declare_Any_Class( "Terrain",
 		*/
 	},
 	
-	'populate': function(coords, c_size) 
+		
+	'populate_CPU': function(node) 
     {
-		res = c_size/RES_RATIO
-			
+		coords = node.coords;
+		c_size = node.size;
+		
+		//res = c_size/RES_RATIO;
+		res = RES;
 		//Since we don't actually draw anything with this:
 		this.positions = [];
 		this.normals = [];
@@ -163,7 +223,38 @@ Declare_Any_Class( "Terrain",
 		//Changed function to work on a box of size c_size at lowest coordinate coords, divisible by c_size
 		
 		//For each cube, pass in the coordinates and density values
-				
+		//First, calculate density at all vertices (+1 to find normals for serious speed up, but might be way too low res - fix if it is)
+		var dens_flat = [];
+		for(var j = 0; j < RES_RATIO+1; j++)	//Plus 2 because of the above note
+			for(var k = 0; k < RES_RATIO+1; k++)	//Y coord goes up slowest
+				for(var i = 0; i < RES_RATIO+1; i++)
+				{
+					dens_flat.push(f_density(vec3(coords[0]+i*res, coords[1]+j*res, coords[2]+k*res)));
+				}	
+		/*
+		//Still need giant array with all the normals at the coords
+		var norm_flat = [];
+		for(var j = 0; j < RES_RATIO+1; j++)
+			for(var i = 0; i < RES_RATIO+1; i++)	//Y coord goes up slowest
+				for(var k = 0; k < RES_RATIO+1; k++)
+				{
+					//At each vertex, add the correct density
+					var density = dens_flat[j*(RES_RATIO+2)*(RES_RATIO+2)+k*(RES_RATIO+2)+i];
+					// var x_grad_dens = dens_flat[j*(RES_RATIO+2)*(RES_RATIO+2)+k*(RES_RATIO+2)+(i+1)];
+					// var y_grad_dens = dens_flat[(j+1)*(RES_RATIO+2)*(RES_RATIO+2)+k*(RES_RATIO+2)+i];
+					// var z_grad_dens = dens_flat[j*(RES_RATIO+2)*(RES_RATIO+2)+(k+1)*(RES_RATIO+2)+i];
+					// var x_grad_dens = f_density(vec3(coords[0]+i+0.01, coords[1]+j, coords[2]+k))
+					// var y_grad_dens = f_density(vec3(coords[0]+i, coords[1]+j+0.01, coords[2]+k))
+					// var z_grad_dens = f_density(vec3(coords[0]+i, coords[1]+j, coords[2]+k+0.01))
+					
+					// var x_grad = density - x_grad_dens;
+					// var y_grad = density - y_grad_dens;
+					// var z_grad = density - z_grad_dens;
+					// norm_flat.push(normalize(vec3(x_grad, y_grad, z_grad)));
+					norm_flat.push(find_grad(vec3(coords[0]+i,coords[1]+j,coords[2]+k)));
+				}
+		*/
+		
 		var coord0;
 		var coord1;
 		var coord2;
@@ -172,6 +263,16 @@ Declare_Any_Class( "Terrain",
 		var coord5;
 		var coord6;
 		var coord7;
+		var coordArray = [];
+		var dens0;
+		var dens1;
+		var dens2;
+		var dens3;
+		var dens4;
+		var dens5;
+		var dens6;
+		var dens7;
+		var densArray = [];
 		var ntriang = 0;
 		var new_ntriang;
 		for(var i=0; i < c_size/res; i++)	//Remember to change these if the c_size isn't all the same
@@ -186,16 +287,97 @@ Declare_Any_Class( "Terrain",
 					coord5 = vec3(i*res+res+coords[0],j*res+res+coords[1],k*res+coords[2]);
 					coord6 = vec3(i*res+res+coords[0],j*res+res+coords[1],k*res+res+coords[2]);
 					coord7 = vec3(i*res+coords[0],j*res+res+coords[1],k*res+res+coords[2]);
-					new_ntriang = march([coord0, coord1, coord2, coord3, coord4, coord5, coord6, coord7],
-						[f_density(coord0), f_density(coord1), f_density(coord2), f_density(coord3), 
-						f_density(coord4), f_density(coord5), f_density(coord6), f_density(coord7)], this.to_draw[0].contents, ntriang, edge_table, tri_table);
+					coordArray = [coord0, coord1, coord2, coord3, coord4, coord5, coord6, coord7];					
+					dens0 = dens_flat[j*(RES_RATIO+1)*(RES_RATIO+1)+k*(RES_RATIO+1)+i];
+					dens1 = dens_flat[j*(RES_RATIO+1)*(RES_RATIO+1)+k*(RES_RATIO+1)+(i+1)];
+					dens2 = dens_flat[j*(RES_RATIO+1)*(RES_RATIO+1)+(k+1)*(RES_RATIO+1)+(i+1)];
+					dens3 = dens_flat[j*(RES_RATIO+1)*(RES_RATIO+1)+(k+1)*(RES_RATIO+1)+i];
+					dens4 = dens_flat[(j+1)*(RES_RATIO+1)*(RES_RATIO+1)+k*(RES_RATIO+1)+i];
+					dens5 = dens_flat[(j+1)*(RES_RATIO+1)*(RES_RATIO+1)+k*(RES_RATIO+1)+(i+1)];
+					dens6 = dens_flat[(j+1)*(RES_RATIO+1)*(RES_RATIO+1)+(k+1)*(RES_RATIO+1)+(i+1)];
+					dens7 = dens_flat[(j+1)*(RES_RATIO+1)*(RES_RATIO+1)+(k+1)*(RES_RATIO+1)+i];
+					densArray = [dens0, dens1, dens2, dens3, dens4, dens5, dens6, dens7];
+					new_ntriang = march(coordArray, densArray, node.contents, ntriang, edge_table, tri_table);
 					//if new_ntriang is the same as the old one, we didnt generate any geometry and we shouldn't try again - use this info later
 					ntriang = new_ntriang;
 				}
-		
+				
+		node.checked = 4;	//Set it as "drawn"
 								
+	},
+	
+	
+	'choose_to_check': function(p_pos, p_heading)
+	{
+		var c_size = RES * RES_RATIO;
+		//Args are plane pos and plane heading
+		//Every time the program asks, repopulates the to_check list based on position
+		//Might need to process p_heading first, depending on what we can get
+		var p_heading_deg = 180/Math.PI*p_heading;	
+		var p_heading_val = Math.floor((p_heading_deg+45)/45);	//Gives 0-8
+		//console.log(p_heading_val);
+		p_pos = vec3(p_pos[0]+c_size/2, p_pos[1]+c_size/2, p_pos[2]+c_size/2);
+		var p_pos_div = scale_vec(1/c_size, p_pos);	//Puts it on the boundaries
+		var p_pos_floor = [];
+		for ( var i = 0; i < 3; i++ ) 
+			p_pos_floor.push( Math.floor(p_pos_div[i]));
+		p_pos_block = scale_vec(c_size, p_pos_floor);
+		
+		
+		var k_low =  -DRAW_DIST;
+		var k_high = DRAW_DIST;
+		var i_low =  -DRAW_DIST;
+		var i_high = DRAW_DIST;
+		
+		switch(p_heading_val)
+		{
+			case 0: k_low -= DIR_DRAW_DIST*2; break;
+			case 1: k_low -= DIR_DRAW_DIST; i_high += DIR_DRAW_DIST; break;
+			case 2: i_high += DIR_DRAW_DIST*2; break;
+			case 3: i_high += DIR_DRAW_DIST; k_high += DIR_DRAW_DIST; break;
+			case 4: k_high += DIR_DRAW_DIST*2; break;
+			case 5: k_high += DIR_DRAW_DIST; i_low -= DIR_DRAW_DIST; break;
+			case 6: i_low -= DIR_DRAW_DIST*2; break;
+			case 7: i_low -= DIR_DRAW_DIST; k_low -= DIR_DRAW_DIST; break;
+			case 8: k_low -= DIR_DRAW_DIST*2; break;
+		}
+		//console.log(i_low, i_high, p_pos_block);
+		
+		for(i = p_pos_block[0] + (i_low*c_size); i < p_pos_block[0] + (i_high*c_size); i += c_size)	
+		{
+			for(k = p_pos_block[2] + (k_low*c_size); k < p_pos_block[2] + (k_high*c_size); k += c_size)	//Note that these loops increase 32 or 64 at a time, whatever larger number we choose
+			{
+				if(Math.abs(i) < WORLD_SIZE/2 && Math.abs(k) < WORLD_SIZE/2)	//It's inside the world, yay
+				{						
+					for(j = -WORLD_HEIGHT/2; j < WORLD_HEIGHT/2; j += c_size)
+					{
+						//Add each block in the vertical span to the list
+						this.to_check.push(Node_find(vec3(i,j,k), c_size, this.world_tree, null));
+					}
+				}
+			}
+		}			
+	},
+	
+	'check_all': function()
+	{
+		for(i = 0; i < this.to_check.length; i++)
+		{
+			if(this.to_check[i].checked == 0)
+				this.to_check[i].checked = check_block(this.to_check[i].coords, this.to_check[i].size);
+			if(this.to_check[i].checked == 3)	//If the check revealed it needs to be created
+			{
+				this.to_create.push(this.to_check[i]);
+				this.to_draw_new.push(this.to_check[i]);
+			}
+			if(this.to_check[i].checked == 4)	//If the check revealed it's in view, but already created			
+				this.to_draw_new.push(this.to_check[i]);			
+		}		
+		this.to_check = [];	//Reset the list
 	}
-}, Shape )
+	
+	
+}, Shape );
 
 
 //Something feels wrong about defining these all here, but oh well
@@ -224,6 +406,9 @@ function fade(t){	//Function so it's not straight linear
 	
 function lerp(a, b, x){		//Linearly interpolate
 	return a + x * (b - a);}
+	
+function lerpvec3(a, b, x){		//Linearly interpolate vec3
+	return vec3(a[0] + x * (b[0] - a[0]), a[1] + x * (b[1] - a[1]), a[2] + x * (b[2] - a[2]));}
 
 function grad(hash, x, y, z)	//Choose a vector
 {
@@ -325,10 +510,11 @@ function VertexInterp(isolevel,p1,p2,valp1,valp2)
 function find_grad(pos)
 {
 	var grad_o = vec3(0,0,0);
-	grad_o[0] = f_density(add(pos, vec3(0.001, 0, 0))) - f_density(add(pos, vec3(-0.001, 0, 0)));
-	grad_o[1] = f_density(add(pos, vec3(0, 0.001, 0))) - f_density(add(pos, vec3(0, -0.001, 0)));
-	grad_o[2] = f_density(add(pos, vec3(0, 0, 0.001))) - f_density(add(pos, vec3(0, 0, -0.001)));
-	return mult(normalize(grad_o), vec3(-1,-1,-1));
+	density_pos = f_density(pos);
+	grad_o[0] = density_pos - f_density(add(pos, vec3(0.001, 0, 0)));
+	grad_o[1] = density_pos - f_density(add(pos, vec3(0, 0.001, 0)));
+	grad_o[2] = density_pos - f_density(add(pos, vec3(0, 0, 0.001)));
+	return normalize(grad_o);
 }
 var edge_table = [	//Remember, you changed this from edgeTable to edge_table
 		0x0  , 0x109, 0x203, 0x30a, 0x406, 0x50f, 0x605, 0x70c,
@@ -621,34 +807,214 @@ var tri_table =
 		[0, 3, 8, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1],
 		[-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1]];
 
-//First we make the density function:
-function f_density(ws)	//Positive corresponds to ground
-{
-	var dens = -ws[1] - 5;
-	
-	dens += 32*perlin(ws[0]*0.046, ws[1]*0.026, ws[2]*0.026);
-	dens += 16*perlin(ws[0]*0.066, ws[1]*0.046, ws[2]*0.056);
-	dens += 8*perlin(ws[0]*0.091, ws[1]*0.111, ws[2]*0.091);
-	dens += 4*perlin(ws[0]*0.191, ws[1]*0.291, ws[2]*0.191);
-	dens += 2*perlin(ws[0]*0.391, ws[1]*0.391, ws[2]*0.391);
-	//dens += 1*perlin(ws[0]*0.791, ws[1]*0.791, ws[2]*0.791);
-	//dens += 0.5*perlin(ws[0]*1.201, ws[1]*1.201, ws[2]*1.201);
-	
-	//Hard floor:
-	// if(ws[1] < -5)
-		// dens = 0.5;
-	
-	return dens;
-}
+
+
 
 function sign_density(coords)
 		{
-			if(f_density(coords) > 0)	//Returns 1 if it's positive
-				return 1;
+			if(f_density(coords) > 0)	//Returns true if it's positive -> ground
+				return true;
 			else
-				return 0;
+				return false;
 		}
 
+function march(grid_p, grid_val, shape_in, ntriang, edgeTable, triTable)
+{
+	var isolevel = 0;	//We set this
+	//var triangles;	//Shouldn't be needed because we have the shape setup?
+	
+	//var i;
+	var ntriang;
+	var cubeindex;
+	var vertlist = [];
+	
+
+	/*
+	  Determine the index into the edge table which
+	  tells us which vertices are inside of the surface
+	*/
+	cubeindex = 0;
+	if (grid_val[0] < isolevel) cubeindex |= 1;
+	if (grid_val[1] < isolevel) cubeindex |= 2;
+	if (grid_val[2] < isolevel) cubeindex |= 4;
+	if (grid_val[3] < isolevel) cubeindex |= 8;
+	if (grid_val[4] < isolevel) cubeindex |= 16;
+	if (grid_val[5] < isolevel) cubeindex |= 32;
+	if (grid_val[6] < isolevel) cubeindex |= 64;
+	if (grid_val[7] < isolevel) cubeindex |= 128;
+
+	/* Cube is entirely in/out of the surface */
+	if (edgeTable[cubeindex] == 0)
+	  return(ntriang);
+
+	/* Find the vertices where the surface intersects the cube */
+	if (edgeTable[cubeindex] & 1)
+	  vertlist[0] =
+		 VertexInterp(isolevel,grid_p[0],grid_p[1],grid_val[0],grid_val[1]);
+	if (edgeTable[cubeindex] & 2)
+	  vertlist[1] =
+		 VertexInterp(isolevel,grid_p[1],grid_p[2],grid_val[1],grid_val[2]);
+	if (edgeTable[cubeindex] & 4)
+	  vertlist[2] =
+		 VertexInterp(isolevel,grid_p[2],grid_p[3],grid_val[2],grid_val[3]);
+	if (edgeTable[cubeindex] & 8)
+	  vertlist[3] =
+		 VertexInterp(isolevel,grid_p[3],grid_p[0],grid_val[3],grid_val[0]);
+	if (edgeTable[cubeindex] & 16)
+	  vertlist[4] =
+		 VertexInterp(isolevel,grid_p[4],grid_p[5],grid_val[4],grid_val[5]);
+	if (edgeTable[cubeindex] & 32)
+	  vertlist[5] =
+		 VertexInterp(isolevel,grid_p[5],grid_p[6],grid_val[5],grid_val[6]);
+	if (edgeTable[cubeindex] & 64)
+	  vertlist[6] =
+		 VertexInterp(isolevel,grid_p[6],grid_p[7],grid_val[6],grid_val[7]);
+	if (edgeTable[cubeindex] & 128)
+	  vertlist[7] =
+		 VertexInterp(isolevel,grid_p[7],grid_p[4],grid_val[7],grid_val[4]);
+	if (edgeTable[cubeindex] & 256)
+	  vertlist[8] =
+		 VertexInterp(isolevel,grid_p[0],grid_p[4],grid_val[0],grid_val[4]);
+	if (edgeTable[cubeindex] & 512)
+	  vertlist[9] =
+		 VertexInterp(isolevel,grid_p[1],grid_p[5],grid_val[1],grid_val[5]);
+	if (edgeTable[cubeindex] & 1024)
+	  vertlist[10] =
+		 VertexInterp(isolevel,grid_p[2],grid_p[6],grid_val[2],grid_val[6]);
+	if (edgeTable[cubeindex] & 2048)
+	  vertlist[11] =
+		 VertexInterp(isolevel,grid_p[3],grid_p[7],grid_val[3],grid_val[7]);
+
+	/* Create the triangle */
+	var pos0;
+	var pos1;
+	var pos2;
+	for (var i=0; triTable[cubeindex][i]!=-1; i+=3) {
+	  //triangles[ntriang].p[0] = vertlist[triTable[cubeindex][i  ]];
+	  //triangles[ntriang].p[1] = vertlist[triTable[cubeindex][i+1]];
+	  //triangles[ntriang].p[2] = vertlist[triTable[cubeindex][i+2]];
+		pos0 = vertlist[triTable[cubeindex][i  ]];
+		pos1 = vertlist[triTable[cubeindex][i+1]];
+		pos2 = vertlist[triTable[cubeindex][i+2]];
+	  
+		shape_in.positions.push(pos0, pos1, pos2);
+		shape_in.indices.push(ntriang*3, ntriang*3+1, ntriang*3+2);
+		
+		shape_in.normals.push(find_grad(pos0), find_grad(pos1), find_grad(pos2));  //Old way, but it actually works
+		//Generate 3 normals, one for each vertex sent in
+		/*		
+		if(Math.abs(pos0[0] - Math.trunc(pos0[0])) <= 0.01 && Math.abs(pos0[1] - Math.trunc(pos0[1])) <= 0.01 && Math.abs(pos0[2] - Math.trunc(pos0[2])) <= 0.01)	//Trunc to deal with negatives correctly
+			{
+				var norm_coord = vec3(Math.round(pos0[0]), Math.round(pos0[1]), Math.round(pos0[2]));
+				shape_in.normals.push(normals[(norm_coord[1]+WORLD_SIZE)%RES_RATIO*(RES_RATIO+1)*(RES_RATIO+1)+(norm_coord[2]+WORLD_SIZE)%RES_RATIO*(RES_RATIO+1)+(norm_coord[0]+WORLD_SIZE)%RES_RATIO]);
+			}
+			else if (Math.abs(pos0[0] - Math.trunc(pos0[0])) > 0.01)	//Vertex is on x-parallel line
+			{
+				var lerp_pos1 = vec3(Math.floor(pos0[0]), Math.round(pos0[1]), Math.round(pos0[2]));	//The distinction between x,y,z is here
+				var lerp_pos2 = vec3(Math.ceil(pos0[0]), Math.round(pos0[1]), Math.round(pos0[2]));
+				var lerp_x = pos0[0] - Math.trunc(pos0[0]);	//Also, these are different
+				var lerp_val1 = normals[(lerp_pos1[1]+WORLD_SIZE)%RES_RATIO*(RES_RATIO+1)*(RES_RATIO+1)+(lerp_pos1[2]+WORLD_SIZE)%RES_RATIO*(RES_RATIO+1)+(lerp_pos1[0]+WORLD_SIZE)%RES_RATIO];
+				var lerp_val2 = normals[(lerp_pos2[1]+WORLD_SIZE)%RES_RATIO*(RES_RATIO+1)*(RES_RATIO+1)+(lerp_pos2[2]+WORLD_SIZE)%RES_RATIO*(RES_RATIO+1)+(lerp_pos2[0]+WORLD_SIZE)%RES_RATIO];
+				shape_in.normals.push(normalize(lerpvec3(lerp_val1, lerp_val2, lerp_x)));			
+			}
+			else if (Math.abs(pos0[1] - Math.trunc(pos0[1])) > 0.01)	//Vertex is on y-parallel line
+			{
+				var lerp_pos1 = vec3(Math.round(pos0[0]), Math.floor(pos0[1]), Math.round(pos0[2]));	//The distinction between x,y,z is here
+				var lerp_pos2 = vec3(Math.round(pos0[0]), Math.ceil(pos0[1]), Math.round(pos0[2]));
+				var lerp_x = pos0[1] - Math.trunc(pos0[1]);	//Also, these are different
+				var lerp_val1 = normals[(lerp_pos1[1]+WORLD_SIZE)%RES_RATIO*(RES_RATIO+1)*(RES_RATIO+1)+(lerp_pos1[2]+WORLD_SIZE)%RES_RATIO*(RES_RATIO+1)+(lerp_pos1[0]+WORLD_SIZE)%RES_RATIO];
+				var lerp_val2 = normals[(lerp_pos2[1]+WORLD_SIZE)%RES_RATIO*(RES_RATIO+1)*(RES_RATIO+1)+(lerp_pos2[2]+WORLD_SIZE)%RES_RATIO*(RES_RATIO+1)+(lerp_pos2[0]+WORLD_SIZE)%RES_RATIO];
+				shape_in.normals.push(normalize(lerpvec3(lerp_val1, lerp_val2, lerp_x)));			
+			}
+			else if (Math.abs(pos0[2] - Math.trunc(pos0[2])) > 0.01)	//Vertex is on z-parallel line
+			{
+				var lerp_pos1 = vec3(Math.round(pos0[0]), Math.round(pos0[1]), Math.floor(pos0[2]));	//The distinction between x,y,z is here
+				var lerp_pos2 = vec3(Math.round(pos0[0]), Math.round(pos0[1]), Math.ceil(pos0[2]));
+				var lerp_x = pos0[2] - Math.trunc(pos0[2]);	//Also, these are different
+				var lerp_val1 = normals[(lerp_pos1[1]+WORLD_SIZE)%RES_RATIO*(RES_RATIO+1)*(RES_RATIO+1)+(lerp_pos1[2]+WORLD_SIZE)%RES_RATIO*(RES_RATIO+1)+(lerp_pos1[0]+WORLD_SIZE)%RES_RATIO];
+				var lerp_val2 = normals[(lerp_pos2[1]+WORLD_SIZE)%RES_RATIO*(RES_RATIO+1)*(RES_RATIO+1)+(lerp_pos2[2]+WORLD_SIZE)%RES_RATIO*(RES_RATIO+1)+(lerp_pos2[0]+WORLD_SIZE)%RES_RATIO];
+				shape_in.normals.push(normalize(lerpvec3(lerp_val1, lerp_val2, lerp_x)));			
+			}
+			else console.log("Hey, something broke in the marching cubes normal gen");
+			
+			//And now for pos1 and pos2, a similar treatment:
+			if(Math.abs(pos1[0] - Math.trunc(pos1[0])) < 0.01 && Math.abs(pos1[1] - Math.trunc(pos1[1])) < 0.01 && Math.abs(pos1[2] - Math.trunc(pos1[2])) < 0.01)	//Trunc to deal with negatives correctly
+			{
+				var norm_coord = vec3(Math.round(pos1[0]), Math.round(pos1[1]), Math.round(pos1[2]));
+				shape_in.normals.push(normals[(norm_coord[1]+WORLD_SIZE)%RES_RATIO*(RES_RATIO+1)*(RES_RATIO+1)+(norm_coord[2]+WORLD_SIZE)%RES_RATIO*(RES_RATIO+1)+(norm_coord[0]+WORLD_SIZE)%RES_RATIO]);
+			}
+			else if (Math.abs(pos1[0] - Math.trunc(pos1[0])) > 0.01)	//Vertex is on x-parallel line
+			{
+				var lerp_pos1 = vec3(Math.floor(pos1[0]), Math.round(pos1[1]), Math.round(pos1[2]));	//The distinction between x,y,z is here
+				var lerp_pos2 = vec3(Math.ceil(pos1[0]), Math.round(pos1[1]), Math.round(pos1[2]));
+				var lerp_x = pos1[0] - Math.trunc(pos1[0]);	//Also, these are different
+				var lerp_val1 = normals[(lerp_pos1[1]+WORLD_SIZE)%RES_RATIO*(RES_RATIO+1)*(RES_RATIO+1)+(lerp_pos1[2]+WORLD_SIZE)%RES_RATIO*(RES_RATIO+1)+(lerp_pos1[0]+WORLD_SIZE)%RES_RATIO];
+				var lerp_val2 = normals[(lerp_pos2[1]+WORLD_SIZE)%RES_RATIO*(RES_RATIO+1)*(RES_RATIO+1)+(lerp_pos2[2]+WORLD_SIZE)%RES_RATIO*(RES_RATIO+1)+(lerp_pos2[0]+WORLD_SIZE)%RES_RATIO];
+				shape_in.normals.push(normalize(lerpvec3(lerp_val1, lerp_val2, lerp_x)));			
+			}
+			else if (Math.abs(pos1[1] - Math.trunc(pos1[1])) > 0.01)	//Vertex is on y-parallel line
+			{
+				var lerp_pos1 = vec3(Math.round(pos1[0]), Math.floor(pos1[1]), Math.round(pos1[2]));	//The distinction between x,y,z is here
+				var lerp_pos2 = vec3(Math.round(pos1[0]), Math.ceil(pos1[1]), Math.round(pos1[2]));
+				var lerp_x = pos1[1] - Math.trunc(pos1[1]);	//Also, these are different
+				var lerp_val1 = normals[(lerp_pos1[1]+WORLD_SIZE)%RES_RATIO*(RES_RATIO+1)*(RES_RATIO+1)+(lerp_pos1[2]+WORLD_SIZE)%RES_RATIO*(RES_RATIO+1)+(lerp_pos1[0]+WORLD_SIZE)%RES_RATIO];
+				var lerp_val2 = normals[(lerp_pos2[1]+WORLD_SIZE)%RES_RATIO*(RES_RATIO+1)*(RES_RATIO+1)+(lerp_pos2[2]+WORLD_SIZE)%RES_RATIO*(RES_RATIO+1)+(lerp_pos2[0]+WORLD_SIZE)%RES_RATIO];
+				shape_in.normals.push(normalize(lerpvec3(lerp_val1, lerp_val2, lerp_x)));			
+			}
+			else if (Math.abs(pos1[2] - Math.trunc(pos1[2])) > 0.01)	//Vertex is on z-parallel line
+			{
+				var lerp_pos1 = vec3(Math.round(pos1[0]), Math.round(pos1[1]), Math.floor(pos1[2]));	//The distinction between x,y,z is here
+				var lerp_pos2 = vec3(Math.round(pos1[0]), Math.round(pos1[1]), Math.ceil(pos1[2]));
+				var lerp_x = pos1[2] - Math.trunc(pos1[2]);	//Also, these are different
+				var lerp_val1 = normals[(lerp_pos1[1]+WORLD_SIZE)%RES_RATIO*(RES_RATIO+1)*(RES_RATIO+1)+(lerp_pos1[2]+WORLD_SIZE)%RES_RATIO*(RES_RATIO+1)+(lerp_pos1[0]+WORLD_SIZE)%RES_RATIO];
+				var lerp_val2 = normals[(lerp_pos2[1]+WORLD_SIZE)%RES_RATIO*(RES_RATIO+1)*(RES_RATIO+1)+(lerp_pos2[2]+WORLD_SIZE)%RES_RATIO*(RES_RATIO+1)+(lerp_pos2[0]+WORLD_SIZE)%RES_RATIO];
+				shape_in.normals.push(normalize(lerpvec3(lerp_val1, lerp_val2, lerp_x)));			
+			}
+			else console.log("Hey, something broke in the marching cubes normal gen");
+			
+			//pos2:
+			if(Math.abs(pos2[0] - Math.trunc(pos2[0])) < 0.01 && Math.abs(pos2[1] - Math.trunc(pos2[1])) < 0.01 && Math.abs(pos2[2] - Math.trunc(pos2[2])) < 0.01)	//Trunc to deal with negatives correctly
+			{
+				var norm_coord = vec3(Math.round(pos2[0]), Math.round(pos2[1]), Math.round(pos2[2]));
+				shape_in.normals.push(normals[(norm_coord[1]+WORLD_SIZE)%RES_RATIO*(RES_RATIO+1)*(RES_RATIO+1)+(norm_coord[2]+WORLD_SIZE)%RES_RATIO*(RES_RATIO+1)+(norm_coord[0]+WORLD_SIZE)%RES_RATIO]);
+			}
+			else if (Math.abs(pos2[0] - Math.trunc(pos2[0])) > 0.01)	//Vertex is on x-parallel line
+			{
+				var lerp_pos1 = vec3(Math.floor(pos2[0]), Math.round(pos2[1]), Math.round(pos2[2]));	//The distinction between x,y,z is here
+				var lerp_pos2 = vec3(Math.ceil(pos2[0]), Math.round(pos2[1]), Math.round(pos2[2]));
+				var lerp_x = pos2[0] - Math.trunc(pos2[0]);	//Also, these are different
+				var lerp_val1 = normals[(lerp_pos1[1]+WORLD_SIZE)%RES_RATIO*(RES_RATIO+1)*(RES_RATIO+1)+(lerp_pos1[2]+WORLD_SIZE)%RES_RATIO*(RES_RATIO+1)+(lerp_pos1[0]+WORLD_SIZE)%RES_RATIO];
+				var lerp_val2 = normals[(lerp_pos2[1]+WORLD_SIZE)%RES_RATIO*(RES_RATIO+1)*(RES_RATIO+1)+(lerp_pos2[2]+WORLD_SIZE)%RES_RATIO*(RES_RATIO+1)+(lerp_pos2[0]+WORLD_SIZE)%RES_RATIO];
+				shape_in.normals.push(normalize(lerpvec3(lerp_val1, lerp_val2, lerp_x)));			
+			}
+			else if (Math.abs(pos2[1] - Math.trunc(pos2[1])) > 0.01)	//Vertex is on y-parallel line
+			{
+				var lerp_pos1 = vec3(Math.round(pos2[0]), Math.floor(pos2[1]), Math.round(pos2[2]));	//The distinction between x,y,z is here
+				var lerp_pos2 = vec3(Math.round(pos2[0]), Math.ceil(pos2[1]), Math.round(pos2[2]));
+				var lerp_x = pos2[1] - Math.trunc(pos2[1]);	//Also, these are different
+				var lerp_val1 = normals[(lerp_pos1[1]+WORLD_SIZE)%RES_RATIO*(RES_RATIO+1)*(RES_RATIO+1)+(lerp_pos1[2]+WORLD_SIZE)%RES_RATIO*(RES_RATIO+1)+(lerp_pos1[0]+WORLD_SIZE)%RES_RATIO];
+				var lerp_val2 = normals[(lerp_pos2[1]+WORLD_SIZE)%RES_RATIO*(RES_RATIO+1)*(RES_RATIO+1)+(lerp_pos2[2]+WORLD_SIZE)%RES_RATIO*(RES_RATIO+1)+(lerp_pos2[0]+WORLD_SIZE)%RES_RATIO];
+				shape_in.normals.push(normalize(lerpvec3(lerp_val1, lerp_val2, lerp_x)));			
+			}
+			else if (Math.abs(pos2[2] - Math.trunc(pos2[2])) > 0.01)	//Vertex is on z-parallel line
+			{
+				var lerp_pos1 = vec3(Math.round(pos2[0]), Math.round(pos2[1]), Math.floor(pos2[2]));	//The distinction between x,y,z is here
+				var lerp_pos2 = vec3(Math.round(pos2[0]), Math.round(pos2[1]), Math.ceil(pos2[2]));
+				var lerp_x = pos2[2] - Math.trunc(pos2[2]);	//Also, these are different
+				var lerp_val1 = normals[(lerp_pos1[1]+WORLD_SIZE)%RES_RATIO*(RES_RATIO+1)*(RES_RATIO+1)+(lerp_pos1[2]+WORLD_SIZE)%RES_RATIO*(RES_RATIO+1)+(lerp_pos1[0]+WORLD_SIZE)%RES_RATIO];
+				var lerp_val2 = normals[(lerp_pos2[1]+WORLD_SIZE)%RES_RATIO*(RES_RATIO+1)*(RES_RATIO+1)+(lerp_pos2[2]+WORLD_SIZE)%RES_RATIO*(RES_RATIO+1)+(lerp_pos2[0]+WORLD_SIZE)%RES_RATIO];
+				shape_in.normals.push(normalize(lerpvec3(lerp_val1, lerp_val2, lerp_x)));			
+			}
+			else console.log("Hey, something broke in the marching cubes normal gen");
+		*/
+			ntriang++;
+	}
+
+	return(ntriang);
+}		
+		
+		
+		
 /*
    Given a grid cell and an isolevel, calculate the triangular
    facets required to represent the isosurface through the cell.
@@ -658,7 +1024,7 @@ function sign_density(coords)
    of totally below the isolevel.
 */
 		//Returns number of triangles made		
-function march(grid_p, grid_val, shape_in, ntriang, edgeTable, triTable)
+function march_gpu(grid_p, grid_val, normals, shape_in, ntriang, edgeTable, triTable)
 {
 	var isolevel = 0;	//We set this
 	//var triangles;	//Shouldn't be needed because we have the shape setup?
@@ -742,7 +1108,112 @@ function march(grid_p, grid_val, shape_in, ntriang, edgeTable, triTable)
 		  
 		//shape_in.normals.push(vec3(0,1,0), vec3(0,1,0), vec3(0,1,0));	//TODO: Generate normals with the gradient of the density function
 		//Generate 3 normals, one for each vertex sent in
-		shape_in.normals.push(find_grad(pos0), find_grad(pos1), find_grad(pos2));
+		//Need to do the interpolation between the normals from the vertices
+		//pos0 first:
+		if(Math.abs(pos0[0] - Math.trunc(pos0[0])) < 0.01 && Math.abs(pos0[1] - Math.trunc(pos0[1])) < 0.01 && Math.abs(pos0[2] - Math.trunc(pos0[2])) < 0.01)	//Trunc to deal with negatives correctly
+		{
+			var norm_coord = vec3(Math.round(pos0[0]), Math.round(pos0[1]), Math.round(pos0[2]));
+			shape_in.normals.push(normals[(norm_coord[1]+65536)%RES_RATIO*(RES_RATIO+1)*(RES_RATIO+1)+(norm_coord[2]+65536)%RES_RATIO*(RES_RATIO+1)+(norm_coord[0]+65536)%RES_RATIO]);
+		}
+		else if (Math.abs(pos0[0] - Math.trunc(pos0[0])) > 0.01)	//Vertex is on x-parallel line
+		{
+			var lerp_pos1 = vec3(Math.floor(pos0[0]), Math.round(pos0[1]), Math.round(pos0[2]));	//The distinction between x,y,z is here
+			var lerp_pos2 = vec3(Math.ceil(pos0[0]), Math.round(pos0[1]), Math.round(pos0[2]));
+			var lerp_x = pos0[0] - Math.trunc(pos0[0]);	//Also, these are different
+			var lerp_val1 = normals[(lerp_pos1[1]+65536)%RES_RATIO*(RES_RATIO+1)*(RES_RATIO+1)+(lerp_pos1[2]+65536)%RES_RATIO*(RES_RATIO+1)+(lerp_pos1[0]+65536)%RES_RATIO];
+			var lerp_val2 = normals[(lerp_pos2[1]+65536)%RES_RATIO*(RES_RATIO+1)*(RES_RATIO+1)+(lerp_pos2[2]+65536)%RES_RATIO*(RES_RATIO+1)+(lerp_pos2[0]+65536)%RES_RATIO];
+			shape_in.normals.push(normalize(lerpvec3(lerp_val1, lerp_val2, lerp_x)));			
+		}
+		else if (Math.abs(pos0[1] - Math.trunc(pos0[1])) > 0.01)	//Vertex is on y-parallel line
+		{
+			var lerp_pos1 = vec3(Math.round(pos0[0]), Math.floor(pos0[1]), Math.round(pos0[2]));	//The distinction between x,y,z is here
+			var lerp_pos2 = vec3(Math.round(pos0[0]), Math.ceil(pos0[1]), Math.round(pos0[2]));
+			var lerp_x = pos0[1] - Math.trunc(pos0[1]);	//Also, these are different
+			var lerp_val1 = normals[(lerp_pos1[1]+65536)%RES_RATIO*(RES_RATIO+1)*(RES_RATIO+1)+(lerp_pos1[2]+65536)%RES_RATIO*(RES_RATIO+1)+(lerp_pos1[0]+65536)%RES_RATIO];
+			var lerp_val2 = normals[(lerp_pos2[1]+65536)%RES_RATIO*(RES_RATIO+1)*(RES_RATIO+1)+(lerp_pos2[2]+65536)%RES_RATIO*(RES_RATIO+1)+(lerp_pos2[0]+65536)%RES_RATIO];
+			shape_in.normals.push(normalize(lerpvec3(lerp_val1, lerp_val2, lerp_x)));			
+		}
+		else if (Math.abs(pos0[2] - Math.trunc(pos0[2])) > 0.01)	//Vertex is on z-parallel line
+		{
+			var lerp_pos1 = vec3(Math.round(pos0[0]), Math.round(pos0[1]), Math.floor(pos0[2]));	//The distinction between x,y,z is here
+			var lerp_pos2 = vec3(Math.round(pos0[0]), Math.round(pos0[1]), Math.ceil(pos0[2]));
+			var lerp_x = pos0[2] - Math.trunc(pos0[2]);	//Also, these are different
+			var lerp_val1 = normals[(lerp_pos1[1]+65536)%RES_RATIO*(RES_RATIO+1)*(RES_RATIO+1)+(lerp_pos1[2]+65536)%RES_RATIO*(RES_RATIO+1)+(lerp_pos1[0]+65536)%RES_RATIO];
+			var lerp_val2 = normals[(lerp_pos2[1]+65536)%RES_RATIO*(RES_RATIO+1)*(RES_RATIO+1)+(lerp_pos2[2]+65536)%RES_RATIO*(RES_RATIO+1)+(lerp_pos2[0]+65536)%RES_RATIO];
+			shape_in.normals.push(normalize(lerpvec3(lerp_val1, lerp_val2, lerp_x)));			
+		}
+		else console.log("Hey, something broke in the marching cubes normal gen");
+		
+		//And now for pos1 and pos2, a similar treatment:
+		if(Math.abs(pos1[0] - Math.trunc(pos1[0])) < 0.01 && Math.abs(pos1[1] - Math.trunc(pos1[1])) < 0.01 && Math.abs(pos1[2] - Math.trunc(pos1[2])) < 0.01)	//Trunc to deal with negatives correctly
+		{
+			var norm_coord = vec3(Math.round(pos1[0]), Math.round(pos1[1]), Math.round(pos1[2]));
+			shape_in.normals.push(normals[(norm_coord[1]+65536)%RES_RATIO*(RES_RATIO+1)*(RES_RATIO+1)+(norm_coord[2]+65536)%RES_RATIO*(RES_RATIO+1)+(norm_coord[0]+65536)%RES_RATIO]);
+		}
+		else if (Math.abs(pos1[0] - Math.trunc(pos1[0])) > 0.01)	//Vertex is on x-parallel line
+		{
+			var lerp_pos1 = vec3(Math.floor(pos1[0]), Math.round(pos1[1]), Math.round(pos1[2]));	//The distinction between x,y,z is here
+			var lerp_pos2 = vec3(Math.ceil(pos1[0]), Math.round(pos1[1]), Math.round(pos1[2]));
+			var lerp_x = pos1[0] - Math.trunc(pos1[0]);	//Also, these are different
+			var lerp_val1 = normals[(lerp_pos1[1]+65536)%RES_RATIO*(RES_RATIO+1)*(RES_RATIO+1)+(lerp_pos1[2]+65536)%RES_RATIO*(RES_RATIO+1)+(lerp_pos1[0]+65536)%RES_RATIO];
+			var lerp_val2 = normals[(lerp_pos2[1]+65536)%RES_RATIO*(RES_RATIO+1)*(RES_RATIO+1)+(lerp_pos2[2]+65536)%RES_RATIO*(RES_RATIO+1)+(lerp_pos2[0]+65536)%RES_RATIO];
+			shape_in.normals.push(normalize(lerpvec3(lerp_val1, lerp_val2, lerp_x)));			
+		}
+		else if (Math.abs(pos1[1] - Math.trunc(pos1[1])) > 0.01)	//Vertex is on y-parallel line
+		{
+			var lerp_pos1 = vec3(Math.round(pos1[0]), Math.floor(pos1[1]), Math.round(pos1[2]));	//The distinction between x,y,z is here
+			var lerp_pos2 = vec3(Math.round(pos1[0]), Math.ceil(pos1[1]), Math.round(pos1[2]));
+			var lerp_x = pos1[1] - Math.trunc(pos1[1]);	//Also, these are different
+			var lerp_val1 = normals[(lerp_pos1[1]+65536)%RES_RATIO*(RES_RATIO+1)*(RES_RATIO+1)+(lerp_pos1[2]+65536)%RES_RATIO*(RES_RATIO+1)+(lerp_pos1[0]+65536)%RES_RATIO];
+			var lerp_val2 = normals[(lerp_pos2[1]+65536)%RES_RATIO*(RES_RATIO+1)*(RES_RATIO+1)+(lerp_pos2[2]+65536)%RES_RATIO*(RES_RATIO+1)+(lerp_pos2[0]+65536)%RES_RATIO];
+			shape_in.normals.push(normalize(lerpvec3(lerp_val1, lerp_val2, lerp_x)));			
+		}
+		else if (Math.abs(pos1[2] - Math.trunc(pos1[2])) > 0.01)	//Vertex is on z-parallel line
+		{
+			var lerp_pos1 = vec3(Math.round(pos1[0]), Math.round(pos1[1]), Math.floor(pos1[2]));	//The distinction between x,y,z is here
+			var lerp_pos2 = vec3(Math.round(pos1[0]), Math.round(pos1[1]), Math.ceil(pos1[2]));
+			var lerp_x = pos1[2] - Math.trunc(pos1[2]);	//Also, these are different
+			var lerp_val1 = normals[(lerp_pos1[1]+65536)%RES_RATIO*(RES_RATIO+1)*(RES_RATIO+1)+(lerp_pos1[2]+65536)%RES_RATIO*(RES_RATIO+1)+(lerp_pos1[0]+65536)%RES_RATIO];
+			var lerp_val2 = normals[(lerp_pos2[1]+65536)%RES_RATIO*(RES_RATIO+1)*(RES_RATIO+1)+(lerp_pos2[2]+65536)%RES_RATIO*(RES_RATIO+1)+(lerp_pos2[0]+65536)%RES_RATIO];
+			shape_in.normals.push(normalize(lerpvec3(lerp_val1, lerp_val2, lerp_x)));			
+		}
+		else console.log("Hey, something broke in the marching cubes normal gen");
+		
+		//pos2:
+		if(Math.abs(pos2[0] - Math.trunc(pos2[0])) < 0.01 && Math.abs(pos2[1] - Math.trunc(pos2[1])) < 0.01 && Math.abs(pos2[2] - Math.trunc(pos2[2])) < 0.01)	//Trunc to deal with negatives correctly
+		{
+			var norm_coord = vec3(Math.round(pos2[0]), Math.round(pos2[1]), Math.round(pos2[2]));
+			shape_in.normals.push(normals[(norm_coord[1]+65536)%RES_RATIO*(RES_RATIO+1)*(RES_RATIO+1)+(norm_coord[2]+65536)%RES_RATIO*(RES_RATIO+1)+(norm_coord[0]+65536)%RES_RATIO]);
+		}
+		else if (Math.abs(pos2[0] - Math.trunc(pos2[0])) > 0.01)	//Vertex is on x-parallel line
+		{
+			var lerp_pos1 = vec3(Math.floor(pos2[0]), Math.round(pos2[1]), Math.round(pos2[2]));	//The distinction between x,y,z is here
+			var lerp_pos2 = vec3(Math.ceil(pos2[0]), Math.round(pos2[1]), Math.round(pos2[2]));
+			var lerp_x = pos2[0] - Math.trunc(pos2[0]);	//Also, these are different
+			var lerp_val1 = normals[(lerp_pos1[1]+65536)%RES_RATIO*(RES_RATIO+1)*(RES_RATIO+1)+(lerp_pos1[2]+65536)%RES_RATIO*(RES_RATIO+1)+(lerp_pos1[0]+65536)%RES_RATIO];
+			var lerp_val2 = normals[(lerp_pos2[1]+65536)%RES_RATIO*(RES_RATIO+1)*(RES_RATIO+1)+(lerp_pos2[2]+65536)%RES_RATIO*(RES_RATIO+1)+(lerp_pos2[0]+65536)%RES_RATIO];
+			shape_in.normals.push(normalize(lerpvec3(lerp_val1, lerp_val2, lerp_x)));			
+		}
+		else if (Math.abs(pos2[1] - Math.trunc(pos2[1])) > 0.01)	//Vertex is on y-parallel line
+		{
+			var lerp_pos1 = vec3(Math.round(pos2[0]), Math.floor(pos2[1]), Math.round(pos2[2]));	//The distinction between x,y,z is here
+			var lerp_pos2 = vec3(Math.round(pos2[0]), Math.ceil(pos2[1]), Math.round(pos2[2]));
+			var lerp_x = pos2[1] - Math.trunc(pos2[1]);	//Also, these are different
+			var lerp_val1 = normals[(lerp_pos1[1]+65536)%RES_RATIO*(RES_RATIO+1)*(RES_RATIO+1)+(lerp_pos1[2]+65536)%RES_RATIO*(RES_RATIO+1)+(lerp_pos1[0]+65536)%RES_RATIO];
+			var lerp_val2 = normals[(lerp_pos2[1]+65536)%RES_RATIO*(RES_RATIO+1)*(RES_RATIO+1)+(lerp_pos2[2]+65536)%RES_RATIO*(RES_RATIO+1)+(lerp_pos2[0]+65536)%RES_RATIO];
+			shape_in.normals.push(normalize(lerpvec3(lerp_val1, lerp_val2, lerp_x)));			
+		}
+		else if (Math.abs(pos2[2] - Math.trunc(pos2[2])) > 0.01)	//Vertex is on z-parallel line
+		{
+			var lerp_pos1 = vec3(Math.round(pos2[0]), Math.round(pos2[1]), Math.floor(pos2[2]));	//The distinction between x,y,z is here
+			var lerp_pos2 = vec3(Math.round(pos2[0]), Math.round(pos2[1]), Math.ceil(pos2[2]));
+			var lerp_x = pos2[2] - Math.trunc(pos2[2]);	//Also, these are different
+			var lerp_val1 = normals[(lerp_pos1[1]+65536)%RES_RATIO*(RES_RATIO+1)*(RES_RATIO+1)+(lerp_pos1[2]+65536)%RES_RATIO*(RES_RATIO+1)+(lerp_pos1[0]+65536)%RES_RATIO];
+			var lerp_val2 = normals[(lerp_pos2[1]+65536)%RES_RATIO*(RES_RATIO+1)*(RES_RATIO+1)+(lerp_pos2[2]+65536)%RES_RATIO*(RES_RATIO+1)+(lerp_pos2[0]+65536)%RES_RATIO];
+			shape_in.normals.push(normalize(lerpvec3(lerp_val1, lerp_val2, lerp_x)));			
+		}
+		else console.log("Hey, something broke in the marching cubes normal gen");
+		
 		ntriang++;
 	}
 
@@ -765,10 +1236,10 @@ function Node(coords, size, base) {	//To make a new tree, put in (vec3(-size/2,-
 function Node_find(loc, size, node, base)	//This size is the goal size - for the current size, use node.size
 {
 	//Should probably be recursive
-	//When first calling the function, give it the root
+	//When first calling the function, give it the tree as the "node"
 	if(!node)	
 	{
-		node = Node_add(vec3(Math.floor(loc[0]/base.size/2)*base.size/2, Math.floor(loc[1]/base.size/2)*base.size/2, Math.floor(loc[2]/base.size/2)*base.size/2), base.size/2, base);
+		node = Node_add(vec3(Math.floor(loc[0]/(base.size/2))*base.size/2, Math.floor(loc[1]/(base.size/2))*base.size/2, Math.floor(loc[2]/(base.size/2))*base.size/2), base.size/2, base);
 	}
 	if(node.size == size)
 		return node;
@@ -829,34 +1300,44 @@ function Node_add(loc, size, tree)
 
 function check_block(coords, size)	//Check if a block needs to be drawn in the first place - much cheaper than drawing
 {
-	res = size/RES_RATIO
+	//res = size/RES_RATIO;
+	res = RES;
 	//Check every surface density, and stop if any of them aren't similar to every other
 	check = sign_density(coords);
-	//this initial check should catch most of the boundary blocks
-	if(check != sign_density(coords[0]+size, coords[1]+size, coords[2]+size))
-		return 3;	//Returns 1 or 2 to be consistent with future values
-	else
+	//this initial check should catch most of the boundary blocks	
+	if(check != sign_density(vec3(coords[0]+size, coords[1]+size, coords[2]+size)))
+	{		
+		return 3;	
+	}
+	else									 
 	{
 		//Now do the whole loop
 		for(var i = coords[0]; i < coords[0]+size; i += res)
 			for(var j = coords[1]; j < coords[1]+size; j += res)
 			{
-				if(check != sign_density(i, j, coords[2]) || check != f_density(i, j, coords[2]+size))
+				if(check != sign_density(vec3(i, j, coords[2])) || check != sign_density(vec3(i, j, coords[2]+size)))
+				{					
 					return 3;
+				}
 			}
 		for(var i = coords[0]; i < coords[0]+size; i += res)
-			for(var k = coords[2]+res; k < coords[2]+size-res; j += res)
+			for(var k = coords[2]+res; k < coords[2]+size-res; k += res)
 			{
-				if(check != sign_density(i, coords[1], k) || check != f_density(i, coords[1]+size, k))
+				if(check != sign_density(vec3(i, coords[1], k)) || check != sign_density(vec3(i, coords[1]+size, k)))
+				{					
 					return 3;
+				}
 			}
-		for(var j = coords[1]+res; j < coords[1]+size-res; i += res)
-			for(var k = coords[2]+res; k < coords[2]+size-res; j += res)
+		for(var j = coords[1]+res; j < coords[1]+size-res; j += res)
+			for(var k = coords[2]+res; k < coords[2]+size-res; k += res)
 			{
-				if(check != sign_density(coords[0], j, k) || check != f_density(coords[0]+size, j, k))
+				if(check != sign_density(vec3(coords[0], j, k)) || check != sign_density(vec3(coords[0]+size, j, k)))
+				{					
 					return 3;
+				}
 			}
 	}
+	//Returns 1 or 2 to be consistent with future values
 	if(check = 1)
 		return 2;	
 	else
@@ -869,13 +1350,7 @@ function Node_terrain(node)
 	node.terrain = new Terrain(node.coords, node.size);
 }
 
-//plane_pos is a vec3, plane_heading is a single value
-function choose_seen_terrain(to_check, plane_pos, plane_heading)
-{
-	// Everything within some radius, modified by angle, should be drawn nicely
-	
-	
-}
+
 
 
 

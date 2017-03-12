@@ -1,4 +1,4 @@
-/*
+
 Declare_Any_Class( "G_buf_gen_NormalSpray_hf",
   { 'update_uniforms'          : function( g_state, model_transform, material )     // Send javascrpt's variables to the GPU to update its overall state.
       {
@@ -255,11 +255,9 @@ Declare_Any_Class( "G_buf_gen_NormalSpray",
 			//float z_com = abs(dot(fNormal,vec3(0,0,1)));
 			//vec4 err = vec4(x_com,y_com,z_com,0.0);
 			//err = p-err;
-<<<<<<< HEAD
+
 			//gl_FragColor = vec4(p.x,p.y,p.z,1.0);
-=======
-			gl_FragColor = vec4(p.x,p.y,p.z,1.0);
->>>>>>> d8f63a515ea1d88b3b095d498d1140f77c330520
+
 			//gl_FragColor = vec4(x_com,y_com,z_com,1.0);
 			//gl_FragColor = vec4(1.0,0.0,1.0,1.0);
 			gl_FragColor = texture2D(texture,fTexCoord);
@@ -267,7 +265,7 @@ Declare_Any_Class( "G_buf_gen_NormalSpray",
 	  `;
       }
   }, Shader );
- */ 
+
 Declare_Any_Class( "G_buf_gen_phong",
   { 'update_uniforms'          : function( g_state, model_transform, material )     // Send javascrpt's variables to the GPU to update its overall state.
       {
@@ -331,8 +329,8 @@ Declare_Any_Class( "G_buf_gen_phong",
             vec4 ospos = vec4(vPosition, 1.0);
             gl_Position = projection_camera_model_transform * ospos;
             fTexCoord = vTexCoord;
-			fNormal = normalize( camera_model_transform_normal * vNormal );
-			//fNormal = vNormal; //Pass-Through for debug
+			//fNormal = normalize( camera_model_transform_normal * vNormal );
+			fNormal = vNormal; //Pass-Through for debug
 			pos = ospos;
 		}
 	  `;
@@ -509,7 +507,7 @@ Declare_Any_Class( "G_buf_gen_phong",
 
                gl_FragColor.xyz += attenuation_multiplier * (tex_color.xyz * diffusivity * diffuse  + lightColor[i].xyz * shininess * specular );
 			}
-			//gl_FragColor = tex_color;
+			gl_FragColor = vec4(N,1.0);
 			//gl_FragColor = vec4(vec3(length(fPos)/2550.0),1.0);
 			
 		}
