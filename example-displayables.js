@@ -59,15 +59,27 @@ Declare_Any_Class("Example_Animation", {
 
 		// declare all variables
 		// creating collection objects
+		shapes_in_use.grass = new Array();
 		shapes_in_use.collection_object = new Array();
+		
+		// add grass
+		shapes_in_use.grass.push(new Imported_Object("Grass.obj",0,0,-100)); 
+		
 		// declare any number of objects
-		shapes_in_use.collection_object.push(new Collection_Object(4, 50, 0, -150));
-		shapes_in_use.collection_object.push(new Collection_Object(4, -50, 0, -150));
-		shapes_in_use.collection_object.push(new Collection_Object(4, 50, 0, -100));
-		shapes_in_use.collection_object.push(new Collection_Object(4, -50, 0, -100));
+		shapes_in_use.collection_object.push(new Collection_Object("Gate.obj", 50, 0, -150));
+		shapes_in_use.collection_object.push(new Collection_Object("Gate_twirl.obj", 50, 0, -150));
+		
+		shapes_in_use.collection_object.push(new Collection_Object("Gate.obj", -50, 0, -150));
+		shapes_in_use.collection_object.push(new Collection_Object("Gate_twirl.obj", -50, 0, -150));
+		
+		shapes_in_use.collection_object.push(new Collection_Object("Gate.obj", 50, 0, -100));
+		shapes_in_use.collection_object.push(new Collection_Object("Gate_twirl.obj", 50, 0, -100));
+		
+		shapes_in_use.collection_object.push(new Collection_Object("Gate.obj", -50, 0, -100));
+		shapes_in_use.collection_object.push(new Collection_Object("Gate_twirl.obj", -50, 0, -100));
 
 		// create imported plane
-		shapes_in_use.plane = new Imported_Object();
+		shapes_in_use.plane = new Imported_Object("ThreePlane.obj",0,0,0);
 
 		
 		shapes_in_use.square = new Square();
@@ -401,6 +413,8 @@ Declare_Any_Class("Example_Animation", {
 		
 		// draw collectable
 		this.drawCollectables(graphics_state, collectableMaterial); //HACK FIX. <- make collectables a class and/or interface for object oriented happiness :D
+		
+		this.drawGrass(graphics_state, collectableMaterial);
 
 	
 	
@@ -412,7 +426,15 @@ Declare_Any_Class("Example_Animation", {
 		invRot = mult(rotation(this.shared_scratchpad.pitch, -1, 0, 0),invRot);
 		this.sbtrans = mult(inverse(this.shared_scratchpad.graphics_state.camera_transform),invRot);
 	},
-	
+	'drawGrass': function(graphics_state, material) {
+		for(var i = 0; i < shapes_in_use.grass.length; i++)
+		{
+			var cur_grass = shapes_in_use.grass[i];
+			var model_transform = mat4();
+			model_transform = mult(model_transform, translation(cur_grass.x, cur_grass.y, cur_grass.z));
+			cur_grass.draw(graphics_state, model_transform, material);
+		}
+	},
 	'drawCollectables': function(graphics_state, collectableMaterial){
 		// DRAW COLLECTION_OBJECT
 		// create collection objects and check if it exists
@@ -430,6 +452,12 @@ Declare_Any_Class("Example_Animation", {
 				{
 					var model_transform = mat4();
 					model_transform = mult(model_transform, translation(cur_collection.x, cur_collection.y, cur_collection.z));
+					if(i % 2 == 1)
+					{
+						cur_collection.rotation += 1;
+						model_transform = mult(model_transform, rotation(cur_collection.rotation, 0, 0, 1));
+					}
+					model_transform = mult(model_transform, rotation(90,1,0,0));
 					cur_collection.draw(graphics_state, model_transform, collectableMaterial);
 				}
 			}

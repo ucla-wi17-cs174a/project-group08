@@ -48,14 +48,18 @@ Declare_Any_Class( "Tetrahedron",
   
 Declare_Any_Class("Imported_Object",
 {
-	'populate': function()
+	'populate': function(file_name, x, y, z)
 	{
+		this.x = x;
+		this.y = y;
+		this.z = z;
+		
 		var allText;
 		var rawFile = new XMLHttpRequest();
 		var tempthis = this;
 		// .obj files start indicies at 1, so these are placeholders
 
-		rawFile.open("GET", "./ThreePlane.obj", false);
+		rawFile.open("GET", "./" + file_name, false);
 		rawFile.onreadystatechange = (function ()
 		{
 			if(rawFile.readyState === 4)
@@ -104,7 +108,6 @@ Declare_Any_Class("Imported_Object",
 					}
 					for (var i = 0; i < tempthis.positions.length; i++)
 					{
-						tempthis.texture_coords.push(vec2(0,1));
 						tempthis.indices.push(i);
 					}
 				}
