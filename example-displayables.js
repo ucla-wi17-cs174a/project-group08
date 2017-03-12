@@ -11,7 +11,7 @@ var DEFERRED = false;
 // Create the textbox
 Declare_Any_Class( "Debug_Screen",
   { 'construct': function( context )
-      { this.define_data_members( { shared_scratchpad: context.shared_scratchpad, numCollected: 0, gameState: "start",numFrames: 0, graphics_state: new Graphics_State() } );
+      { this.define_data_members( { shared_scratchpad: context.shared_scratchpad, numCollected: 0, gameState: "start", numFrames: 0, FPS: 0, graphics_state: new Graphics_State() } );
         shapes_in_use.debug_text = new Text_Line( 35 );
 		this.shared_scratchpad.numCollected = 0;
 		this.shared_scratchpad.gameState = "start";
@@ -30,7 +30,13 @@ Declare_Any_Class( "Debug_Screen",
     'display': function( time )
       {
 		this.numFrames++;
-		this.endTime = new Date();
+		if(this.numFrames == 10)
+		{
+			this.endTime = new Date();
+			this.FPS = Number((10/((this.endTime - this.startTime)/1000)).toFixed(3));
+			this.startTime = this.endTime;
+			this.numFrames = 0;
+		}
         shaders_in_use["Default"].activate();
 
         var font_scale = scale( .02, .04, 1 );
@@ -79,8 +85,7 @@ Declare_Any_Class( "Debug_Screen",
 			shapes_in_use.debug_text.set_string("Collected: " + this.numCollected.toString() );
 			shapes_in_use.debug_text.draw( this.graphics_state, model_transform, true, vec4(0,0,0,1) );
 			
-			var FPS = Number((this.numFrames/((this.endTime - this.startTime)/1000)).toFixed(3));
-			shapes_in_use.debug_text.set_string("FPS: " + FPS);
+			shapes_in_use.debug_text.set_string("FPS: " + this.FPS);
 			model_transform = mult( translation( 0, .08, 0 ), model_transform );
 			shapes_in_use.debug_text.draw( this.graphics_state, model_transform, true, vec4(0,0,0,1) );
 	    }
@@ -101,7 +106,6 @@ Declare_Any_Class( "Debug_Screen",
 			shapes_in_use.debug_text.set_string("PRESS ENTER TO RESTART");
 			shapes_in_use.debug_text.draw( this.graphics_state, model_transform, true, vec4(0,0,0,1) );
 		}
-		
 		
       }
   }, Animation );
@@ -200,6 +204,13 @@ Declare_Any_Class("Example_Animation", {
 				
 				this.shared_scratchpad.camera_extra_pitch = 0;
 				this.shared_scratchpad.camera_extra_heading = 0;
+				
+				for(var i = 0; i < shapes_in_use.collection_object.length; i++)
+				{
+					shapes_in_use.collection_object[i].collected = false;
+					shapes_in_use.collection_object[i].touched = false;
+				}
+				this.shared_scratchpad.numCollected = 0;
 			}
 		});
         controls.add("up", this, function() {
