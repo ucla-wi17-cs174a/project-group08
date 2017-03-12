@@ -373,15 +373,24 @@ Declare_Any_Class("Example_Animation", {
 			shaders_in_use["Default"].activate();
 			gl.clear( gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 			this.renderOpaque(time);
-			this.renderTransparent(time);
+			//this.renderTransparent(time);
 		}
 		
     },
 	
 	'draw_terrain': function(graphics_state, collectableMaterial){
-			
-		
-		var landMaterial = new Material(Color(0.4, 0.5, 0, 1), .6, .8, .4, 4);	//Just a placeholder for now
+		var prevShader = active_shader;
+		if(DEFERRED){
+		shaders_in_use["G_buf_gen_terrain"].activate();	
+		}
+		gl.activeTexture(texAddrs[0]);
+		gl.bindTexture(gl.TEXTURE_2D, textures_in_use["ZTEX.png"].id);
+		gl.activeTexture(texAddrs[1]);
+		gl.bindTexture(gl.TEXTURE_2D, textures_in_use["YTEX.png"].id);
+		gl.activeTexture(texAddrs[2]);
+		gl.bindTexture(gl.TEXTURE_2D, textures_in_use["ZTEX.png"].id);
+		// var landMaterial = new Material(Color(0.4, 0.4, .4, 1), .6, .8, .4, 4,"FAKE.CHICKEN");	//Just a placeholder for now
+		var landMaterial = new Material(Color(0.0, 0.0, 0.0, 1), .1, .2, .1, 80);	//Just a placeholder for now
 
 		
 		if(this.t_loop_count == 0)
@@ -437,12 +446,16 @@ Declare_Any_Class("Example_Animation", {
 				this.shared_scratchpad.speed = 0.01;	//Not 0 so we can still get out for debugging purposes
 				//Also, do something more interesting eventually?
 			}
-		}			
+		}
+		//cleanup
+		gl.activeTexture(gl.TEXTURE0);
+		gl.bindTexture(gl.TEXTURE_2D, null);
+		prevShader.activate();	
 	},	
 	
 	'renderTransparent': function(time){
 		var graphics_state = this.shared_scratchpad.graphics_state;
-        var grassMat = new Material(Color(0.0,0.0,0.0, 1), .3, .4, .8, 40,"Grass.png"); // Omit the final (string) parameter if you want no texture
+        var grassMat = new Material(Color(0.0,0.0,0.0, 1), .3, .4, .8, 40,"Grass.png"); 
 		this.drawGrass(graphics_state,grassMat);
 		shapes_in_use.grassyGnoll.draw(graphics_state,translation(20,20,-50),grassMat);
 	},
@@ -461,6 +474,7 @@ Declare_Any_Class("Example_Animation", {
         var collectableMaterial = new Material(Color(1, 0, 1, 1), .4, .4, .8, 40); // Omit the final (string) parameter if you want no texture
         var tetraMaterial = new Material(Color(0, 1, 1, 1), .4, .4, .4, 40); // Omit the final (string) parameter if you want no texture
 		var landMaterial = new Material(Color(0.4, 0.5, 0, 1), .6, .8, .4, 4);	//Just a placeholder for now
+        var grassMat = new Material(Color(0.0,0.0,0.0, 1), .3, .6, .3, 80,"Grass.png"); 
 
 		
 		var current_orientation = this.shared_scratchpad.orientation;
@@ -479,7 +493,7 @@ Declare_Any_Class("Example_Animation", {
 		
 
 		// draw grass
-		this.drawGrass(graphics_state, collectableMaterial);
+		this.drawGrass(graphics_state, grassMat);
 
 	
 		//Hacky skyboxes, do properly later
