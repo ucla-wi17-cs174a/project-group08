@@ -337,34 +337,24 @@ Declare_Any_Class("Example_Animation", {
 		var skyMat = new Material(Color(1.0,1.0,1.0,1.0), 1.0, 1.0, 0.0, 0.0, "LameBox.png");
 		
 		if(DEFERRED){
-			////bind GBuffer
+			////bind GBuffer and disable transparency
 			gl.disable(gl.BLEND);
 			this.GBuffer.activate();
 			gl.disable(gl.BLEND);
 			shaders_in_use["G_buf_gen_phong"].activate();
-			//console.log(gl.getParameter(gl.BLEND_COLOR));
 			gl.clear( gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 			shapes_in_use.skybox.draw(this.shared_scratchpad.graphics_state,mat4(), skyMat);
 			gl.clear(gl.DEPTH_BUFFER_BIT);
-		   this.generate_G_Buffer(time);
-			//Bind Screen FBO
+		   this.renderOpaque(time);
+			
 			this.GBuffer.deactivate();
-			//Setup Attribs and Uniforms
-			//Implicit?
-			//activate appropo shaders
+			
+			
 			gl.clear( gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
-			gl.activeTexture(gl.TEXTURE0);
-			gl.bindTexture(gl.TEXTURE_2D, this.GBuffer.tx[0]);
-			gl.activeTexture(gl.TEXTURE1);
-			gl.bindTexture(gl.TEXTURE_2D, this.GBuffer.tx[1]);
-			gl.activeTexture(gl.TEXTURE2);
-			gl.bindTexture(gl.TEXTURE_2D, this.GBuffer.tx[2]);
-			gl.activeTexture(gl.TEXTURE3);
-			gl.bindTexture(gl.TEXTURE_2D, this.GBuffer.tx[3]);
-			gl.activeTexture(gl.TEXTURE4);
-			gl.bindTexture(gl.TEXTURE_2D, this.GBuffer.tx[4]);
-			gl.activeTexture(gl.TEXTURE5);
-			gl.bindTexture(gl.TEXTURE_2D, this.GBuffer.tx[5]);
+			for (var i =0; i<this.GBuffer.layers;i++){
+				gl.activeTexture(texAddrs[i]);
+				gl.bindTexture(gl.TEXTURE2D, this.GBuffer.tx[i]);
+			}
 			shaders_in_use["G_buf_light_phong"].activate();
 
 			//Render to screen
@@ -381,7 +371,7 @@ Declare_Any_Class("Example_Animation", {
 		}
 		
     },
-	'generate_G_Buffer': function(time){
+	'renderOpaque': function(time){
 		var graphics_state = this.shared_scratchpad.graphics_state,
             model_transform = mat4();
         
