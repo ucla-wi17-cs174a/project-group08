@@ -185,7 +185,7 @@ Declare_Any_Class("Example_Animation", {
 			if(this.shared_scratchpad.gameState == "start")
 			{
 				this.shared_scratchpad.gameState = "playing";
-				this.shared_scratchpad.speed = 0.5;
+				this.shared_scratchpad.speed = 0.1;
 			}
 			else
 			{
