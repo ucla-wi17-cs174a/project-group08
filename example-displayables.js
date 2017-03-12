@@ -1,7 +1,7 @@
 
 var RES_RATIO = 16;	
-var RES = 3;
-var DRAW_DIST = 2;
+var RES = 2;
+var DRAW_DIST = 3;
 var DIR_DRAW_DIST = 1;
 var WORLD_SIZE = 16384;
 var WORLD_HEIGHT = 128;
@@ -557,14 +557,13 @@ Declare_Any_Class("Example_Animation", {
 				
 			}
 		}
-		console.log(this.shared_scratchpad.position[1]);
 		//Draw everything, as usual
 		for(var i = 0; i < shapes_in_use.terrain.to_draw.length; i++)
 		{
 			shapes_in_use.terrain.copy_onto_graphics_card();
 		}	
 		model_transform = mat4();		
-		shapes_in_use.terrain.draw(graphics_state, model_transform, landMaterialYellow);
+		shapes_in_use.terrain.draw(graphics_state, model_transform, landMaterial);
 		this.t_loop_count++;
 		//Check for plane collision with ground:
 		//if(sign_density(add(this.shared_scratchpad.position, vec3()
@@ -585,7 +584,7 @@ Declare_Any_Class("Example_Animation", {
 		}	
 
 		//Put this somewhere else later
-		graphics_state.lights.push(new Light(add(vec4(this.shared_scratchpad.position[0], this.shared_scratchpad.position[1], this.shared_scratchpad.position[2], 1), mult_vec(this.shared_scratchpad.orientation, vec4(-0.5,0,0.3,0))), Color(0.8, 0.8, 0.8, 1), 1000));
+		//graphics_state.lights.push(new Light(add(vec4(this.shared_scratchpad.position[0], this.shared_scratchpad.position[1], this.shared_scratchpad.position[2], 1), mult_vec(this.shared_scratchpad.orientation, vec4(-0.5,0,0.3,0))), Color(0.8, 0.8, 0.8, 1), 1000));
 		
 		
 
