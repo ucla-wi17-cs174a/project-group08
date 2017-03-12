@@ -116,7 +116,7 @@ Declare_Any_Class( "Phong_or_Gouraud_Shader",
 
           const int N_LIGHTS = 2;
 
-          uniform vec4 lightColor[N_LIGHTS], shapeColor;
+          uniform vec4 lightPosition[N_LIGHTS], lightColor[N_LIGHTS], shapeColor;
           varying vec3 L[N_LIGHTS], H[N_LIGHTS];
           varying float dist[N_LIGHTS];
           varying vec4 VERTEX_COLOR;
@@ -145,7 +145,7 @@ Declare_Any_Class( "Phong_or_Gouraud_Shader",
               float attenuation_multiplier = 1.0 / (1.0 + attenuation_factor[i] * (dist[i] * dist[i]));
 
               float diffuse  = max(dot(L[i], N), 0.0001);
-              float specular = pow(max(dot(N, H[i]), 0.0001), shininess);
+              float specular = pow(max(dot(N, H[i]), 0.0001), smoothness);
 
 
               gl_FragColor.xyz += attenuation_multiplier * (shapeColor.xyz * diffusivity * diffuse  + lightColor[i].xyz * shininess * specular );
@@ -153,7 +153,7 @@ Declare_Any_Class( "Phong_or_Gouraud_Shader",
 
             gl_FragColor.a = gl_FragColor.w;
 			//DEBUG DELETE ME PLS
-			//gl_FragColor.xyz = abs(pos/10.0);
+			//gl_FragColor = vec4(lightPosition[0].xyz/20.0,1.0);
 			//DEBUG DELETE ME PLS
 			if(gl_FragColor.a < 0.5)
 				discard;

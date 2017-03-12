@@ -204,7 +204,7 @@ Declare_Any_Class("Example_Animation", {
 				this.shared_scratchpad.extra_roll = 1;
 				
 				this.shared_scratchpad.orientation = mat4(1); // create identity matrix as orientation
-				this.shared_scratchpad.position = vec3(0,0,0);
+				this.shared_scratchpad.position = vec3(0,32,0);
 				this.shared_scratchpad.position[2] = -5;
 				
 				this.shared_scratchpad.camera_extra_pitch = 0;
@@ -515,7 +515,7 @@ Declare_Any_Class("Example_Animation", {
 		gl.activeTexture(texAddrs[2]);
 		gl.bindTexture(gl.TEXTURE_2D, textures_in_use["ZTEX.png"].id);
 		// var landMaterial = new Material(Color(0.4, 0.4, .4, 1), .6, .8, .4, 4,"FAKE.CHICKEN");	//Just a placeholder for now
-		var landMaterial = new Material(Color(0.0, 0.0, 0.0, 1), .1, .2, .1, 80);	//Just a placeholder for now
+		var landMaterial = new Material(Color(0.8, 0.5, 0.1, 1), .3, .7, .1, 80);	//Just a placeholder for now
 		
 
 
@@ -634,16 +634,17 @@ Declare_Any_Class("Example_Animation", {
         // 1st parameter:  Color (4 floats in RGBA format), 2nd: Ambient light, 3rd: Diffuse reflectivity, 4th: Specular reflectivity, 5th: Smoothness exponent, 6th: Texture image.
         var collectableMaterial = new Material(Color(1, 0, 1, 1), .4, .4, .8, 40); // Omit the final (string) parameter if you want no texture
         var tetraMaterial = new Material(Color(0, 1, 1, 1), .4, .4, .4, 40); // Omit the final (string) parameter if you want no texture
-		var landMaterial = new Material(Color(0.4, 0.5, 0, 1), .6, .8, .4, 4);	//Just a placeholder for now
+		var landMaterial = new Material(Color(0.4, 0.5, 0, 1), .6, .8, .4, 40);	//Just a placeholder for now
         var grassMat = new Material(Color(0.0,0.0,0.0, 1), .3, .6, .3, 80,"Grass.png"); 
 		var water_material = new Material(Color(0.0, 0.3, 1.0, 1), .5, .2, .1, 80);	//Add texture later
 
 		var current_orientation = this.shared_scratchpad.orientation;
 		// draw plane
-		var planeLocation = this.drawPlane(graphics_state, tetraMaterial);
+		var dt = graphics_state.animation_delta_time;
+		dt = 16;
+		var planeLocation = this.drawPlane(graphics_state, tetraMaterial,dt);
 		
-		// make camera follow the plane
-		this.drawCamera(graphics_state, current_orientation);
+
 	
 		this.draw_terrain(graphics_state, current_orientation);
 		
@@ -654,7 +655,8 @@ Declare_Any_Class("Example_Animation", {
 		this.drawGrass(graphics_state, grassMat);
 		
 		shapes_in_use.terrain.water_shape.draw(graphics_state, model_transform, water_material);
-
+		// make camera follow the plane
+		this.drawCamera(graphics_state, current_orientation,dt);
 
 	
 		//Hacky skyboxes, do properly later
@@ -728,10 +730,11 @@ Declare_Any_Class("Example_Animation", {
 			}
 		}
 	},
-	'drawPlane': function(graphics_state, material){
+	'drawPlane': function(graphics_state, material,dt){
 		// draw plane
 		// time since last animation in seconds
 		var time_diff = graphics_state.animation_delta_time/1000;
+		time_diff = dt/1000.0;
 		if(time_diff == 0)
 		{
 			time_diff = 0.001;
@@ -802,9 +805,10 @@ Declare_Any_Class("Example_Animation", {
 		return transition;
 		
 	},
-	'drawCamera': function(graphics_state, current_orientation){
+	'drawCamera': function(graphics_state, current_orientation,dt){
 		// get pitch, yaw, and roll of plane. If heading or pitch is changing, exaggerage camera
 		var time_diff = graphics_state.animation_delta_time/1000;
+		time_diff = dt/1000.0;
 		var temp_scale = 100; // temporary scaling for testing based on time
 		var max_change = 1.3;
 		var frame_change_growing = 0.01*time_diff*temp_scale;
