@@ -54,9 +54,6 @@ Declare_Any_Class("Imported_Object",
 		var rawFile = new XMLHttpRequest();
 		var tempthis = this;
 		// .obj files start indicies at 1, so these are placeholders
-		tempthis.positions.push(vec3(0,0,0));
-		tempthis.texture_coords.push(vec2(0,0));
-		tempthis.normals.push(vec3(0,0,0));
 
 		rawFile.open("GET", "./ThreePlane.obj", false);
 		rawFile.onreadystatechange = (function ()
@@ -98,12 +95,17 @@ Declare_Any_Class("Imported_Object",
 						else if(divided[0] == "f")
 						{
 							for(var j = 1; j < divided.length; j++)
-							{
+							{/*
 								//tempthis.indices.push(parseFloat(divided[j]));
 								var temp = divided[j].split("/");
-								tempthis.indices.push(parseFloat(temp[0]));
+								tempthis.indices.push(parseFloat(temp[0]));*/
 							}
 						}
+					}
+					for (var i = 0; i < tempthis.positions.length; i++)
+					{
+						tempthis.texture_coords.push(vec2(0,1));
+						tempthis.indices.push(i);
 					}
 				}
 			}

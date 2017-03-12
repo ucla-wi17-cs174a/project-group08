@@ -67,7 +67,7 @@ Declare_Any_Class("Example_Animation", {
 		shapes_in_use.collection_object.push(new Collection_Object(4, -50, 0, -100));
 
 		// create imported plane
-		shapes_in_use.plane = Imported_Object.prototype.auto_flat_shaded_version();
+		shapes_in_use.plane = new Imported_Object();
 
 		
 		shapes_in_use.square = new Square();
