@@ -45,10 +45,6 @@ Declare_Any_Class("Example_Camera", {
         context.shared_scratchpad.graphics_state = new Graphics_State(translation(0, -1, -10), perspective(45, canvas.width / canvas.height, .1, 1000), 0);
         this.define_data_members({
             graphics_state: context.shared_scratchpad.graphics_state,
-            thrust: vec3(),
-            origin: vec3(0, 5, 0),
-            looking: false,
-            change_degree: 1
         });
     },
     'init_keys': function(controls) // init_keys():  Define any extra keyboard shortcuts here
@@ -67,6 +63,9 @@ Declare_Any_Class("Example_Animation", {
 		shapes_in_use.grass = new Array();
 		shapes_in_use.collection_object = new Array();
 		
+		//Test Grass
+		shapes_in_use.grassyGnoll = new Imported_Object("Grass.obj",0,0,-100);
+		
 		// add grass
 		shapes_in_use.grass.push(new Imported_Object("Grass.obj",0,0,-100)); 
 		
@@ -83,7 +82,7 @@ Declare_Any_Class("Example_Animation", {
 		shapes_in_use.collection_object.push(new Collection_Object("Gate.obj", -50, 0, -100));
 		shapes_in_use.collection_object.push(new Collection_Object("Gate_twirl.obj", -50, 0, -100));
 
-		// create imported plane
+		// create plane
 		shapes_in_use.plane = new Imported_Object("ThreePlane.obj",0,0,0);
 
 		
@@ -96,14 +95,8 @@ Declare_Any_Class("Example_Animation", {
 		this.t_loop_count = 0;
 		
 		
-
-        this.shared_scratchpad.x = 0;
-        this.shared_scratchpad.y = 0;
-        this.shared_scratchpad.z = 0;
         this.shared_scratchpad.speed = 0.1;
 		
-		this.shared_scratchpad.heading = 0;
-		this.shared_scratchpad.pitch = 0;
 		this.shared_scratchpad.speed_change = 0; // 0: no change; -1: slow down; +1: speed up;
 		this.shared_scratchpad.pitch_change = 0; // how much to change pitch
 		this.shared_scratchpad.heading_change = 0; // how much to change heading
@@ -111,7 +104,6 @@ Declare_Any_Class("Example_Animation", {
 		this.shared_scratchpad.extra_roll = 1;
 		
 		this.shared_scratchpad.orientation = mat4(1); // create identity matrix as orientation
-		this.shared_scratchpad.orientation_no_extra = mat4(1); // create identity matrix as orientation
 		this.shared_scratchpad.position = vec3(0,0,0);
 		
 		this.shared_scratchpad.camera_extra_pitch = 0;
@@ -317,13 +309,7 @@ Declare_Any_Class("Example_Animation", {
 		});
 		// reset
 		controls.add("ctrl+r", this, function() {
-			this.shared_scratchpad.heading = 0;
-			this.shared_scratchpad.pitch = 0;
-			this.shared_scratchpad.roll = 0;
-
-			this.shared_scratchpad.x = 0;
-			this.shared_scratchpad.y = 0;
-			this.shared_scratchpad.z = 0;
+			// TODO
 			this.shared_scratchpad.speed = 0.1;
 			
 			this.shared_scratchpad.speed_change = 0; // 0: no change; -1: slow down; +1: speed up;
@@ -353,12 +339,15 @@ Declare_Any_Class("Example_Animation", {
 			////bind GBuffer and disable transparency
 			gl.disable(gl.BLEND);
 			this.GBuffer.activate();
+			gl.framebufferRenderbuffer(gl.FRAMEBUFFER, gl.DEPTH_ATTACHMENT, gl.RENDERBUFFER, this.GBuffer.rb);
+
 			gl.disable(gl.BLEND);
 			shaders_in_use["G_buf_gen_phong"].activate();
 			gl.clear( gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 			shapes_in_use.skybox.draw(this.shared_scratchpad.graphics_state,mat4(), skyMat);
 			gl.clear(gl.DEPTH_BUFFER_BIT);
 			this.renderOpaque(time);
+			this.renderTransparent(time);
 			this.GBuffer.deactivate();
 			gl.clear( gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 			for (var i =0; i<this.GBuffer.layers;i++){
@@ -368,22 +357,23 @@ Declare_Any_Class("Example_Animation", {
 			shaders_in_use["G_buf_light_phong"].activate();
 			
 			//Render to screen
-			gl.depthMask(false);
 			shapes_in_use.square.draw(this.shared_scratchpad.graphics_state,new mat4(),aMaterial );
-			
-			//Render transparency. Using alpha test to avoid sorting
-			this.renderTransparent();
-			gl.depthMask(true);
+
 			//cleanup
 			gl.activeTexture(gl.TEXTURE0);
 			gl.bindTexture(gl.TEXTURE_2D, null);
 			gl.enable(gl.BLEND);
+			//Render transparency. Using alpha test to avoid sorting
+			//this.renderTransparent(time);
+			
+			
 
 		}
 		else{
 			shaders_in_use["Default"].activate();
 			gl.clear( gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 			this.renderOpaque(time);
+			this.renderTransparent(time);
 		}
 		
     },
@@ -450,28 +440,28 @@ Declare_Any_Class("Example_Animation", {
 	},	
 	
 	'renderTransparent': function(time){
-		shaders_in_use["Default"].activate();
-		
+		var graphics_state = this.shared_scratchpad.graphics_state;
+        var grassMat = new Material(Color(0.0,0.0,0.0, 1), .3, .4, .8, 40,"Grass.png"); // Omit the final (string) parameter if you want no texture
+		this.drawGrass(graphics_state,grassMat);
+		shapes_in_use.grassyGnoll.draw(graphics_state,translation(20,20,-50),grassMat);
 	},
 	'renderOpaque': function(time){
-		var graphics_state = this.shared_scratchpad.graphics_state,
+		var graphics_state = this.shared_scratchpad.graphics_state;
             model_transform = mat4();
         
-
-		//Lights section to be revamped folowing renderer implementation
-        // *** Lights: *** Values of vector or point lights over time.  Arguments to construct a Light(): position or vector (homogeneous coordinates), color, size
-        // If you want more than two lights, you're going to need to increase a number in the vertex shader file (index.html).  For some reason this won't work in Firefox.
-        graphics_state.lights = []; // First clear the light list each frame so we can replace & update lights.
+        graphics_state.lights = [];
 
         var t = graphics_state.animation_time / 1000,
             light_orbit = [Math.cos(t), Math.sin(t)];
         graphics_state.lights.push(new Light(vec4(-10, 10, 0, 1), Color(1, 1, 1, 1), 100000));
+		
         // *** Materials: *** Declare new ones as temps when needed; they're just cheap wrappers for some numbers.
         // 1st parameter:  Color (4 floats in RGBA format), 2nd: Ambient light, 3rd: Diffuse reflectivity, 4th: Specular reflectivity, 5th: Smoothness exponent, 6th: Texture image.
         var collectableMaterial = new Material(Color(1, 0, 1, 1), .4, .4, .8, 40); // Omit the final (string) parameter if you want no texture
         var tetraMaterial = new Material(Color(0, 1, 1, 1), .4, .4, .4, 40); // Omit the final (string) parameter if you want no texture
 		var landMaterial = new Material(Color(0.4, 0.5, 0, 1), .6, .8, .4, 4);	//Just a placeholder for now
 
+		
 		var current_orientation = this.shared_scratchpad.orientation;
 		// draw plane
 		var planeLocation = this.drawPlane(graphics_state, tetraMaterial);
@@ -482,11 +472,14 @@ Declare_Any_Class("Example_Animation", {
 		this.draw_terrain(graphics_state, current_orientation);
 		
 		// draw collectable
-		this.drawCollectables(graphics_state, collectableMaterial); //HACK FIX. <- make collectables a class and/or interface for object oriented happiness :D
+		this.drawCollectables(graphics_state, collectableMaterial); 
 		
+		//this.drawGrass(graphics_state, collectableMaterial);
+		
+
+		// draw grass
 		this.drawGrass(graphics_state, collectableMaterial);
 
-	
 	
 		//Hacky skyboxes, do properly later
 		this.sbtrans = new mat4();
@@ -513,10 +506,15 @@ Declare_Any_Class("Example_Animation", {
 			var cur_collection = shapes_in_use.collection_object[i];
 			if(cur_collection.collected == false)
 			{
-				if(this.checkCollision(this.shared_scratchpad.position[0], this.shared_scratchpad.position[1], this.shared_scratchpad.position[2], 1, cur_collection.x, cur_collection.y, cur_collection.z, 1))
+				if(cur_collection.touched == false && this.checkCollision(this.shared_scratchpad.position[0], this.shared_scratchpad.position[1], this.shared_scratchpad.position[2], 1, cur_collection.x, cur_collection.y, cur_collection.z, 0.5))
+				{
+					cur_collection.touched = true;
+				}
+				else if(cur_collection.touched == true && !this.checkCollision(this.shared_scratchpad.position[0], this.shared_scratchpad.position[1], this.shared_scratchpad.position[2], 1, cur_collection.x, cur_collection.y, cur_collection.z, 0.5))
 				{
 					cur_collection.collected = true;
-					this.shared_scratchpad.numCollected += 1;
+					if(i % 2 == 0)
+						this.shared_scratchpad.numCollected += 1;
 				}
 				else
 				{
@@ -541,29 +539,30 @@ Declare_Any_Class("Example_Animation", {
 		
 		// change roll based on if yaw is changing
 		var max_roll = 20;
-		var frame_roll = 0;
+		var frame_change = 1;
+		var roll_amount = 0;
 		if(this.shared_scratchpad.heading_change > 0 && this.shared_scratchpad.extra_roll < max_roll)
 		{
-			this.shared_scratchpad.extra_roll += 1;
-			frame_roll += 1;
+			this.shared_scratchpad.extra_roll += frame_change;
+			roll_amount += frame_change;
 		}
 		else if(this.shared_scratchpad.heading_change < 0 && this.shared_scratchpad.extra_roll > -1*max_roll)
 		{
-			this.shared_scratchpad.extra_roll -= 1;
-			frame_roll -= 1;
+			this.shared_scratchpad.extra_roll -= frame_change;
+			roll_amount -= frame_change;
 		}
 		else if(this.shared_scratchpad.heading_change == 0)
 		{
 			// bring back to center
 			if(this.shared_scratchpad.extra_roll > 0)
 			{
-				this.shared_scratchpad.extra_roll -= 1;
-				frame_roll -= 1;
+				this.shared_scratchpad.extra_roll -= frame_change;
+				roll_amount -= frame_change;
 			}
 			if(this.shared_scratchpad.extra_roll < 0)
 			{
-				this.shared_scratchpad.extra_roll += 1;
-				frame_roll += 1;
+				this.shared_scratchpad.extra_roll += frame_change;
+				roll_amount += frame_change;
 			}
 		}
 		
@@ -574,7 +573,7 @@ Declare_Any_Class("Example_Animation", {
 		yaw = mult_vec_scalar(yaw, this.shared_scratchpad.heading_change);
 		var roll = new vec3(-1*orientation[0][2], -1*orientation[1][2], -1*orientation[2][2]); //forward
 		var direction = roll;
-		roll = mult_vec_scalar(roll, this.shared_scratchpad.roll_change-frame_roll);
+		roll = mult_vec_scalar(roll, this.shared_scratchpad.roll_change-roll_amount);
 		
 		var orientationChange = add(add(pitch, yaw), roll);
 		var angularChange = magnitude(orientationChange); // scalar
@@ -592,6 +591,7 @@ Declare_Any_Class("Example_Animation", {
 		var transition = new mat4();
 		transition = mult(transition, translation(this.shared_scratchpad.position[0], this.shared_scratchpad.position[1], this.shared_scratchpad.position[2]));
 		transition = mult(transition, this.shared_scratchpad.orientation);
+		transition = mult(transition, scale(1.5, 1.5, 1.5));
 		
 		shapes_in_use.plane.draw(graphics_state, transition, material);
 		
@@ -601,48 +601,49 @@ Declare_Any_Class("Example_Animation", {
 	'drawCamera': function(graphics_state, current_orientation){
 		// get pitch, yaw, and roll of plane. If heading or pitch is changing, exaggerage camera
 		var max_change = 1.3;
-		var frame_change = 0.01;
+		var frame_change_growing = 0.01;
+		var frame_change_shrinking = 0.02;
 		var orientation = current_orientation;
 		
 		if(this.shared_scratchpad.pitch_change > 0 && this.shared_scratchpad.camera_extra_pitch < max_change)
 		{
-			this.shared_scratchpad.camera_extra_pitch += frame_change;
+			this.shared_scratchpad.camera_extra_pitch += frame_change_growing;
 		}
 		else if(this.shared_scratchpad.pitch_change < 0 && this.shared_scratchpad.camera_extra_pitch > -1*max_change)
 		{
-			this.shared_scratchpad.camera_extra_pitch -= frame_change;
+			this.shared_scratchpad.camera_extra_pitch -= frame_change_growing;
 		}
 		else if(this.shared_scratchpad.pitch_change == 0)
 		{
 			// bring back to center
 			if(this.shared_scratchpad.camera_extra_pitch > 0)
 			{
-				this.shared_scratchpad.camera_extra_pitch -= frame_change;
+				this.shared_scratchpad.camera_extra_pitch -= frame_change_shrinking;
 			}
 			if(this.shared_scratchpad.camera_extra_pitch < 0)
 			{
-				this.shared_scratchpad.camera_extra_pitch += frame_change;
+				this.shared_scratchpad.camera_extra_pitch += frame_change_shrinking;
 			}
 		}
 		
 		if(this.shared_scratchpad.heading_change > 0 && this.shared_scratchpad.camera_extra_heading < max_change)
 		{
-			this.shared_scratchpad.camera_extra_heading += frame_change;
+			this.shared_scratchpad.camera_extra_heading += frame_change_growing;
 		}
 		else if(this.shared_scratchpad.heading_change < 0 && this.shared_scratchpad.camera_extra_heading > -1*max_change)
 		{
-			this.shared_scratchpad.camera_extra_heading -= frame_change;
+			this.shared_scratchpad.camera_extra_heading -= frame_change_growing;
 		}
 		else if(this.shared_scratchpad.heading_change == 0)
 		{
 			// bring back to center
 			if(this.shared_scratchpad.camera_extra_heading > 0)
 			{
-				this.shared_scratchpad.camera_extra_heading -= frame_change;
+				this.shared_scratchpad.camera_extra_heading -= frame_change_shrinking;
 			}
 			if(this.shared_scratchpad.camera_extra_heading < 0)
 			{
-				this.shared_scratchpad.camera_extra_heading += frame_change;
+				this.shared_scratchpad.camera_extra_heading += frame_change_shrinking;
 			}
 		}
 		
