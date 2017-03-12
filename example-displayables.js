@@ -130,10 +130,10 @@ Declare_Any_Class("Example_Animation", {
 		shapes_in_use.collection_object = new Array();
 		
 		//Test Grass
-		shapes_in_use.grassyGnoll = new Imported_Object("Grass.obj",0,0,-100);
+		shapes_in_use.grassyGnoll = new Imported_Object("Grass.obj",0,0,-100,0,1,0);
 		
 		// add grass
-		shapes_in_use.grass.push(new Imported_Object("Grass.obj",0,0,-100)); 
+		shapes_in_use.grass.push(new Imported_Object("Grass.obj",0,0,-100,0,1,1)); 
 		
 		// declare any number of objects
 		shapes_in_use.collection_object.push(new Collection_Object("Gate.obj", 50, 50, -150));
@@ -149,7 +149,7 @@ Declare_Any_Class("Example_Animation", {
 		shapes_in_use.collection_object.push(new Collection_Object("Gate_twirl.obj", -50, 50, -100));
 
 		// create plane
-		shapes_in_use.plane = new Imported_Object("ThreePlane.obj",0,0,0);
+		shapes_in_use.plane = new Imported_Object("ThreePlane.obj",0,0,0,0,0,0);
 
 		
 		shapes_in_use.square = new Square();
@@ -558,9 +558,6 @@ Declare_Any_Class("Example_Animation", {
 	
 	'renderTransparent': function(time){
 		var graphics_state = this.shared_scratchpad.graphics_state;
-        var grassMat = new Material(Color(0.0,0.0,0.0, 1), .3, .4, .8, 40,"Grass.png"); 
-		this.drawGrass(graphics_state,grassMat);
-		shapes_in_use.grassyGnoll.draw(graphics_state,translation(20,20,-50),grassMat);
 	},
 	'renderOpaque': function(time){
 		var graphics_state = this.shared_scratchpad.graphics_state;
@@ -591,9 +588,6 @@ Declare_Any_Class("Example_Animation", {
 		
 		// draw collectable
 		this.drawCollectables(graphics_state, collectableMaterial); 
-		
-		//this.drawGrass(graphics_state, collectableMaterial);
-		
 
 		// draw grass
 		this.drawGrass(graphics_state, grassMat);
@@ -607,13 +601,33 @@ Declare_Any_Class("Example_Animation", {
 		invRot = mult(rotation(this.shared_scratchpad.pitch, -1, 0, 0),invRot);
 		this.sbtrans = mult(inverse(this.shared_scratchpad.graphics_state.camera_transform),invRot);
 	},
+	// pass in array of positions and normals
+	'addGrass': function(positions, normals) {
+		for(var i = 0; i < positions.length; i++)
+		{
+			shapes_in_use.grass.push(new Imported_Object("Grass.obj",positions[i][0], positions[i][1], positions[i][2], normals[i][0], normals[i][1], normals[i][2]));
+		}
+	},
+	// draws all grass in shapes_in_use.grass
 	'drawGrass': function(graphics_state, material) {
 		for(var i = 0; i < shapes_in_use.grass.length; i++)
 		{
 			var cur_grass = shapes_in_use.grass[i];
-			var model_transform = mat4();
-			model_transform = mult(model_transform, translation(cur_grass.x, cur_grass.y, cur_grass.z));
-			cur_grass.draw(graphics_state, model_transform, material);
+			
+			var orientation = new mat4(1);
+			// calculate pitch, yaw, and roll change based on normal
+			var yaw_change = 0;
+			var normal = normalize(vec3(cur_grass.normal_x, cur_grass.normal_y, cur_grass.normal_z));
+			var vertical = vec3(0,1,0);
+			var crossed = cross(normal, vertical);
+			var angle = degrees(Math.asin(magnitude(crossed)));
+			
+			var transition = new mat4();
+			transition = mult(transition, translation(cur_grass.x, cur_grass.y, cur_grass.z));
+			if(angle != 0)
+				transition = mult(transition, rotation(angle, crossed));
+			
+			cur_grass.draw(graphics_state, transition, material);
 		}
 	},
 	'drawCollectables': function(graphics_state, collectableMaterial){
