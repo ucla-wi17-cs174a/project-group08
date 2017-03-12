@@ -2,9 +2,10 @@
 var RES_RATIO = 16;	
 var RES = 2;
 var DRAW_DIST = 3;
-var DIR_DRAW_DIST = 2;
+var DIR_DRAW_DIST = 1;
 var WORLD_SIZE = 16384;
-var WORLD_HEIGHT = 256;
+var WORLD_HEIGHT = 128;
+var SPEED_INC = .01;
 var DEFERRED = false;
 
 // Create the textbox
@@ -478,24 +479,57 @@ Declare_Any_Class("Example_Animation", {
 			shaders_in_use["Default"].activate();
 			gl.clear( gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 			this.renderOpaque(time);
-			this.renderTransparent(time);
+			//this.renderTransparent(time);
 		}
 		
     },
 	
 	'draw_terrain': function(graphics_state, collectableMaterial){
-			
-		
-		var landMaterial = new Material(Color(0.4, 0.5, 0, 1), .6, .8, .4, 4);	//Just a placeholder for now
+	
+		var landMaterialYellow = new Material(Color(0.25, 0.4, 0.0, 1.0), 0.6, 0.8, 0.2, 5);	//Just a placeholder for now
+
+		var prevShader = active_shader;
+		if(DEFERRED){
+		shaders_in_use["G_buf_gen_terrain"].activate();	
+		}
+		gl.activeTexture(texAddrs[0]);
+		gl.bindTexture(gl.TEXTURE_2D, textures_in_use["ZTEX.png"].id);
+		gl.activeTexture(texAddrs[1]);
+		gl.bindTexture(gl.TEXTURE_2D, textures_in_use["YTEX.png"].id);
+		gl.activeTexture(texAddrs[2]);
+		gl.bindTexture(gl.TEXTURE_2D, textures_in_use["ZTEX.png"].id);
+		// var landMaterial = new Material(Color(0.4, 0.4, .4, 1), .6, .8, .4, 4,"FAKE.CHICKEN");	//Just a placeholder for now
+		var landMaterial = new Material(Color(0.0, 0.0, 0.0, 1), .1, .2, .1, 80);	//Just a placeholder for now
+
 
 		
 		if(this.t_loop_count == 0)
 		{
 			//On each larger loop, first get a new to_check list	
 			shapes_in_use.terrain.choose_to_check(this.shared_scratchpad.position, this.shared_scratchpad.orientation);
-			
 			//Next, check all of them
 			shapes_in_use.terrain.check_all();
+			//Now, purge old, unused geometry:
+			var counter = 0;
+			while(shapes_in_use.terrain.all_geom.length >= 500)	//Want that value as small as possible without causing issues
+			{
+				if(shapes_in_use.terrain.all_geom[0].checked == 5)
+				{
+					shapes_in_use.terrain.all_geom.shift();
+				}
+				else
+				{
+					shapes_in_use.terrain.all_geom.push(shapes_in_use.terrain.all_geom[0]);
+					shapes_in_use.terrain.all_geom.shift();
+				}
+				counter++;
+				if(counter >= 500)
+				{
+					break;	//So we don't get stuck in an infinite loop
+					console.log("Need more old geometry saved");	//Also a good indicator that the number needs to increase
+				}
+			}
+			
 		}
 		else
 		{
@@ -507,13 +541,20 @@ Declare_Any_Class("Example_Animation", {
 					shapes_in_use.terrain.populate_CPU(shapes_in_use.terrain.to_create[i]);	//Generate that block's terrain
 				else
 				{
+					
 					//All the new geometry is drawn, yay!
 					shapes_in_use.terrain.to_draw = shapes_in_use.terrain.to_draw_new;	//Now we draw the new geometry
+					for(var i = 0; i < shapes_in_use.terrain.to_draw_new.length; i++)
+					{
+						shapes_in_use.terrain.all_geom.push(shapes_in_use.terrain.to_draw_new[i]);
+						shapes_in_use.terrain.to_draw_new[i].checked = 5;
+					}
 					shapes_in_use.terrain.to_draw_new = [];	//Reset it for the next loop
 					shapes_in_use.terrain.to_create = [];
 					this.t_loop_count = -1;	//Because we increment it later
 					break;
 				}
+				
 			}
 		}
 		//Draw everything, as usual
@@ -524,14 +565,13 @@ Declare_Any_Class("Example_Animation", {
 		model_transform = mat4();		
 		shapes_in_use.terrain.draw(graphics_state, model_transform, landMaterial);
 		this.t_loop_count++;
-		
 		//Check for plane collision with ground:
 		//if(sign_density(add(this.shared_scratchpad.position, vec3()
 		var plane_col = [add(vec4(this.shared_scratchpad.position[0], this.shared_scratchpad.position[1], this.shared_scratchpad.position[2], 0), mult_vec(this.shared_scratchpad.orientation, vec4(0,0,-0.5,0))),
 						add(vec4(this.shared_scratchpad.position[0], this.shared_scratchpad.position[1], this.shared_scratchpad.position[2], 0), mult_vec(this.shared_scratchpad.orientation, vec4(-0.5,0,0,0))),
 						add(vec4(this.shared_scratchpad.position[0], this.shared_scratchpad.position[1], this.shared_scratchpad.position[2], 0), mult_vec(this.shared_scratchpad.orientation, vec4(0.5,0,0,0))),
-						add(vec4(this.shared_scratchpad.position[0], this.shared_scratchpad.position[1], this.shared_scratchpad.position[2], 0), mult_vec(this.shared_scratchpad.orientation, vec4(0,0,0.3,0))),
-						add(vec4(this.shared_scratchpad.position[0], this.shared_scratchpad.position[1], this.shared_scratchpad.position[2], 0), mult_vec(this.shared_scratchpad.orientation, vec4(0,0,0.3,0)))];
+						add(vec4(this.shared_scratchpad.position[0], this.shared_scratchpad.position[1], this.shared_scratchpad.position[2], 0), mult_vec(this.shared_scratchpad.orientation, vec4(-0.5,0,0.3,0))),
+						add(vec4(this.shared_scratchpad.position[0], this.shared_scratchpad.position[1], this.shared_scratchpad.position[2], 0), mult_vec(this.shared_scratchpad.orientation, vec4(0.5,0,0.3,0)))];
 		for(var i = 0; i < 5; i++)
 		{
 			if(sign_density(plane_col[i]))
@@ -540,19 +580,27 @@ Declare_Any_Class("Example_Animation", {
 				this.shared_scratchpad.gameState = "end";
 				this.shared_scratchpad.speed = 0;	
 			}
-		}			
+
+		}	
+
+		//Put this somewhere else later
+		//graphics_state.lights.push(new Light(add(vec4(this.shared_scratchpad.position[0], this.shared_scratchpad.position[1], this.shared_scratchpad.position[2], 1), mult_vec(this.shared_scratchpad.orientation, vec4(-0.5,0,0.3,0))), Color(0.8, 0.8, 0.8, 1), 1000));
+		
+		
+
+		
+		//cleanup
+		gl.activeTexture(gl.TEXTURE0);
+		gl.bindTexture(gl.TEXTURE_2D, null);
+		prevShader.activate();	
 	},	
 	
 	'renderTransparent': function(time){
 		var graphics_state = this.shared_scratchpad.graphics_state;
-//        var grassMat = new Material(Color(0.0,0.0,0.0, 1), .3, .4, .8, 40,"Grass.png"); // Omit the final (string) parameter if you want no texture
-//		this.drawGrass(graphics_state,grassMat);
-//		shapes_in_use.grassyGnoll.draw(graphics_state,translation(20,20,-50),grassMat);
 	},
 	'renderOpaque': function(time){
 		var graphics_state = this.shared_scratchpad.graphics_state;
             model_transform = mat4();
-        
         graphics_state.lights = [];
 
         var t = graphics_state.animation_time / 1000,
@@ -564,22 +612,23 @@ Declare_Any_Class("Example_Animation", {
         var collectableMaterial = new Material(Color(1, 0, 1, 1), .4, .4, .8, 40); // Omit the final (string) parameter if you want no texture
         var tetraMaterial = new Material(Color(0, 1, 1, 1), .4, .4, .4, 40); // Omit the final (string) parameter if you want no texture
 		var landMaterial = new Material(Color(0.4, 0.5, 0, 1), .6, .8, .4, 4);	//Just a placeholder for now
+        var grassMat = new Material(Color(0.0,0.0,0.0, 1), .3, .6, .3, 80,"Grass.png"); 
 
-		
 		var current_orientation = this.shared_scratchpad.orientation;
 		// draw plane
 		var planeLocation = this.drawPlane(graphics_state, tetraMaterial);
-
+		
 		// make camera follow the plane
 		this.drawCamera(graphics_state, current_orientation);
-		
+	
 		this.draw_terrain(graphics_state, current_orientation);
 		
 		// draw collectable
 		this.drawCollectables(graphics_state, collectableMaterial); 
 
 		// draw grass
-		this.drawGrass(graphics_state, collectableMaterial);
+		this.drawGrass(graphics_state, grassMat);
+
 
 	
 		//Hacky skyboxes, do properly later
@@ -589,6 +638,7 @@ Declare_Any_Class("Example_Animation", {
 		invRot = mult(rotation(this.shared_scratchpad.heading, 0, -1, 0),invRot);
 		invRot = mult(rotation(this.shared_scratchpad.pitch, -1, 0, 0),invRot);
 		this.sbtrans = mult(inverse(this.shared_scratchpad.graphics_state.camera_transform),invRot);
+		
 	},
 	// pass in array of positions and normals
 	'addGrass': function(positions, normals) {

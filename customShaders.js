@@ -305,30 +305,19 @@ Declare_Any_Class( "G_buf_gen_NormalSpray",
 
         attribute vec3 vPosition, vNormal;
         attribute vec2 vTexCoord;
-        varying vec2 fTexCoord;
+        varying vec3 fTexCoord;
 		varying vec3 fNormal;
+		varying vec3 colNorm;
 		varying vec4 pos;
-		
-		void float16toRG(in float v, out vec2 ret)
-		{
-			v = v+32768.0;
-			
-			ret = vec2(floor(v/256.0),fract(v/256.0)*256.0);
-			ret *= 1.0/256.0;
-		}
-		void RGtofloat16 ( in vec2 rg, out float ret )
-		{
-			rg *= 256.0;
-			ret = dot( rg, vec2(256.0,1.0) )-32768.0;
-		}
 		
 		void main()
 		{
 			
             vec4 ospos = vec4(vPosition, 1.0);
             gl_Position = projection_camera_model_transform * ospos;
-            fTexCoord = vTexCoord;
+            fTexCoord = vPosition.xyz;
 			fNormal = normalize( camera_model_transform_normal * vNormal );
+			colNorm = vNormal;
 			//fNormal = vNormal; //Pass-Through for debug
 			pos = camera_model_transform*ospos;
 		}
@@ -358,8 +347,9 @@ Declare_Any_Class( "G_buf_gen_NormalSpray",
 	  
 	
 		varying vec3 fNormal;
-		varying vec2 fTexCoord;
+		varying vec3 fTexCoord;
 		varying vec4 pos;
+		varying vec3 colNorm;
 		
 		uniform float ambient, diffusivity, shininess, smoothness;
 		uniform vec4 shapeColor;
@@ -384,13 +374,15 @@ Declare_Any_Class( "G_buf_gen_NormalSpray",
 			float16toRG(pos.y,posY);
 			gl_FragData[3] = vec4(posX,posY.r,1.0);
 			gl_FragData[4] = vec4(posZ, posY.g,1.0);
-			if(USE_TEXTURE){
-				float xCol = texture2D(xTex,fTexCoord);
-				float yCol = texture2D(yTex,fTexCoord);
-				float zCol = texture2D(zTex,fTexCoord);
-				vec3 cVec = abs(fNormal);
-				gl_FragData[0] = vec4(xCol*cVec.x,yCol*cVec.y,zCol*cVec.z,1.0);
-			}
+			
+			vec4 xCol = texture2D(xTex,vec2(fTexCoord.z/10.0,fTexCoord.y/5.0));
+			vec4 yCol = texture2D(yTex,fTexCoord.xz/30.0);
+			vec4 zCol = texture2D(zTex,vec2(fTexCoord.x/10.0,fTexCoord.y/5.0));
+			vec3 cVec = abs(colNorm);
+			gl_FragData[0] = vec4(xCol*cVec.x+yCol*cVec.y+zCol*cVec.z);
+			gl_FragData[0].xyz *= .5;
+			//gl_FragData[0] = vec4(0.0,0.0,0.0,1.0);
+			
 		}
 			
 	  `;
@@ -446,19 +438,7 @@ Declare_Any_Class( "G_buf_gen_phong",
         varying vec2 fTexCoord;
 		varying vec3 fNormal;
 		varying vec4 pos;
-		
-		void float16toRG(in float v, out vec2 ret)
-		{
-			v = v+32768.0;
-			
-			ret = vec2(floor(v/256.0),fract(v/256.0)*256.0);
-			ret *= 1.0/256.0;
-		}
-		void RGtofloat16 ( in vec2 rg, out float ret )
-		{
-			rg *= 256.0;
-			ret = dot( rg, vec2(256.0,1.0) )-32768.0;
-		}
+
 		
 		void main()
 		{
@@ -614,6 +594,7 @@ Declare_Any_Class( "G_buf_gen_phong",
 		}
 	
 		const int MAX_LIGHTS = 2;
+		const vec4 fogCol = vec4(.5,.5,.5,1.0);
 		varying vec2 fTexCoord;
 		
 		uniform vec4 lightPosition[MAX_LIGHTS], lightColor[MAX_LIGHTS];
@@ -659,16 +640,19 @@ Declare_Any_Class( "G_buf_gen_phong",
 				vec3 H = normalize( L + E );
 				float dist = distance(fPos,lightPosition[i]);
 				float attenuation_multiplier = 1.0 / (1.0 + attenuation_factor[i] * (dist * dist));
-               float diffuse  = max(dot(L, N), 0.0);
-               float specular = pow(max(dot(N, H), 0.0), shininess);
+               float diffuse  = max(dot(L, N), 0.0001);
+               float specular = pow(max(dot(N, H), 0.0001), shininess);
 
                gl_FragColor.xyz += attenuation_multiplier * (tex_color.xyz * diffusivity * diffuse  + lightColor[i].xyz * shininess * specular );
 			}
+			//Do Fog Attenuation
+			// float fogw=min(1.0,(length(pos)/700.0));
+			// gl_FragColor.xyz = (1.0-fogw)*gl_FragColor.rgb+fogw*fogCol.rgb;
 			// if(gl_FragColor.a<.5)
 				// discard;
 			//gl_FragColor = texture2D(TESTER,fTexCoord);
 			//gl_FragColor = tex_color;
-			//gl_FragColor = fPos;
+			//gl_FragColor = vec4(abs(xx/10.0),abs(yy/10.0),abs(zz/10.0),1.0);
 			//gl_FragColor = vec4(0.0,0.0,fPos.x/10.0,1.0);
 			//gl_FragColor = vec4(abs(N),1.0);
 			//gl_FragColor = fMatl;

@@ -12,31 +12,82 @@ Declare_Any_Class( "Node_contents",
 function f_density(ws)	//Positive corresponds to ground
 {
 	//Warp ws first
-	//ws = add(ws, vec3(64*perlin(ws[0]*0.004, ws[1]*0.004, ws[2]*0.021), 64*perlin(ws[0]*0.036, ws[1]*0.016, ws[2]*0.021), 64*perlin(ws[0]*0.036, ws[1]*0.016, ws[2]*0.021))
+	// var warp_ampl = 64;
+	// var warp_noise = perlin(ws[0]*0.008, ws[1]*0.002, ws[2]*0.008);
+	// var warp_val = mult_vec_scalar(vec3(warp_noise, warp_noise, warp_noise), warp_ampl);
+	// ws = vec3(ws[0]+warp_val[0], ws[1]+warp_val[1], ws[2]+warp_val[2]);
+	//Trying other warping methods	
+	//ws = vec3(ws[0], ws[1]+12*Math.sin(0.03*ws[0]), ws[2]);	//Only works for minimal floating islands
 	
-	//ws = vec3(ws[0]+WORLD_SIZE, ws[1], ws[2]+WORLD_SIZE);
-	var dens = -ws[1];
 	
+	// ws = vec3(ws[0]+WORLD_SIZE, ws[1], ws[2]+WORLD_SIZE);
+	var dens = -ws[1] - 25;
 	
-	var freq0 = vec3(0.012, 0.012, 0.012);
-	var freq1 = vec3(0.036, 0.016, 0.021);
-	var freq2 = vec3(0.046, 0.046, 0.026);
-	var freq3 = vec3(0.076, 0.066, 0.066);
-	var freq4 = vec3(0.191, 0.291, 0.191);
-	var ampl0 = 96;
-	var ampl1 = 64;
-	var ampl2 = 32;
-	var ampl3 = 12;
-	var ampl4 = 4;
+	//For tons of floating islands:
+	// var freq0 = vec3(0.022, 0.047, 0.026);
+	// var freq1 = vec3(0.046, 0.043, 0.041);
+	// var freq2 = vec3(0.066, 0.086, 0.066);
+	// var freq3 = vec3(0.096, 0.106, 0.096);
+	// var freq4 = vec3(0.151, 0.151, 0.151);
+	// var freq5 = vec3(0.211, 0.211, 0.211);
+	// var freq6 = vec3(0.291, 0.291, 0.291);
+	// var ampl0 = 128;
+	// var ampl1 = 64;
+	// var ampl2 = 27;
+	// var ampl3 = 19;
+	// var ampl4 = 13;
+	// var ampl5 = 9;
+	// var ampl6 = 6;
+	// dens += ampl0*perlin(ws[0]*freq0[0], ws[1]*freq0[1], ws[2]*freq0[2]);
+	// dens += ampl1*perlin(ws[0]*freq1[0], ws[1]*freq1[1], ws[2]*freq1[2]);
+	// dens += ampl2*perlin(ws[0]*freq2[0], ws[1]*freq2[1], ws[2]*freq2[2]);
+	// dens += ampl3*perlin(ws[0]*freq3[0], ws[1]*freq3[1], ws[2]*freq3[2]);
+	// dens += ampl4*perlin(ws[0]*freq4[0], ws[1]*freq4[1], ws[2]*freq4[2]);
+	// dens += ampl5*perlin(ws[0]*freq5[0], ws[1]*freq5[1], ws[2]*freq5[2]);
+	// dens += ampl6*perlin(ws[0]*freq6[0], ws[1]*freq6[1], ws[2]*freq6[2]);
+	
+	//More like canyons, but actual canyons are hard
+	var freq0 = vec3(0.016, 0.032, 0.016);
+	var freq1 = vec3(0.036, 0.036, 0.041);
+	var freq2 = vec3(0.046, 0.026, 0.026);
+	var freq3 = vec3(0.066, 0.046, 0.056);
+	var freq4 = vec3(0.091, 0.131, 0.111);
+	var freq5 = vec3(0.191, 0.291, 0.191);
+	var freq6 = vec3(0.291, 0.391, 0.291);
+	var ampl0 = 128;
+	var ampl1 = 74;
+	var ampl2 = 42;
+	var ampl3 = 21;
+	var ampl4 = 8;
+	var ampl5 = 4;
+	var ampl6 = 3;
 	dens += ampl0*perlin(ws[0]*freq0[0], ws[1]*freq0[1], ws[2]*freq0[2]);
 	dens += ampl1*perlin(ws[0]*freq1[0], ws[1]*freq1[1], ws[2]*freq1[2]);
 	dens += ampl2*perlin(ws[0]*freq2[0], ws[1]*freq2[1], ws[2]*freq2[2]);
 	dens += ampl3*perlin(ws[0]*freq3[0], ws[1]*freq3[1], ws[2]*freq3[2]);
 	dens += ampl4*perlin(ws[0]*freq4[0], ws[1]*freq4[1], ws[2]*freq4[2]);
+	dens += ampl5*perlin(ws[0]*freq5[0], ws[1]*freq5[1], ws[2]*freq5[2]);
+	//dens += ampl6*perlin(ws[0]*freq6[0], ws[1]*freq6[1], ws[2]*freq6[2]);
+	
+	//Soft floor:
+	var soft_floor = -27;
+	if(ws[1] < soft_floor)
+		dens += (soft_floor - ws[1])*3;
 	
 	//Hard floor:
-	// if(ws[1] < -5)
-		// dens = 0.5;
+	var hard_floor = -1*WORLD_SIZE/2 + 1;
+	if(ws[1] < hard_floor)
+		dens = 5000;
+	
+	//Soft ceiling:
+	var soft_ceil = 27;
+	if(ws[1] > soft_ceil)
+		dens += (soft_ceil - ws[1])*3;
+	
+	//Hard ceiling:
+	var hard_ceil = WORLD_SIZE/2 - 1;
+	if(ws[1] > hard_ceil)
+		dens = -5000;
 	
 	return dens;
 }  
@@ -56,6 +107,7 @@ Declare_Any_Class( "Terrain",
 		this.to_create = [];	//After the blocks are checked and need to be drawn, add them to this list
 		this.to_draw_new = [];	//When the geometry is made, replace the old to_draw with this list
 		this.to_draw = [];	//All the geometry in here is what gets drawn
+		this.all_geom = [];	//So we can get rid of geometry once it's far away enough
       },
 	  
 	  'copy_onto_graphics_card': function()
@@ -319,7 +371,6 @@ Declare_Any_Class( "Terrain",
 	
 	'choose_to_check': function(p_pos, p_heading)
 	{
-		console.log(p_pos[1]);
 		var c_size = RES * RES_RATIO;
 		//Args are plane pos and plane heading
 		//Every time the program asks, repopulates the to_check list based on position
@@ -391,7 +442,12 @@ Declare_Any_Class( "Terrain",
 				this.to_draw_new.push(this.to_check[i]);
 			}
 			if(this.to_check[i].checked == 4)	//If the check revealed it's in view, but already created			
-				this.to_draw_new.push(this.to_check[i]);			
+				this.to_draw_new.push(this.to_check[i]);
+			if(this.to_check[i].checked == 5)	//If the check revealed it's in view, created, and we need to stop it from getting purged	
+			{
+				this.to_check[i].checked == 4;
+				this.to_draw_new.push(this.to_check[i]);
+			}				
 		}		
 		this.to_check = [];	//Reset the list
 	}
