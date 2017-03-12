@@ -185,7 +185,7 @@ Declare_Any_Class("Example_Animation", {
 			if(this.shared_scratchpad.gameState == "start")
 			{
 				this.shared_scratchpad.gameState = "playing";
-				this.shared_scratchpad.speed = 0.1;
+				this.shared_scratchpad.speed = 0.5;
 			}
 			else
 			{
@@ -632,7 +632,7 @@ Declare_Any_Class("Example_Animation", {
 		// make camera follow the plane
 		this.drawCamera(graphics_state, current_orientation);
 	
-		this.draw_terrain(graphics_state, current_orientation);
+		//this.draw_terrain(graphics_state, current_orientation);
 		
 		// draw collectable
 		this.drawCollectables(graphics_state, collectableMaterial); 
@@ -715,9 +715,19 @@ Declare_Any_Class("Example_Animation", {
 	},
 	'drawPlane': function(graphics_state, material){
 		// draw plane
+		// time since last animation in seconds
+		var time_diff = graphics_state.animation_delta_time/1000;
+		if(time_diff == 0)
+		{
+			time_diff = 0.001;
+		}
+		var temp_scale = 100; // temporary scaling for testing based on time
+		
 		// change roll based on if yaw is changing
+		
+		// all variables are based on per second
 		var max_roll = 50;
-		var frame_change = 2;
+		var frame_change = 2*time_diff*temp_scale; 
 		
 		var roll_amount = 0;
 		if(this.shared_scratchpad.heading_change > 0 && this.shared_scratchpad.extra_roll < max_roll)
@@ -747,12 +757,12 @@ Declare_Any_Class("Example_Animation", {
 		
 		var orientation = this.shared_scratchpad.orientation;
 		var pitch = new vec3(orientation[0][0], orientation[1][0], orientation[2][0]); // right
-		pitch = mult_vec_scalar(pitch, this.shared_scratchpad.pitch_change);
+		pitch = mult_vec_scalar(pitch, this.shared_scratchpad.pitch_change*time_diff*temp_scale);
 		var yaw = new vec3(orientation[0][1], orientation[1][1], orientation[2][1]); // up
-		yaw = mult_vec_scalar(yaw, this.shared_scratchpad.heading_change);
+		yaw = mult_vec_scalar(yaw, this.shared_scratchpad.heading_change*time_diff*temp_scale);
 		var roll = new vec3(-1*orientation[0][2], -1*orientation[1][2], -1*orientation[2][2]); //forward
 		var direction = roll;
-		roll = mult_vec_scalar(roll, this.shared_scratchpad.roll_change-roll_amount);
+		roll = mult_vec_scalar(roll, this.shared_scratchpad.roll_change*time_diff*temp_scale-roll_amount);
 		
 		var orientationChange = add(add(pitch, yaw), roll);
 		var angularChange = magnitude(orientationChange); // scalar
@@ -765,7 +775,7 @@ Declare_Any_Class("Example_Animation", {
 			this.shared_scratchpad.orientation = mult( overallChange, this.shared_scratchpad.orientation);
 		}
 		
-		this.shared_scratchpad.position = add(this.shared_scratchpad.position, mult_vec_scalar(normalize(direction), this.shared_scratchpad.speed));
+		this.shared_scratchpad.position = add(this.shared_scratchpad.position, mult_vec_scalar(normalize(direction), temp_scale*this.shared_scratchpad.speed*time_diff));
 		
 		var transition = new mat4();
 		transition = mult(transition, translation(this.shared_scratchpad.position[0], this.shared_scratchpad.position[1], this.shared_scratchpad.position[2]));
@@ -779,9 +789,11 @@ Declare_Any_Class("Example_Animation", {
 	},
 	'drawCamera': function(graphics_state, current_orientation){
 		// get pitch, yaw, and roll of plane. If heading or pitch is changing, exaggerage camera
+		var time_diff = graphics_state.animation_delta_time/1000;
+		var temp_scale = 100; // temporary scaling for testing based on time
 		var max_change = 1.3;
-		var frame_change_growing = 0.01;
-		var frame_change_shrinking = 0.02;
+		var frame_change_growing = 0.01*time_diff*temp_scale;
+		var frame_change_shrinking = 0.02*time_diff*temp_scale;
 		var orientation = current_orientation;
 		
 		if(this.shared_scratchpad.pitch_change > 0 && this.shared_scratchpad.camera_extra_pitch < max_change)
@@ -848,6 +860,8 @@ Declare_Any_Class("Example_Animation", {
 		at = add(at, mult_vec_scalar(y_axis,this.shared_scratchpad.camera_extra_pitch));
 		at = add(at, mult_vec_scalar(x_axis, -1*this.shared_scratchpad.camera_extra_heading));
 		
+		var distance = Math.sqrt(Math.pow(eye[0]-at[0],2) + Math.pow(eye[1]-at[1],2) + Math.pow(eye[2] - at[2],2));
+		console.log("distance between camera and plane:" + distance);
 		// set up
 		var roll = new vec4(orientation[0][1], orientation[1][1], orientation[2][1], 1); //forward
 
