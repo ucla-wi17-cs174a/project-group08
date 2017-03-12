@@ -338,10 +338,13 @@ Declare_Any_Class("Example_Animation", {
 		
 		if(DEFERRED){
 			////bind GBuffer
+			gl.disable(gl.BLEND);
 			this.GBuffer.activate();
+			gl.disable(gl.BLEND);
 			shaders_in_use["G_buf_gen_phong"].activate();
+			//console.log(gl.getParameter(gl.BLEND_COLOR));
 			gl.clear( gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
-			shapes_in_use.skybox.draw(this.shared_scratchpad.graphics_state,this.sbtrans, skyMat);
+			shapes_in_use.skybox.draw(this.shared_scratchpad.graphics_state,mat4(), skyMat);
 			gl.clear(gl.DEPTH_BUFFER_BIT);
 		   this.generate_G_Buffer(time);
 			//Bind Screen FBO
@@ -360,12 +363,16 @@ Declare_Any_Class("Example_Animation", {
 			gl.bindTexture(gl.TEXTURE_2D, this.GBuffer.tx[3]);
 			gl.activeTexture(gl.TEXTURE4);
 			gl.bindTexture(gl.TEXTURE_2D, this.GBuffer.tx[4]);
+			gl.activeTexture(gl.TEXTURE5);
+			gl.bindTexture(gl.TEXTURE_2D, this.GBuffer.tx[5]);
 			shaders_in_use["G_buf_light_phong"].activate();
 
 			//Render to screen
 			shapes_in_use.square.draw(this.shared_scratchpad.graphics_state,new mat4(),aMaterial );
 			gl.activeTexture(gl.TEXTURE0);
 			gl.bindTexture(gl.TEXTURE_2D, null);
+			gl.enable(gl.BLEND);
+
 		}
 		else{
 			shaders_in_use["Default"].activate();
