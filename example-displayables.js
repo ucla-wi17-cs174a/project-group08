@@ -6,7 +6,7 @@ var DEFERRED = false;
 // Create the textbox
 Declare_Any_Class( "Debug_Screen",
   { 'construct': function( context )
-      { this.define_data_members( { shared_scratchpad: context.shared_scratchpad, numCollected: 0, graphicsState: new Graphics_State() } );
+      { this.define_data_members( { shared_scratchpad: context.shared_scratchpad, numCollected: 0, graphics_state: new Graphics_State() } );
         shapes_in_use.debug_text = new Text_Line( 35 );
 		this.shared_scratchpad.numCollected = 0;
       },
@@ -29,7 +29,7 @@ Declare_Any_Class( "Debug_Screen",
 	
 		// draw the text box
 		shapes_in_use.debug_text.set_string("Collected: " + this.numCollected.toString() );
-		shapes_in_use.debug_text.draw( this.graphicsState, model_transform, true, vec4(0,0,0,1) );  // Draw some UI text (strings)
+		shapes_in_use.debug_text.draw( this.graphics_state, model_transform, true, vec4(0,0,0,1) );  // Draw some UI text (strings)
 		model_transform = mult( translation( 0, .08, 0 ), model_transform );
       }
   }, Animation );
@@ -59,15 +59,27 @@ Declare_Any_Class("Example_Animation", {
 
 		// declare all variables
 		// creating collection objects
+		shapes_in_use.grass = new Array();
 		shapes_in_use.collection_object = new Array();
+		
+		// add grass
+		shapes_in_use.grass.push(new Imported_Object("Grass.obj",0,0,-100)); 
+		
 		// declare any number of objects
-		shapes_in_use.collection_object.push(new Collection_Object(4, 50, 0, -150));
-		shapes_in_use.collection_object.push(new Collection_Object(4, -50, 0, -150));
-		shapes_in_use.collection_object.push(new Collection_Object(4, 50, 0, -100));
-		shapes_in_use.collection_object.push(new Collection_Object(4, -50, 0, -100));
+		shapes_in_use.collection_object.push(new Collection_Object("Gate.obj", 50, 0, -150));
+		shapes_in_use.collection_object.push(new Collection_Object("Gate_twirl.obj", 50, 0, -150));
+		
+		shapes_in_use.collection_object.push(new Collection_Object("Gate.obj", -50, 0, -150));
+		shapes_in_use.collection_object.push(new Collection_Object("Gate_twirl.obj", -50, 0, -150));
+		
+		shapes_in_use.collection_object.push(new Collection_Object("Gate.obj", 50, 0, -100));
+		shapes_in_use.collection_object.push(new Collection_Object("Gate_twirl.obj", 50, 0, -100));
+		
+		shapes_in_use.collection_object.push(new Collection_Object("Gate.obj", -50, 0, -100));
+		shapes_in_use.collection_object.push(new Collection_Object("Gate_twirl.obj", -50, 0, -100));
 
 		// create imported plane
-		shapes_in_use.plane = Imported_Object.prototype.auto_flat_shaded_version();
+		shapes_in_use.plane = new Imported_Object("ThreePlane.obj",0,0,0);
 
 		
 		shapes_in_use.square = new Square();
@@ -95,8 +107,10 @@ Declare_Any_Class("Example_Animation", {
 		this.shared_scratchpad.pitch_change = 0; // how much to change pitch
 		this.shared_scratchpad.heading_change = 0; // how much to change heading
 		this.shared_scratchpad.roll_change = 0;
+		this.shared_scratchpad.extra_roll = 1;
 		
 		this.shared_scratchpad.orientation = mat4(1); // create identity matrix as orientation
+		this.shared_scratchpad.orientation_no_extra = mat4(1); // create identity matrix as orientation
 		this.shared_scratchpad.position = vec3(0,0,0);
 		
 		this.shared_scratchpad.camera_extra_pitch = 0;
@@ -335,44 +349,48 @@ Declare_Any_Class("Example_Animation", {
 		var skyMat = new Material(Color(1.0,1.0,1.0,1.0), 1.0, 1.0, 0.0, 0.0, "LameBox.png");
 		
 		if(DEFERRED){
-			////bind GBuffer
+			////bind GBuffer and disable transparency
+			gl.disable(gl.BLEND);
 			this.GBuffer.activate();
+			gl.disable(gl.BLEND);
 			shaders_in_use["G_buf_gen_phong"].activate();
 			gl.clear( gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
-			shapes_in_use.skybox.draw(this.shared_scratchpad.graphics_state,this.sbtrans, skyMat);
+			shapes_in_use.skybox.draw(this.shared_scratchpad.graphics_state,mat4(), skyMat);
 			gl.clear(gl.DEPTH_BUFFER_BIT);
-		   this.generate_G_Buffer(time);
-			//Bind Screen FBO
+			this.renderOpaque(time);
 			this.GBuffer.deactivate();
-			//Setup Attribs and Uniforms
-			//Implicit?
-			//activate appropo shaders
 			gl.clear( gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
-			gl.activeTexture(gl.TEXTURE0);
-			gl.bindTexture(gl.TEXTURE_2D, this.GBuffer.tx[0]);
-			gl.activeTexture(gl.TEXTURE1);
-			gl.bindTexture(gl.TEXTURE_2D, this.GBuffer.tx[1]);
-			gl.activeTexture(gl.TEXTURE2);
-			gl.bindTexture(gl.TEXTURE_2D, this.GBuffer.tx[2]);
-			gl.activeTexture(gl.TEXTURE3);
-			gl.bindTexture(gl.TEXTURE_2D, this.GBuffer.tx[3]);
-			gl.activeTexture(gl.TEXTURE4);
-			gl.bindTexture(gl.TEXTURE_2D, this.GBuffer.tx[4]);
+			for (var i =0; i<this.GBuffer.layers;i++){
+				gl.activeTexture(texAddrs[i]);
+				gl.bindTexture(gl.TEXTURE_2D, this.GBuffer.tx[i]);
+			}
 			shaders_in_use["G_buf_light_phong"].activate();
-
+			
 			//Render to screen
+			gl.depthMask(false);
 			shapes_in_use.square.draw(this.shared_scratchpad.graphics_state,new mat4(),aMaterial );
+			
+			//Render transparency. Using alpha test to avoid sorting
+			this.renderTransparent();
+			gl.depthMask(true);
+			//cleanup
 			gl.activeTexture(gl.TEXTURE0);
 			gl.bindTexture(gl.TEXTURE_2D, null);
+			gl.enable(gl.BLEND);
+
 		}
 		else{
 			shaders_in_use["Default"].activate();
 			gl.clear( gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
-			this.generate_G_Buffer(time);
+			this.renderOpaque(time);
 		}
 		
     },
-	'generate_G_Buffer': function(time){
+	'renderTransparent': function(time){
+		shaders_in_use["Default"].activate();
+		
+	},
+	'renderOpaque': function(time){
 		var graphics_state = this.shared_scratchpad.graphics_state,
             model_transform = mat4();
         
@@ -395,11 +413,14 @@ Declare_Any_Class("Example_Animation", {
 		// draw plane
 		var planeLocation = this.drawPlane(graphics_state, tetraMaterial);
 
-		// draw collectable
-		this.drawCollectables(graphics_state, collectableMaterial); //HACK FIX. <- make collectables a class and/or interface for object oriented happiness :D
-
 		// make camera follow the plane
 		this.drawCamera(graphics_state, current_orientation);
+		
+		// draw collectable
+		this.drawCollectables(graphics_state, collectableMaterial); //HACK FIX. <- make collectables a class and/or interface for object oriented happiness :D
+		
+		this.drawGrass(graphics_state, collectableMaterial);
+
 	
 	
 		//Hacky skyboxes, do properly later
@@ -410,7 +431,15 @@ Declare_Any_Class("Example_Animation", {
 		invRot = mult(rotation(this.shared_scratchpad.pitch, -1, 0, 0),invRot);
 		this.sbtrans = mult(inverse(this.shared_scratchpad.graphics_state.camera_transform),invRot);
 	},
-	
+	'drawGrass': function(graphics_state, material) {
+		for(var i = 0; i < shapes_in_use.grass.length; i++)
+		{
+			var cur_grass = shapes_in_use.grass[i];
+			var model_transform = mat4();
+			model_transform = mult(model_transform, translation(cur_grass.x, cur_grass.y, cur_grass.z));
+			cur_grass.draw(graphics_state, model_transform, material);
+		}
+	},
 	'drawCollectables': function(graphics_state, collectableMaterial){
 		// DRAW COLLECTION_OBJECT
 		// create collection objects and check if it exists
@@ -428,6 +457,12 @@ Declare_Any_Class("Example_Animation", {
 				{
 					var model_transform = mat4();
 					model_transform = mult(model_transform, translation(cur_collection.x, cur_collection.y, cur_collection.z));
+					if(i % 2 == 1)
+					{
+						cur_collection.rotation += 1;
+						model_transform = mult(model_transform, rotation(cur_collection.rotation, 0, 0, 1));
+					}
+					model_transform = mult(model_transform, rotation(90,1,0,0));
 					cur_collection.draw(graphics_state, model_transform, collectableMaterial);
 				}
 			}
@@ -439,6 +474,34 @@ Declare_Any_Class("Example_Animation", {
 		// change speed
 		this.shared_scratchpad.speed = Math.min(1,Math.max(0,this.shared_scratchpad.speed + this.shared_scratchpad.speed_change));
 		
+		// change roll based on if yaw is changing
+		var max_roll = 20;
+		var frame_roll = 0;
+		if(this.shared_scratchpad.heading_change > 0 && this.shared_scratchpad.extra_roll < max_roll)
+		{
+			this.shared_scratchpad.extra_roll += 1;
+			frame_roll += 1;
+		}
+		else if(this.shared_scratchpad.heading_change < 0 && this.shared_scratchpad.extra_roll > -1*max_roll)
+		{
+			this.shared_scratchpad.extra_roll -= 1;
+			frame_roll -= 1;
+		}
+		else if(this.shared_scratchpad.heading_change == 0)
+		{
+			// bring back to center
+			if(this.shared_scratchpad.extra_roll > 0)
+			{
+				this.shared_scratchpad.extra_roll -= 1;
+				frame_roll -= 1;
+			}
+			if(this.shared_scratchpad.extra_roll < 0)
+			{
+				this.shared_scratchpad.extra_roll += 1;
+				frame_roll += 1;
+			}
+		}
+		
 		var orientation = this.shared_scratchpad.orientation;
 		var pitch = new vec3(orientation[0][0], orientation[1][0], orientation[2][0]); // right
 		pitch = mult_vec_scalar(pitch, this.shared_scratchpad.pitch_change);
@@ -446,7 +509,7 @@ Declare_Any_Class("Example_Animation", {
 		yaw = mult_vec_scalar(yaw, this.shared_scratchpad.heading_change);
 		var roll = new vec3(-1*orientation[0][2], -1*orientation[1][2], -1*orientation[2][2]); //forward
 		var direction = roll;
-		roll = mult_vec_scalar(roll, this.shared_scratchpad.roll_change);
+		roll = mult_vec_scalar(roll, this.shared_scratchpad.roll_change-frame_roll);
 		
 		var orientationChange = add(add(pitch, yaw), roll);
 		var angularChange = magnitude(orientationChange); // scalar
@@ -463,7 +526,7 @@ Declare_Any_Class("Example_Animation", {
 		
 		var transition = new mat4();
 		transition = mult(transition, translation(this.shared_scratchpad.position[0], this.shared_scratchpad.position[1], this.shared_scratchpad.position[2]));
-		transition = mult(transition, this.shared_scratchpad.orientation)
+		transition = mult(transition, this.shared_scratchpad.orientation);
 		
 		shapes_in_use.plane.draw(graphics_state, transition, material);
 		
@@ -472,49 +535,90 @@ Declare_Any_Class("Example_Animation", {
 	},
 	'drawCamera': function(graphics_state, current_orientation){
 		// get pitch, yaw, and roll of plane. If heading or pitch is changing, exaggerage camera
-		var max_change = 20;
-	
+		var max_change = 1.3;
+		var frame_change = 0.01;
 		var orientation = current_orientation;
-
+		
 		if(this.shared_scratchpad.pitch_change > 0 && this.shared_scratchpad.camera_extra_pitch < max_change)
-			this.shared_scratchpad.camera_extra_pitch += 1;
+		{
+			this.shared_scratchpad.camera_extra_pitch += frame_change;
+		}
 		else if(this.shared_scratchpad.pitch_change < 0 && this.shared_scratchpad.camera_extra_pitch > -1*max_change)
-			this.shared_scratchpad.camera_extra_pitch -= 1;
-		else
+		{
+			this.shared_scratchpad.camera_extra_pitch -= frame_change;
+		}
+		else if(this.shared_scratchpad.pitch_change == 0)
 		{
 			// bring back to center
 			if(this.shared_scratchpad.camera_extra_pitch > 0)
-				this.shared_scratchpad.camera_extra_pitch -= 1;
+			{
+				this.shared_scratchpad.camera_extra_pitch -= frame_change;
+			}
 			if(this.shared_scratchpad.camera_extra_pitch < 0)
-				this.shared_scratchpad.camera_extra_pitch += 1;
+			{
+				this.shared_scratchpad.camera_extra_pitch += frame_change;
+			}
 		}
-		var pitch = new vec3(orientation[0][0], orientation[1][0], orientation[2][0]); // right
-		pitch = mult_vec_scalar(pitch, this.shared_scratchpad.pitch_change);
 		
-		var yaw = new vec3(orientation[0][1], orientation[1][1], orientation[2][1]); // up
-		yaw = mult_vec_scalar(yaw, this.shared_scratchpad.heading_change);
+		if(this.shared_scratchpad.heading_change > 0 && this.shared_scratchpad.camera_extra_heading < max_change)
+		{
+			this.shared_scratchpad.camera_extra_heading += frame_change;
+		}
+		else if(this.shared_scratchpad.heading_change < 0 && this.shared_scratchpad.camera_extra_heading > -1*max_change)
+		{
+			this.shared_scratchpad.camera_extra_heading -= frame_change;
+		}
+		else if(this.shared_scratchpad.heading_change == 0)
+		{
+			// bring back to center
+			if(this.shared_scratchpad.camera_extra_heading > 0)
+			{
+				this.shared_scratchpad.camera_extra_heading -= frame_change;
+			}
+			if(this.shared_scratchpad.camera_extra_heading < 0)
+			{
+				this.shared_scratchpad.camera_extra_heading += frame_change;
+			}
+		}
+		
+		// set eye
+		var eye = new Array();
+		eye.push(this.shared_scratchpad.position[0]); // x
+		eye.push(this.shared_scratchpad.position[1]); // y
+		eye.push(this.shared_scratchpad.position[2]); // z
 
-		var roll = new vec3(-1*orientation[0][2], -1*orientation[1][2], -1*orientation[2][2]); //forward
-		var direction = roll;
-		roll = mult_vec_scalar(roll, this.shared_scratchpad.roll_change);
+		var x_axis = new vec3(orientation[0][0], orientation[1][0], orientation[2][0]); // x_axis
+		x_axis = normalize(x_axis);
 		
-		var orientationChange = add(add(pitch, yaw), roll);
-		var angularChange = magnitude(orientationChange); // scalar
+		var z_axis = new vec3(orientation[0][2], orientation[1][2], orientation[2][2]); // z_axis
+		z_axis = normalize(z_axis);
+		eye = add(eye, mult_vec_scalar(z_axis,5));
 		
-		var overallChange = mat4(1);
-		if(angularChange != 0) {
-			var rotationAxis = normalize(orientationChange); // vector
-			overallChange = rotation(angularChange, rotationAxis);
+		var y_axis = new vec3(orientation[0][1], orientation[1][1], orientation[2][1]); // y_axis
+		y_axis = normalize(y_axis);
+		eye = add(eye, mult_vec_scalar(y_axis,1));
+		
+		// set at
+		var at = new vec3(this.shared_scratchpad.position[0], this.shared_scratchpad.position[1], this.shared_scratchpad.position[2]);
+		at = add(at, mult_vec_scalar(y_axis,this.shared_scratchpad.camera_extra_pitch));
+		at = add(at, mult_vec_scalar(x_axis, -1*this.shared_scratchpad.camera_extra_heading));
+		
+		// set up
+		var roll = new vec4(orientation[0][1], orientation[1][1], orientation[2][1], 1); //forward
+
+		if(this.shared_scratchpad.extra_roll != 0)
+		{
+			roll = mult_vec(rotation(-1*this.shared_scratchpad.extra_roll, z_axis),roll);
 		}
 		
-		var cameraRotation = mult(this.shared_scratchpad.orientation, overallChange);
-		this.shared_scratchpad.position = add(this.shared_scratchpad.position, mult_vec_scalar(normalize(direction), this.shared_scratchpad.speed));
+		var up = new Array();
+		up.push(roll[0]);
+		up.push(roll[1]);
+		up.push(roll[2]);
 		
-		var transition = new mat4();
-		transition = mult(transition, translation(this.shared_scratchpad.position[0], this.shared_scratchpad.position[1], this.shared_scratchpad.position[2]));
-		transition = mult(transition, cameraRotation);
-		transition = mult(transition, translation(0,1,5));
-        graphics_state.camera_transform = inverse(transition);
+		var transition = mat4();
+		transition = mult(transition, lookAt(eye, at, up));
+		graphics_state.camera_transform = transition;
 
 	}
 }, Animation);

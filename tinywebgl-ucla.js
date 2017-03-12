@@ -3,7 +3,7 @@
 
 var shapes_in_use = [], shaders_in_use = [], framebuffers = [], textures_in_use = [], active_shader, texture_filenames_to_load = [], gl, g_addrs, ext_db, ext_hf;    // ****** GLOBAL VARIABLES *******
 
-var attach_Points_Color;
+var attach_Points_Color,texAddrs;
 
 function Declare_Any_Class( name, methods, superclass = Object, scope = window )              // Making javascript behave more like Object Oriented C++
   {
@@ -24,6 +24,7 @@ function Declare_Any_Class( name, methods, superclass = Object, scope = window )
 		gl.bindFramebuffer(gl.FRAMEBUFFER, this.fb);
 		this.fb.width = width;
 		this.fb.height = height;
+		this.layers = layers;
 		this.tx = [];
 		var buffs = [];
 		var type = floats ? ext_hf.HALF_FLOAT_OES : gl.UNSIGNED_BYTE;
@@ -296,10 +297,11 @@ Declare_Any_Class( "Canvas_Manager",                      // This class performs
 		console.log("ext_hf", ext_hf);
 		attach_Points_Color = [ext_db.COLOR_ATTACHMENT0_WEBGL,ext_db.COLOR_ATTACHMENT1_WEBGL,ext_db.COLOR_ATTACHMENT2_WEBGL,ext_db.COLOR_ATTACHMENT3_WEBGL,
 							ext_db.COLOR_ATTACHMENT4_WEBGL,ext_db.COLOR_ATTACHMENT5_WEBGL,ext_db.COLOR_ATTACHMENT6_WEBGL,ext_db.COLOR_ATTACHMENT7_WEBGL]; //"const" array to refer to attach points
-        gl.clearColor.apply( gl, background_color );    // Tell the GPU which color to clear the canvas with each frame
+		texAddrs = [gl.TEXTURE0,gl.TEXTURE1,gl.TEXTURE2,gl.TEXTURE3,gl.TEXTURE4,gl.TEXTURE5,gl.TEXTURE6,gl.TEXTURE7];
+	   gl.clearColor.apply( gl, background_color );    // Tell the GPU which color to clear the canvas with each frame
         gl.viewport( 0, 0, canvas.width, canvas.height );
         gl.enable( gl.DEPTH_TEST );
-        //gl.enable( gl.BLEND );
+        gl.enable( gl.BLEND );
         gl.blendFunc( gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA );
         this.controls = new Shortcut_Manager();                 // All per-canvas key controls will be stored here
         this.displayables = [];

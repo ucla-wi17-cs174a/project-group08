@@ -48,17 +48,18 @@ Declare_Any_Class( "Tetrahedron",
   
 Declare_Any_Class("Imported_Object",
 {
-	'populate': function()
+	'populate': function(file_name, x, y, z)
 	{
+		this.x = x;
+		this.y = y;
+		this.z = z;
+		
 		var allText;
 		var rawFile = new XMLHttpRequest();
 		var tempthis = this;
 		// .obj files start indicies at 1, so these are placeholders
-		tempthis.positions.push(vec3(0,0,0));
-		tempthis.texture_coords.push(vec2(0,0));
-		tempthis.normals.push(vec3(0,0,0));
 
-		rawFile.open("GET", "./ThreePlane.obj", false);
+		rawFile.open("GET", "./" + file_name, false);
 		rawFile.onreadystatechange = (function ()
 		{
 			if(rawFile.readyState === 4)
@@ -66,7 +67,6 @@ Declare_Any_Class("Imported_Object",
 				if(rawFile.status === 200 || rawFile.status == 0)
 				{
 					allText = rawFile.responseText.split("\n");
-					console.log(allText[0]);
 					for(var i = 0; i < allText.length; i++)
 					{
 						// process the file line by line
@@ -98,12 +98,16 @@ Declare_Any_Class("Imported_Object",
 						else if(divided[0] == "f")
 						{
 							for(var j = 1; j < divided.length; j++)
-							{
+							{/*
 								//tempthis.indices.push(parseFloat(divided[j]));
 								var temp = divided[j].split("/");
-								tempthis.indices.push(parseFloat(temp[0]));
+								tempthis.indices.push(parseFloat(temp[0]));*/
 							}
 						}
+					}
+					for (var i = 0; i < tempthis.positions.length; i++)
+					{
+						tempthis.indices.push(i);
 					}
 				}
 			}
