@@ -5,15 +5,17 @@ var DRAW_DIST = 3;
 var DIR_DRAW_DIST = 2;
 var WORLD_SIZE = 16384;
 var WORLD_HEIGHT = 256;
-var SPEED_INC = .01;
 var DEFERRED = false;
 
 // Create the textbox
 Declare_Any_Class( "Debug_Screen",
   { 'construct': function( context )
-      { this.define_data_members( { shared_scratchpad: context.shared_scratchpad, numCollected: 0, graphics_state: new Graphics_State() } );
+      { this.define_data_members( { shared_scratchpad: context.shared_scratchpad, numCollected: 0, gameState: "start",numFrames: 0, graphics_state: new Graphics_State() } );
         shapes_in_use.debug_text = new Text_Line( 35 );
 		this.shared_scratchpad.numCollected = 0;
+		this.shared_scratchpad.gameState = "start";
+		this.startTime = new Date();
+		this.endTime = new Date();
       },
     'init_keys': function( controls )
       { 
@@ -22,20 +24,84 @@ Declare_Any_Class( "Debug_Screen",
     'update_strings': function( debug_screen_object )
       { 
 		this.numCollected = this.shared_scratchpad.numCollected;
+		this.gameState = this.shared_scratchpad.gameState; // start, playing, end
       },
     'display': function( time )
       {
+		this.numFrames++;
+		this.endTime = new Date();
         shaders_in_use["Default"].activate();
-        gl.uniform4fv( g_addrs.shapeColor_loc, Color( .8, .8, .8, 1 ) );
 
-        var font_scale = scale( .02, .04, 1 ),
-            model_transform = mult( translation( -.95, -.9, 0 ), font_scale );
+        var font_scale = scale( .02, .04, 1 );
+		var model_transform = mat3();
+		
+		if(this.gameState == "start")
+		{
+			var start_scale = mult(font_scale, scale(2,2,2));
+			model_transform = mult(translation(-0.6,0.3,0), start_scale);
+			shapes_in_use.debug_text.set_string("PRESS ENTER TO START");
+			shapes_in_use.debug_text.draw( this.graphics_state, model_transform, true, vec4(0,0,0,1) ); 
+			
+			// draw controls
+			model_transform = mat3();
+			model_transform = mult(translation(0.5, 0.9, 0), font_scale);
+			shapes_in_use.debug_text.set_string("CONTROLS");
+			shapes_in_use.debug_text.draw(this.graphics_state, model_transform, true, vec4(0,0,0,1));
+			
+			model_transform = mult(translation(0, -0.08, 0), model_transform);
+			shapes_in_use.debug_text.set_string("YAW:      ARROWS");
+			shapes_in_use.debug_text.draw( this.graphics_state, model_transform, true, vec4(0,0,0,1) );
+			
+			model_transform = mult(translation(0, -0.08, 0), model_transform);
+			shapes_in_use.debug_text.set_string("PITCH:    ARROWS");
+			shapes_in_use.debug_text.draw( this.graphics_state, model_transform, true, vec4(0,0,0,1) ); 
+			
+			model_transform = mult(translation(0, -0.08, 0), model_transform);
+			shapes_in_use.debug_text.set_string("ROLL:     G ; H");
+			shapes_in_use.debug_text.draw( this.graphics_state, model_transform, true, vec4(0,0,0,1) );
+		
+			model_transform = mult(translation(0, -0.08, 0), model_transform);
+			shapes_in_use.debug_text.set_string("SPEED:    Z-/");
+			shapes_in_use.debug_text.draw( this.graphics_state, model_transform, true, vec4(0,0,0,1) );
 
-	
-		// draw the text box
-		shapes_in_use.debug_text.set_string("Collected: " + this.numCollected.toString() );
-		shapes_in_use.debug_text.draw( this.graphics_state, model_transform, true, vec4(0,0,0,1) );  // Draw some UI text (strings)
-		model_transform = mult( translation( 0, .08, 0 ), model_transform );
+			model_transform = mult(translation(0, -0.08, 0), model_transform);
+			shapes_in_use.debug_text.set_string("NEW GAME: ENTER");
+			shapes_in_use.debug_text.draw( this.graphics_state, model_transform, true, vec4(0,0,0,1) );
+		
+		}
+		
+		else if(this.gameState == "playing")
+		{
+			model_transform = mult( translation( -.95, -.9, 0 ), font_scale );
+
+			// draw the text box
+			shapes_in_use.debug_text.set_string("Collected: " + this.numCollected.toString() );
+			shapes_in_use.debug_text.draw( this.graphics_state, model_transform, true, vec4(0,0,0,1) );
+			
+			var FPS = Number((this.numFrames/((this.endTime - this.startTime)/1000)).toFixed(3));
+			shapes_in_use.debug_text.set_string("FPS: " + FPS);
+			model_transform = mult( translation( 0, .08, 0 ), model_transform );
+			shapes_in_use.debug_text.draw( this.graphics_state, model_transform, true, vec4(0,0,0,1) );
+	    }
+		else if(this.gameState == "end")
+		{
+			var end_scale = mult(font_scale, scale(2,2,2));
+			model_transform = mult(translation(-0.6,0.3,0), end_scale);
+			shapes_in_use.debug_text.set_string("CRASHED INTO THE MAP!");
+			shapes_in_use.debug_text.draw( this.graphics_state, model_transform, true, vec4(0,0,0,1) );
+
+			model_transform = new mat3();
+			model_transform = mult(translation(-0.25,-0.3,0), font_scale);
+			shapes_in_use.debug_text.set_string("TOTAL COLLECTED: " + this.numCollected.toString());
+			shapes_in_use.debug_text.draw( this.graphics_state, model_transform, true, vec4(0,0,0,1) );
+			
+			model_transform = new mat3();
+			model_transform = mult(translation(-0.25,-0.45,0), font_scale);
+			shapes_in_use.debug_text.set_string("PRESS ENTER TO RESTART");
+			shapes_in_use.debug_text.draw( this.graphics_state, model_transform, true, vec4(0,0,0,1) );
+		}
+		
+		
       }
   }, Animation );
 
@@ -67,17 +133,17 @@ Declare_Any_Class("Example_Animation", {
 		shapes_in_use.grass.push(new Imported_Object("Grass.obj",0,0,-100)); 
 		
 		// declare any number of objects
-		shapes_in_use.collection_object.push(new Collection_Object("Gate.obj", 50, 0, -150));
-		shapes_in_use.collection_object.push(new Collection_Object("Gate_twirl.obj", 50, 0, -150));
+		shapes_in_use.collection_object.push(new Collection_Object("Gate.obj", 50, 50, -150));
+		shapes_in_use.collection_object.push(new Collection_Object("Gate_twirl.obj", 50, 50, -150));
 		
-		shapes_in_use.collection_object.push(new Collection_Object("Gate.obj", -50, 0, -150));
-		shapes_in_use.collection_object.push(new Collection_Object("Gate_twirl.obj", -50, 0, -150));
+		shapes_in_use.collection_object.push(new Collection_Object("Gate.obj", -50, 50, -150));
+		shapes_in_use.collection_object.push(new Collection_Object("Gate_twirl.obj", -50, 50, -150));
 		
-		shapes_in_use.collection_object.push(new Collection_Object("Gate.obj", 50, 0, -100));
-		shapes_in_use.collection_object.push(new Collection_Object("Gate_twirl.obj", 50, 0, -100));
+		shapes_in_use.collection_object.push(new Collection_Object("Gate.obj", 50, 50, -100));
+		shapes_in_use.collection_object.push(new Collection_Object("Gate_twirl.obj", 50, 50, -100));
 		
-		shapes_in_use.collection_object.push(new Collection_Object("Gate.obj", -50, 0, -100));
-		shapes_in_use.collection_object.push(new Collection_Object("Gate_twirl.obj", -50, 0, -100));
+		shapes_in_use.collection_object.push(new Collection_Object("Gate.obj", -50, 50, -100));
+		shapes_in_use.collection_object.push(new Collection_Object("Gate_twirl.obj", -50, 50, -100));
 
 		// create plane
 		shapes_in_use.plane = new Imported_Object("ThreePlane.obj",0,0,0);
@@ -92,9 +158,8 @@ Declare_Any_Class("Example_Animation", {
 		this.t_loop_count = 0;
 		
 		
-        this.shared_scratchpad.speed = 0.1;
+        this.shared_scratchpad.speed = 0;
 		
-		this.shared_scratchpad.speed_change = 0; // 0: no change; -1: slow down; +1: speed up;
 		this.shared_scratchpad.pitch_change = 0; // how much to change pitch
 		this.shared_scratchpad.heading_change = 0; // how much to change heading
 		this.shared_scratchpad.roll_change = 0;
@@ -102,11 +167,37 @@ Declare_Any_Class("Example_Animation", {
 		
 		this.shared_scratchpad.orientation = mat4(1); // create identity matrix as orientation
 		this.shared_scratchpad.position = vec3(0,0,0);
+		this.shared_scratchpad.position[2] = -5;
 		
 		this.shared_scratchpad.camera_extra_pitch = 0;
 		this.shared_scratchpad.camera_extra_heading = 0;
     },
     'init_keys': function(controls) {
+		controls.add("enter", this, function() {
+			if(this.shared_scratchpad.gameState == "start")
+			{
+				this.shared_scratchpad.gameState = "playing";
+				this.shared_scratchpad.speed = 0.1;
+			}
+			else
+			{
+				this.shared_scratchpad.gameState = "start";
+				
+				this.shared_scratchpad.speed = 0;
+			
+				this.shared_scratchpad.pitch_change = 0; // how much to change pitch
+				this.shared_scratchpad.heading_change = 0; // how much to change heading
+				this.shared_scratchpad.roll_change = 0;
+				this.shared_scratchpad.extra_roll = 1;
+				
+				this.shared_scratchpad.orientation = mat4(1); // create identity matrix as orientation
+				this.shared_scratchpad.position = vec3(0,0,0);
+				this.shared_scratchpad.position[2] = -5;
+				
+				this.shared_scratchpad.camera_extra_pitch = 0;
+				this.shared_scratchpad.camera_extra_heading = 0;
+			}
+		});
         controls.add("up", this, function() {
             this.shared_scratchpad.pitch_change = 0.6;
         });
@@ -146,37 +237,37 @@ Declare_Any_Class("Example_Animation", {
 			this.shared_scratchpad.heading_change =  0; }, {'type':'keyup'} 
 		);
 		controls.add("3", this, function() {
-            this.shared_scratchpad.heading_change = 0.6;
+            this.shared_scratchpad.heading_change = 0.55;
         });
 		controls.add( "3", this, function() { 
 			this.shared_scratchpad.heading_change =  0; }, {'type':'keyup'} 
 		);
 		controls.add("4", this, function() {
-            this.shared_scratchpad.heading_change = 0.4;
+            this.shared_scratchpad.heading_change = 0.3;
         });
 		controls.add( "4", this, function() { 
 			this.shared_scratchpad.heading_change =  0; }, {'type':'keyup'} 
 		);
 		controls.add("5", this, function() {
-            this.shared_scratchpad.heading_change = 0.2;
+            this.shared_scratchpad.heading_change = 0.1;
         });
 		controls.add( "5", this, function() { 
 			this.shared_scratchpad.heading_change =  0; }, {'type':'keyup'} 
 		);
 		controls.add("6", this, function() {
-            this.shared_scratchpad.heading_change = -0.2;
+            this.shared_scratchpad.heading_change = -0.1;
         });
 		controls.add( "6", this, function() { 
 			this.shared_scratchpad.heading_change =  0; }, {'type':'keyup'} 
 		);
 		controls.add("7", this, function() {
-            this.shared_scratchpad.heading_change = -0.4;
+            this.shared_scratchpad.heading_change = -0.3;
         });
 		controls.add( "7", this, function() { 
 			this.shared_scratchpad.heading_change =  0; }, {'type':'keyup'} 
 		);
 		controls.add("8", this, function() {
-            this.shared_scratchpad.heading_change = -0.6;
+            this.shared_scratchpad.heading_change = -0.55;
         });
 		controls.add( "8", this, function() { 
 			this.shared_scratchpad.heading_change =  0; }, {'type':'keyup'} 
@@ -208,37 +299,37 @@ Declare_Any_Class("Example_Animation", {
 			this.shared_scratchpad.pitch_change =  0; }, {'type':'keyup'} 
 		);
 		controls.add("e", this, function() {
-            this.shared_scratchpad.pitch_change = 0.6;
+            this.shared_scratchpad.pitch_change = 0.55;
         });
 		controls.add( "e", this, function() { 
 			this.shared_scratchpad.pitch_change =  0; }, {'type':'keyup'} 
 		);
 		controls.add("r", this, function() {
-            this.shared_scratchpad.pitch_change = 0.4;
+            this.shared_scratchpad.pitch_change = 0.3;
         });
 		controls.add( "r", this, function() { 
 			this.shared_scratchpad.pitch_change =  0; }, {'type':'keyup'} 
 		);
 		controls.add("t", this, function() {
-            this.shared_scratchpad.pitch_change = 0.2;
+            this.shared_scratchpad.pitch_change = 0.1;
         });
 		controls.add( "t", this, function() { 
 			this.shared_scratchpad.pitch_change =  0; }, {'type':'keyup'} 
 		);
 		controls.add("y", this, function() {
-            this.shared_scratchpad.pitch_change = -0.2;
+            this.shared_scratchpad.pitch_change = -0.1;
         });
 		controls.add( "y", this, function() { 
 			this.shared_scratchpad.pitch_change =  0; }, {'type':'keyup'} 
 		);
 		controls.add("u", this, function() {
-            this.shared_scratchpad.pitch_change = -0.4;
+            this.shared_scratchpad.pitch_change = -0.3;
         });
 		controls.add( "u", this, function() { 
 			this.shared_scratchpad.pitch_change =  0; }, {'type':'keyup'} 
 		);
 		controls.add("i", this, function() {
-            this.shared_scratchpad.pitch_change = -0.6;
+            this.shared_scratchpad.pitch_change = -0.55;
         });
 		controls.add( "i", this, function() { 
 			this.shared_scratchpad.pitch_change =  0; }, {'type':'keyup'} 
@@ -282,39 +373,53 @@ Declare_Any_Class("Example_Animation", {
 			this.shared_scratchpad.roll_change =  0; }, {'type':'keyup'} 
 		);
 		
-        // slow down
-        controls.add(",", this, function() {
-			this.shared_scratchpad.speed_change = -SPEED_INC;
-			}
-        );
-		controls.add( ",", this, function() { 
-			this.shared_scratchpad.speed_change =  0; }, {'type':'keyup'} 
-		);
-
-        // speed up
-        controls.add(".", this, function() {
-			this.shared_scratchpad.speed_change = SPEED_INC;
-            }
-        );
-		controls.add( ".", this, function() { 
-			this.shared_scratchpad.speed_change =  0; }, {'type':'keyup'} 
-		);
+		// set speed
+		controls.add("/", this, function() {
+			if(this.shared_scratchpad.gameState == "playing")
+				this.shared_scratchpad.speed = 0.9;
+        });
+		controls.add(".", this, function() {
+			if(this.shared_scratchpad.gameState == "playing")
+				this.shared_scratchpad.speed = 0.8;
+        });
+		controls.add(",", this, function() {
+			if(this.shared_scratchpad.gameState == "playing")
+				this.shared_scratchpad.speed = 0.7;
+        });
+		controls.add("m", this, function() {
+			if(this.shared_scratchpad.gameState == "playing")
+				this.shared_scratchpad.speed = 0.6;
+        });
+		controls.add("n", this, function() {
+			if(this.shared_scratchpad.gameState == "playing")
+				this.shared_scratchpad.speed = 0.5;
+        });
+		controls.add("b", this, function() {
+			if(this.shared_scratchpad.gameState == "playing")
+				this.shared_scratchpad.speed = 0.4;
+        });
+		controls.add("v", this, function() {
+			if(this.shared_scratchpad.gameState == "playing")
+				this.shared_scratchpad.speed = 0.3;
+        });
+		controls.add("c", this, function() {
+			if(this.shared_scratchpad.gameState == "playing")
+				this.shared_scratchpad.speed = 0.2;
+        });
+		controls.add("x", this, function() {
+			if(this.shared_scratchpad.gameState == "playing")
+				this.shared_scratchpad.speed = 0.1;
+        });
+		controls.add("z", this, function() {
+			if(this.shared_scratchpad.gameState == "playing")
+				this.shared_scratchpad.speed = 0.0;
+        });
+		
 		// Shading DEBUG Toggle
-		controls.add("x", this, function(){
+		controls.add("a", this, function(){
 			DEFERRED = !DEFERRED;
 			console.log("Swapped to DEFERRED = ", DEFERRED);
 		});
-		// reset
-		controls.add("ctrl+r", this, function() {
-			// TODO
-			this.shared_scratchpad.speed = 0.1;
-			
-			this.shared_scratchpad.speed_change = 0; // 0: no change; -1: slow down; +1: speed up;
-			this.shared_scratchpad.pitch_change = 0; // how much to change pitch
-			this.shared_scratchpad.heading_change = 0; // how much to change heading
-
-		});
-
     },
 	
 	// check collision between two spheres
@@ -426,9 +531,8 @@ Declare_Any_Class("Example_Animation", {
 			if(sign_density(plane_col[i]))
 			{
 				//We crashed!
-				console.log("Crashed into ground!");
-				this.shared_scratchpad.speed = 0.01;	//Not 0 so we can still get out for debugging purposes
-				//Also, do something more interesting eventually?
+				this.shared_scratchpad.gameState = "end";
+				this.shared_scratchpad.speed = 0;	
 			}
 		}			
 	},	
@@ -522,10 +626,6 @@ Declare_Any_Class("Example_Animation", {
 	},
 	'drawPlane': function(graphics_state, material){
 		// draw plane
-				
-		// change speed
-		this.shared_scratchpad.speed = Math.min(1,Math.max(0,this.shared_scratchpad.speed + this.shared_scratchpad.speed_change));
-		
 		// change roll based on if yaw is changing
 		var max_roll = 20;
 		var frame_change = 1;
