@@ -21,7 +21,7 @@ function f_density(ws)	//Positive corresponds to ground
 	
 	
 	// ws = vec3(ws[0]+WORLD_SIZE, ws[1], ws[2]+WORLD_SIZE);
-	var dens = -ws[1] - 30;
+	var dens = -ws[1]  + 2;
 	
 	//For tons of floating islands:
 	// var freq0 = vec3(0.022, 0.047, 0.026);
@@ -70,27 +70,37 @@ function f_density(ws)	//Positive corresponds to ground
 	//dens += ampl6*perlin(ws[0]*freq6[0], ws[1]*freq6[1], ws[2]*freq6[2]);
 	
 	//Soft floor:
-	var soft_floor = -27;
+	var soft_floor = 5;
 	if(ws[1] < soft_floor)
 		dens += (soft_floor - ws[1])*1;
 	
 	//Hard floor:
-	var hard_floor = -1*WORLD_HEIGHT/2 - 1;
+	var hard_floor = -0.01;
 	if(ws[1] < hard_floor)
 		dens = 5000;
 	
 	//Soft ceiling:
-	var soft_ceil = 27;
+	var soft_ceil = 59;
 	if(ws[1] > soft_ceil)
 		dens += (soft_ceil - ws[1])*3;
 	
 	//Hard ceiling:
-	var hard_ceil = WORLD_HEIGHT/2 - 1;
+	var hard_ceil = WORLD_HEIGHT + 1;
 	if(ws[1] > hard_ceil)
 		dens = -5000;
 	
 	return dens;
-}  
+} 
+
+Declare_Any_Class( "Water",
+  { 'populate': function() 
+      {
+        //Just a single rectangle at the bottom of the terrain    
+		this.positions = [];
+		this.normals = [];
+		this.indices = [];
+      }
+  }, Shape ); 
   
 Declare_Any_Class( "Terrain",
 { 
@@ -108,6 +118,8 @@ Declare_Any_Class( "Terrain",
 		this.to_draw_new = [];	//When the geometry is made, replace the old to_draw with this list
 		this.to_draw = [];	//All the geometry in here is what gets drawn
 		this.all_geom = [];	//So we can get rid of geometry once it's far away enough
+		
+		this.water_shape = new Water;	//Water shape, adjust the positions and normals manually
       },
 	  
 	  'copy_onto_graphics_card': function()
@@ -117,7 +129,7 @@ Declare_Any_Class( "Terrain",
 			if( !this.to_draw[i].contents.sent_to_GPU ) 
 			{
 				this.to_draw[i].contents.copy_onto_graphics_card();
-				this.to_draw[i].contents.sent_to_GPU = true;
+				this.to_draw[i].contents.sent_to_GPU = true;				
 			}
 		}
 		  
@@ -127,7 +139,7 @@ Declare_Any_Class( "Terrain",
 	  {
 		for(var i = 0; i < this.to_draw.length; i++)
 		{
-			this.to_draw[i].contents.draw(graphics_state, model_transform, material);
+			this.to_draw[i].contents.draw(graphics_state, model_transform, material);			
 		}		  
 	  },
 	  
@@ -273,8 +285,8 @@ Declare_Any_Class( "Terrain",
 		coords = node.coords;
 		c_size = node.size;
 		
-		//res = c_size/RES_RATIO;
-		res = RES;
+		res = c_size/RES_RATIO;
+		
 		//Since we don't actually draw anything with this:
 		this.positions = [];
 		this.normals = [];
@@ -378,13 +390,17 @@ Declare_Any_Class( "Terrain",
 		var p_heading_vec = mult_vec(p_heading, vec4(0,0,-1,0));
 		var p_heading_deg = (180/Math.PI*Math.atan2(p_heading_vec[0],-1*p_heading_vec[2])+360)%360;			
 		var p_heading_val = Math.floor((p_heading_deg+22.5)/45);	//Gives 0-8
-		p_pos = vec3(p_pos[0]+c_size/2, p_pos[1]+c_size/2, p_pos[2]+c_size/2);
-		var p_pos_div = scale_vec(1/c_size, p_pos);	//Puts it on the boundaries
+		p_pos = vec3(p_pos[0]+c_size, p_pos[1]+c_size, p_pos[2]+c_size);
+		var p_pos_div = scale_vec(1/(c_size*2), p_pos);	//Puts it on the boundaries
 		var p_pos_floor = [];
 		for ( var i = 0; i < 3; i++ ) 
 			p_pos_floor.push( Math.floor(p_pos_div[i]));
-		p_pos_block = scale_vec(c_size, p_pos_floor);
+		p_pos_block = scale_vec(2*c_size, p_pos_floor);
 		
+		var low_k_low =  -LOW_DRAW_DIST;
+		var low_k_high = LOW_DRAW_DIST;
+		var low_i_low =  -LOW_DRAW_DIST;
+		var low_i_high = LOW_DRAW_DIST;
 		
 		var k_low =  -DRAW_DIST;
 		var k_high = DRAW_DIST;
@@ -393,63 +409,107 @@ Declare_Any_Class( "Terrain",
 		
 		switch(p_heading_val)
 		{
-			case 0: k_low -= DIR_DRAW_DIST*2; break;
-			case 1: k_low -= DIR_DRAW_DIST; i_high += DIR_DRAW_DIST; break;
-			case 2: i_high += DIR_DRAW_DIST*2; break;
-			case 3: i_high += DIR_DRAW_DIST; k_high += DIR_DRAW_DIST; break;
-			case 4: k_high += DIR_DRAW_DIST*2; break;
-			case 5: k_high += DIR_DRAW_DIST; i_low -= DIR_DRAW_DIST; break;
-			case 6: i_low -= DIR_DRAW_DIST*2; break;
-			case 7: i_low -= DIR_DRAW_DIST; k_low -= DIR_DRAW_DIST; break;
-			case 8: k_low -= DIR_DRAW_DIST*2; break;
 			// case 0: k_low -= DIR_DRAW_DIST*2; break;
-			// case 1: k_low -= DIR_DRAW_DIST*2; i_high += DIR_DRAW_DIST*2; break;
+			// case 1: k_low -= DIR_DRAW_DIST; i_high += DIR_DRAW_DIST; break;
 			// case 2: i_high += DIR_DRAW_DIST*2; break;
-			// case 3: i_high += DIR_DRAW_DIST*2; k_high += DIR_DRAW_DIST*2; break;
+			// case 3: i_high += DIR_DRAW_DIST; k_high += DIR_DRAW_DIST; break;
 			// case 4: k_high += DIR_DRAW_DIST*2; break;
-			// case 5: k_high += DIR_DRAW_DIST*2; i_low -= DIR_DRAW_DIST*2; break;
+			// case 5: k_high += DIR_DRAW_DIST; i_low -= DIR_DRAW_DIST; break;
 			// case 6: i_low -= DIR_DRAW_DIST*2; break;
-			// case 7: i_low -= DIR_DRAW_DIST*2; k_low -= DIR_DRAW_DIST*2; break;
+			// case 7: i_low -= DIR_DRAW_DIST; k_low -= DIR_DRAW_DIST; break;
 			// case 8: k_low -= DIR_DRAW_DIST*2; break;
+			case 0: low_k_low -= LOW_DIR_DRAW_DIST; k_low -= DIR_DRAW_DIST; break;
+			case 1: low_k_low -= LOW_DIR_DRAW_DIST; low_i_high += LOW_DIR_DRAW_DIST; k_low -= DIR_DRAW_DIST; i_high += DIR_DRAW_DIST; break;
+			case 2: low_i_high += LOW_DIR_DRAW_DIST; i_high += DIR_DRAW_DIST; break;
+			case 3: low_i_high += LOW_DIR_DRAW_DIST; low_k_high += LOW_DIR_DRAW_DIST; i_high += DIR_DRAW_DIST; k_high += DIR_DRAW_DIST; break;
+			case 4: low_k_high += LOW_DIR_DRAW_DIST; k_high += DIR_DRAW_DIST; break;
+			case 5: low_k_high += LOW_DIR_DRAW_DIST; low_i_low -= LOW_DIR_DRAW_DIST; k_high += DIR_DRAW_DIST; i_low -= DIR_DRAW_DIST; break;
+			case 6: low_i_low -= LOW_DIR_DRAW_DIST; i_low -= DIR_DRAW_DIST; break;
+			case 7: low_i_low -= LOW_DIR_DRAW_DIST; low_k_low -= LOW_DIR_DRAW_DIST; i_low -= DIR_DRAW_DIST; k_low -= DIR_DRAW_DIST; break;
+			case 8: low_k_low -= LOW_DIR_DRAW_DIST; k_low -= DIR_DRAW_DIST; break;
 		}
 		//console.log(i_low, i_high, p_pos_block);
-		
-		for(i = p_pos_block[0] + (i_low*c_size); i < p_pos_block[0] + (i_high*c_size); i += c_size)	
+		this.water_shape.positions = [];
+		this.water_shape.normals = [];
+		this.water_shape.indices = [];
+		this.water_shape.sent_to_GPU = false;
+		for(i = p_pos_block[0] + (low_i_low*c_size*2); i <= p_pos_block[0] + (low_i_high*c_size*2); i += c_size*2)	//i and k are the actual x and z coordinates
 		{
-			for(k = p_pos_block[2] + (k_low*c_size); k < p_pos_block[2] + (k_high*c_size); k += c_size)	//Note that these loops increase 32 or 64 at a time, whatever larger number we choose
+			for(k = p_pos_block[2] + (low_k_low*c_size*2); k <= p_pos_block[2] + (low_k_high*c_size*2); k += c_size*2)	
 			{
-				if(Math.abs(i) < WORLD_SIZE/2 && Math.abs(k) < WORLD_SIZE/2)	//It's inside the world, yay
-				{						
-					for(j = -WORLD_HEIGHT/2; j < WORLD_HEIGHT/2; j += c_size)
+				//Loop between the 8 smaller blocks inside if it's in the smaller range, otherwise just add the larger block
+				if(i >= p_pos_block[0] + c_size*2*i_low && i < p_pos_block[0] + c_size*2*i_high && k >= p_pos_block[2] + c_size*2*k_low && k < p_pos_block[2] + c_size*2*k_high)
+				{
+					//It's a more detailed block, so send smaller blocks across the vertical span
+					for(j = 0; j < WORLD_HEIGHT; j += c_size)
 					{
-						//Add each block in the vertical span to the list
 						this.to_check.push(Node_find(vec3(i,j,k), c_size, this.world_tree, null));
+						this.to_check.push(Node_find(vec3(i,j,k+c_size), c_size, this.world_tree, null));
+						this.to_check.push(Node_find(vec3(i+c_size,j,k), c_size, this.world_tree, null));
+						this.to_check.push(Node_find(vec3(i+c_size,j,k+c_size), c_size, this.world_tree, null));
+					}
+				}	
+				else
+				{											
+					if(Math.abs(i) < WORLD_SIZE/2 && Math.abs(k) < WORLD_SIZE/2)	//It's inside the world, yay
+					{						
+						for(j = 0; j < WORLD_HEIGHT; j += c_size*2)
+						{
+							//Add each block in the vertical span to the list
+							this.to_check.push(Node_find(vec3(i,j,k), c_size*2, this.world_tree, null));
+						}
 					}
 				}
+				//Then, tell it to draw water underneath	
+				this.water_shape.positions.push(vec3(i,0.2,k), vec3(i+c_size*2,0.2,k), vec3(i,0.2,k+c_size*2), vec3(i+c_size*2,0.2,k), vec3(i+c_size*2,0.2,k+c_size*2), vec3(i,0.2,k+c_size*2));	//FIX
+				this.water_shape.normals.push(vec3(0,1,0), vec3(0,1,0), vec3(0,1,0), vec3(0,1,0), vec3(0,1,0), vec3(0,1,0));
 			}
-		}			
+		}	
+		//Fill water indices:
+		for(var i = 0; i < this.water_shape.positions.length; i++)
+		{
+			this.water_shape.indices.push(i);
+		}
 	},
 	
 	'check_all': function()
 	{
+		//We don't actually check anymore, so this should be fast
 		for(i = 0; i < this.to_check.length; i++)
 		{
-			if(this.to_check[i].checked == 0)
-				this.to_check[i].checked = check_block(this.to_check[i].coords, this.to_check[i].size);
-			if(this.to_check[i].checked == 3)	//If the check revealed it needs to be created
+			if(this.to_check[i].size == RES*RES_RATIO*2)
 			{
-				this.to_create.push(this.to_check[i]);
+				//Check if it needs to be created first
+				if(this.to_check[i].checked != 4 && this.to_check[i].checked != 5)
+				{
+					this.to_create.push(this.to_check[i]);
+					this.to_check[i].checked = 3;	//It's a bigger block, so it always has geometry
+				}								
 				this.to_draw_new.push(this.to_check[i]);
 			}
-			if(this.to_check[i].checked == 4)	//If the check revealed it's in view, but already created			
-				this.to_draw_new.push(this.to_check[i]);
-			if(this.to_check[i].checked == 5)	//If the check revealed it's in view, created, and we need to stop it from getting purged	
-			{
-				this.to_check[i].checked == 4;
-				this.to_draw_new.push(this.to_check[i]);
+			else
+			{	
+				//For now, assume that all terrain must be drawn - probably faster than checking them all with the current density function
+				if(this.to_check[i].checked == 0)
+				{
+					//this.to_check[i].checked = check_block(this.to_check[i].coords, this.to_check[i].size);
+					this.to_check[i].checked = 3;
+				}
+				if(this.to_check[i].checked == 3)	//If the check revealed it needs to be created
+				{
+					this.to_create.push(this.to_check[i]);
+					this.to_draw_new.push(this.to_check[i]);
+				}
+				if(this.to_check[i].checked == 4)	//If the check revealed it's in view, but already created			
+					this.to_draw_new.push(this.to_check[i]);
+				if(this.to_check[i].checked == 5)	//If the check revealed it's in view, created, and we need to stop it from getting purged	
+				{
+					this.to_check[i].checked = 4;
+					this.to_draw_new.push(this.to_check[i]);
+				}	
 			}				
 		}		
-		this.to_check = [];	//Reset the list
+		this.to_check = [];	//Reset the list	
 	}
 	
 	
@@ -975,7 +1035,6 @@ function march(grid_p, grid_val, shape_in, ntriang, edgeTable, triTable)
 	  
 		shape_in.positions.push(pos0, pos1, pos2);
 		shape_in.indices.push(ntriang*3, ntriang*3+1, ntriang*3+2);
-		
 		shape_in.normals.push(find_grad(pos0), find_grad(pos1), find_grad(pos2));  //Old way, but it actually works
 		//Generate 3 normals, one for each vertex sent in
 		/*		
@@ -1376,8 +1435,7 @@ function Node_add(loc, size, tree)
 
 function check_block(coords, size)	//Check if a block needs to be drawn in the first place - much cheaper than drawing
 {
-	//res = size/RES_RATIO;
-	res = RES;
+	res = size/RES_RATIO;
 	//Check every surface density, and stop if any of them aren't similar to every other
 	check = sign_density(coords);
 	//this initial check should catch most of the boundary blocks	

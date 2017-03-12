@@ -1,10 +1,15 @@
 
-var RES_RATIO = 16;	
-var RES = 2;
-var DRAW_DIST = 3;
-var DIR_DRAW_DIST = 2;
+var RES_RATIO = 8;	
+var RES = 4;
+
+var DRAW_DIST = 1;
+var DIR_DRAW_DIST = 1;
+var LOW_DRAW_DIST = 3;
+var LOW_DIR_DRAW_DIST = 2;
+
 var WORLD_SIZE = 16384;
 var WORLD_HEIGHT = 64;
+
 var SPEED_INC = .01;
 var DEFERRED = false;
 
@@ -174,7 +179,7 @@ Declare_Any_Class("Example_Animation", {
 		this.shared_scratchpad.extra_roll = 1;
 		
 		this.shared_scratchpad.orientation = mat4(1); // create identity matrix as orientation
-		this.shared_scratchpad.position = vec3(0,0,0);
+		this.shared_scratchpad.position = vec3(0,32,0);
 		this.shared_scratchpad.position[2] = -5;
 		
 		this.shared_scratchpad.camera_extra_pitch = 0;
@@ -511,10 +516,9 @@ Declare_Any_Class("Example_Animation", {
 		gl.bindTexture(gl.TEXTURE_2D, textures_in_use["ZTEX.png"].id);
 		// var landMaterial = new Material(Color(0.4, 0.4, .4, 1), .6, .8, .4, 4,"FAKE.CHICKEN");	//Just a placeholder for now
 		var landMaterial = new Material(Color(0.0, 0.0, 0.0, 1), .1, .2, .1, 80);	//Just a placeholder for now
+		
 
 
-		console.log(this.shared_scratchpad.position[1]);
-		console.log(f_density(this.shared_scratchpad.position));
 		if(this.t_loop_count == 0)
 		{
 			//On each larger loop, first get a new to_check list	
@@ -574,6 +578,9 @@ Declare_Any_Class("Example_Animation", {
 		{
 			shapes_in_use.terrain.copy_onto_graphics_card();
 		}	
+		//And send water over
+		shapes_in_use.terrain.water_shape.copy_onto_graphics_card();
+		shapes_in_use.terrain.water_shape.sent_to_GPU = true;
 		model_transform = mat4();		
 		shapes_in_use.terrain.draw(graphics_state, model_transform, landMaterial);
 		this.t_loop_count++;
@@ -630,6 +637,7 @@ Declare_Any_Class("Example_Animation", {
         var tetraMaterial = new Material(Color(0, 1, 1, 1), .4, .4, .4, 40); // Omit the final (string) parameter if you want no texture
 		var landMaterial = new Material(Color(0.4, 0.5, 0, 1), .6, .8, .4, 4);	//Just a placeholder for now
         var grassMat = new Material(Color(0.0,0.0,0.0, 1), .3, .6, .3, 80,"Grass.png"); 
+		var water_material = new Material(Color(0.0, 0.3, 1.0, 1), .5, .2, .1, 80);	//Add texture later
 
 		var current_orientation = this.shared_scratchpad.orientation;
 		// draw plane
@@ -645,6 +653,8 @@ Declare_Any_Class("Example_Animation", {
 
 		// draw grass
 		this.drawGrass(graphics_state, grassMat);
+		
+		shapes_in_use.terrain.water_shape.draw(graphics_state, model_transform, water_material);
 
 
 	

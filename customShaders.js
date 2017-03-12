@@ -646,7 +646,7 @@ Declare_Any_Class( "G_buf_gen_phong",
                gl_FragColor.xyz += attenuation_multiplier * (tex_color.xyz * diffusivity * diffuse  + lightColor[i].xyz * shininess * specular );
 			}
 			//Do Fog Attenuation
-			// float fogw=min(1.0,(length(pos)/700.0));
+			// float fogw=min(1.0,(length(pos)/200.0));
 			// gl_FragColor.xyz = (1.0-fogw)*gl_FragColor.rgb+fogw*fogCol.rgb;
 			// if(gl_FragColor.a<.5)
 				// discard;
