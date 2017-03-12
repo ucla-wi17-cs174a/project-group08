@@ -11,16 +11,28 @@ Declare_Any_Class( "Node_contents",
  //First we make the density function:
 function f_density(ws)	//Positive corresponds to ground
 {
+	//Warp ws first
+	//ws = add(ws, vec3(64*perlin(ws[0]*0.004, ws[1]*0.004, ws[2]*0.021), 64*perlin(ws[0]*0.036, ws[1]*0.016, ws[2]*0.021), 64*perlin(ws[0]*0.036, ws[1]*0.016, ws[2]*0.021))
+	
 	//ws = vec3(ws[0]+WORLD_SIZE, ws[1], ws[2]+WORLD_SIZE);
-	var dens = -ws[1] - 5;
-	dens += 64*perlin(ws[0]*0.036, ws[1]*0.016, ws[2]*0.021);
-	dens += 32*perlin(ws[0]*0.046, ws[1]*0.026, ws[2]*0.026);
-	dens += 16*perlin(ws[0]*0.066, ws[1]*0.046, ws[2]*0.056);
-	//dens += 8*perlin(ws[0]*0.091, ws[1]*0.111, ws[2]*0.091);
-	dens += 4*perlin(ws[0]*0.191, ws[1]*0.291, ws[2]*0.191);
-	//dens += 2*perlin(ws[0]*0.391, ws[1]*0.391, ws[2]*0.391);
-	// dens += 1*perlin(ws[0]*0.791, ws[1]*0.791, ws[2]*0.791);
-	// dens += 0.5*perlin(ws[0]*1.201, ws[1]*1.201, ws[2]*1.201);
+	var dens = -ws[1];
+	
+	
+	var freq0 = vec3(0.012, 0.012, 0.012);
+	var freq1 = vec3(0.036, 0.016, 0.021);
+	var freq2 = vec3(0.046, 0.046, 0.026);
+	var freq3 = vec3(0.076, 0.066, 0.066);
+	var freq4 = vec3(0.191, 0.291, 0.191);
+	var ampl0 = 96;
+	var ampl1 = 64;
+	var ampl2 = 32;
+	var ampl3 = 12;
+	var ampl4 = 4;
+	dens += ampl0*perlin(ws[0]*freq0[0], ws[1]*freq0[1], ws[2]*freq0[2]);
+	dens += ampl1*perlin(ws[0]*freq1[0], ws[1]*freq1[1], ws[2]*freq1[2]);
+	dens += ampl2*perlin(ws[0]*freq2[0], ws[1]*freq2[1], ws[2]*freq2[2]);
+	dens += ampl3*perlin(ws[0]*freq3[0], ws[1]*freq3[1], ws[2]*freq3[2]);
+	dens += ampl4*perlin(ws[0]*freq4[0], ws[1]*freq4[1], ws[2]*freq4[2]);
 	
 	//Hard floor:
 	// if(ws[1] < -5)
@@ -217,8 +229,6 @@ Declare_Any_Class( "Terrain",
 		this.indices = [];
 
 		
-		//Right now, about 7 seconds per million cubes being checked, plus 4 seconds per noise function - this should really be sped up
-		//Sped up, now 1 second per million cubes, plus 2 seconds per noise function
 					
 		//Changed function to work on a box of size c_size at lowest coordinate coords, divisible by c_size
 		
@@ -309,13 +319,14 @@ Declare_Any_Class( "Terrain",
 	
 	'choose_to_check': function(p_pos, p_heading)
 	{
+		console.log(p_pos[1]);
 		var c_size = RES * RES_RATIO;
 		//Args are plane pos and plane heading
 		//Every time the program asks, repopulates the to_check list based on position
 		//Might need to process p_heading first, depending on what we can get
-		var p_heading_deg = 180/Math.PI*p_heading;	
-		var p_heading_val = Math.floor((p_heading_deg+45)/45);	//Gives 0-8
-		//console.log(p_heading_val);
+		var p_heading_vec = mult_vec(p_heading, vec4(0,0,-1,0));
+		var p_heading_deg = (180/Math.PI*Math.atan2(p_heading_vec[0],-1*p_heading_vec[2])+360)%360;			
+		var p_heading_val = Math.floor((p_heading_deg+22.5)/45);	//Gives 0-8
 		p_pos = vec3(p_pos[0]+c_size/2, p_pos[1]+c_size/2, p_pos[2]+c_size/2);
 		var p_pos_div = scale_vec(1/c_size, p_pos);	//Puts it on the boundaries
 		var p_pos_floor = [];
@@ -340,6 +351,15 @@ Declare_Any_Class( "Terrain",
 			case 6: i_low -= DIR_DRAW_DIST*2; break;
 			case 7: i_low -= DIR_DRAW_DIST; k_low -= DIR_DRAW_DIST; break;
 			case 8: k_low -= DIR_DRAW_DIST*2; break;
+			// case 0: k_low -= DIR_DRAW_DIST*2; break;
+			// case 1: k_low -= DIR_DRAW_DIST*2; i_high += DIR_DRAW_DIST*2; break;
+			// case 2: i_high += DIR_DRAW_DIST*2; break;
+			// case 3: i_high += DIR_DRAW_DIST*2; k_high += DIR_DRAW_DIST*2; break;
+			// case 4: k_high += DIR_DRAW_DIST*2; break;
+			// case 5: k_high += DIR_DRAW_DIST*2; i_low -= DIR_DRAW_DIST*2; break;
+			// case 6: i_low -= DIR_DRAW_DIST*2; break;
+			// case 7: i_low -= DIR_DRAW_DIST*2; k_low -= DIR_DRAW_DIST*2; break;
+			// case 8: k_low -= DIR_DRAW_DIST*2; break;
 		}
 		//console.log(i_low, i_high, p_pos_block);
 		

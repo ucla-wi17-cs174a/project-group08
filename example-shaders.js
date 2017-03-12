@@ -148,7 +148,8 @@ Declare_Any_Class( "Phong_or_Gouraud_Shader",
               gl_FragColor.xyz += attenuation_multiplier * (shapeColor.xyz * diffusivity * diffuse  + lightColor[i].xyz * shininess * specular );
             }
             gl_FragColor.a = gl_FragColor.w;
-			//gl_FragColor = vec4(0.0,0.0,pos.x/10.0,1.0);//PROBLEMPROBLEMPROBLEM
+			if(gl_FragColor.a < 0.5)
+				discard;
           }`;
       }
   }, Shader );

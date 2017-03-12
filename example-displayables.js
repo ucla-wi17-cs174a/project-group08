@@ -129,6 +129,9 @@ Declare_Any_Class("Example_Animation", {
 		shapes_in_use.grass = new Array();
 		shapes_in_use.collection_object = new Array();
 		
+		//Test Grass
+		shapes_in_use.grassyGnoll = new Imported_Object("Grass.obj",0,0,-100);
+		
 		// add grass
 		shapes_in_use.grass.push(new Imported_Object("Grass.obj",0,0,-100)); 
 		
@@ -441,12 +444,15 @@ Declare_Any_Class("Example_Animation", {
 			////bind GBuffer and disable transparency
 			gl.disable(gl.BLEND);
 			this.GBuffer.activate();
+			gl.framebufferRenderbuffer(gl.FRAMEBUFFER, gl.DEPTH_ATTACHMENT, gl.RENDERBUFFER, this.GBuffer.rb);
+
 			gl.disable(gl.BLEND);
 			shaders_in_use["G_buf_gen_phong"].activate();
 			gl.clear( gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 			shapes_in_use.skybox.draw(this.shared_scratchpad.graphics_state,mat4(), skyMat);
 			gl.clear(gl.DEPTH_BUFFER_BIT);
 			this.renderOpaque(time);
+			this.renderTransparent(time);
 			this.GBuffer.deactivate();
 			gl.clear( gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 			for (var i =0; i<this.GBuffer.layers;i++){
@@ -456,22 +462,23 @@ Declare_Any_Class("Example_Animation", {
 			shaders_in_use["G_buf_light_phong"].activate();
 			
 			//Render to screen
-			gl.depthMask(false);
 			shapes_in_use.square.draw(this.shared_scratchpad.graphics_state,new mat4(),aMaterial );
-			
-			//Render transparency. Using alpha test to avoid sorting
-			this.renderTransparent();
-			gl.depthMask(true);
+
 			//cleanup
 			gl.activeTexture(gl.TEXTURE0);
 			gl.bindTexture(gl.TEXTURE_2D, null);
 			gl.enable(gl.BLEND);
+			//Render transparency. Using alpha test to avoid sorting
+			//this.renderTransparent(time);
+			
+			
 
 		}
 		else{
 			shaders_in_use["Default"].activate();
 			gl.clear( gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 			this.renderOpaque(time);
+			this.renderTransparent(time);
 		}
 		
     },
@@ -484,9 +491,8 @@ Declare_Any_Class("Example_Animation", {
 		
 		if(this.t_loop_count == 0)
 		{
-			//On each larger loop, first get a new to_check list
-			var p_heading = 2*Math.PI - Math.acos(this.shared_scratchpad.orientation[0][0]);	//Angle in radians, going CW from -z
-			shapes_in_use.terrain.choose_to_check(this.shared_scratchpad.position, p_heading);
+			//On each larger loop, first get a new to_check list	
+			shapes_in_use.terrain.choose_to_check(this.shared_scratchpad.position, this.shared_scratchpad.orientation);
 			
 			//Next, check all of them
 			shapes_in_use.terrain.check_all();
@@ -538,11 +544,13 @@ Declare_Any_Class("Example_Animation", {
 	},	
 	
 	'renderTransparent': function(time){
-		shaders_in_use["Default"].activate();
-		
+		var graphics_state = this.shared_scratchpad.graphics_state;
+        var grassMat = new Material(Color(0.0,0.0,0.0, 1), .3, .4, .8, 40,"Grass.png"); // Omit the final (string) parameter if you want no texture
+		this.drawGrass(graphics_state,grassMat);
+		shapes_in_use.grassyGnoll.draw(graphics_state,translation(20,20,-50),grassMat);
 	},
 	'renderOpaque': function(time){
-		var graphics_state = this.shared_scratchpad.graphics_state,
+		var graphics_state = this.shared_scratchpad.graphics_state;
             model_transform = mat4();
         
         graphics_state.lights = [];
@@ -568,8 +576,11 @@ Declare_Any_Class("Example_Animation", {
 		this.draw_terrain(graphics_state, current_orientation);
 		
 		// draw collectable
-		this.drawCollectables(graphics_state, collectableMaterial); //HACK FIX. <- make collectables a class and/or interface for object oriented happiness :D
+		this.drawCollectables(graphics_state, collectableMaterial); 
 		
+		//this.drawGrass(graphics_state, collectableMaterial);
+		
+
 		// draw grass
 		this.drawGrass(graphics_state, collectableMaterial);
 
