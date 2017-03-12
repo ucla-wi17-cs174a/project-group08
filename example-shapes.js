@@ -115,26 +115,83 @@ Declare_Any_Class("Imported_Object",
 		rawFile.send(null);
 	}
 }, Shape)
-/*
-function readTextFile()
-{
-    var rawFile = new XMLHttpRequest();
-    rawFile.open("GET", "./test.txt");
-    rawFile.onreadystatechange = function ()
-    {
-        if(rawFile.readyState === 4)
-        {
-            if(rawFile.status === 200 || rawFile.status == 0)
-            {
-                var allText = rawFile.responseText.split("\n");
-                for(var i = 0; i < allText.length; i++)
-					console.log("hello");
-            }
-        }
-    }
-    rawFile.send(null);
-}
-*/
+
+Declare_Any_Class( "Collection_Object",      // A subdivision surface ( Wikipedia ) is initially simple, then builds itself into a more and more detailed shape of the same 
+  {                                           // layout.  Each act of subdivision makes it a better approximation of some desired mathematical surface by projecting each new 
+                                              // point onto that surface's known implicit equation.  For a sphere, we begin with a closed 3-simplex (a tetrahedron).  For 
+                                              // each face, connect the midpoints of each edge together to make more faces.  Repeat recursively until the desired level of 
+    populate: function ( file_name, x, y, z )   // detail is obtained.  Project all new vertices to unit vectors (onto the unit sphere) and group them into triangles by 
+      {                                       // following the predictable pattern of the recursion.
+        this.collected = false;
+		this.touched = false;
+		this.x = x;
+		this.y = y;
+		this.z = z;
+		this.rotation = 0;
+		
+       		var allText;
+		var rawFile = new XMLHttpRequest();
+		var tempthis = this;
+		// .obj files start indicies at 1, so these are placeholders
+
+		rawFile.open("GET", "./" + file_name, false);
+		rawFile.onreadystatechange = (function ()
+		{
+			if(rawFile.readyState === 4)
+			{
+				if(rawFile.status === 200 || rawFile.status == 0)
+				{
+					allText = rawFile.responseText.split("\n");
+					for(var i = 0; i < allText.length; i++)
+					{
+						// process the file line by line
+						var divided = allText[i].split(" ");
+						if (divided[0] == "mtllib")
+						{
+							// how to handle mtllib
+						}
+						else if (divided[0] == "usemtl")
+						{
+							// how to handle usemtl
+						}
+						else if(divided[0] == "v")
+						{
+							tempthis.positions.push(vec3(parseFloat(divided[1]),parseFloat(divided[2]),parseFloat(divided[3])));
+						}
+						else if(divided[0] == "vt")
+						{
+							tempthis.texture_coords.push(vec2(parseFloat(divided[1]),parseFloat(divided[2])));
+						}
+						else if(divided[0] == "vn")
+						{
+							tempthis.normals.push(vec3(parseFloat(divided[1]),parseFloat(divided[2]),parseFloat(divided[3])));
+						}
+						else if(divided[0] == "vp")
+						{
+							// none
+						}
+						else if(divided[0] == "f")
+						{
+							for(var j = 1; j < divided.length; j++)
+							{/*
+								//tempthis.indices.push(parseFloat(divided[j]));
+								var temp = divided[j].split("/");
+								tempthis.indices.push(parseFloat(temp[0]));*/
+							}
+						}
+					}
+					for (var i = 0; i < tempthis.positions.length; i++)
+					{
+						tempthis.texture_coords.push(vec2(0,1));
+						tempthis.indices.push(i);
+					}
+				}
+			}
+		});
+		rawFile.send(null);
+      }
+  }, Shape )
+
 // *********** SQUARE ***********
 Declare_Any_Class( "Square",    // A square, demonstrating shared vertices.  On any planar surface, the interior edges don't make any important seams.
   { 'populate': function()      // In these cases there's no reason not to re-use values of the common vertices between triangles.  This makes all the
