@@ -390,9 +390,9 @@ Declare_Any_Class("Example_Animation", {
 		
 		if(this.t_loop_count == 0)
 		{
+			console.log(this.shared_scratchpad.orientation);
 			//On each larger loop, first get a new to_check list
-			var p_heading = 2*Math.PI - Math.acos(this.shared_scratchpad.orientation[0][0]);	//Angle in radians, going CW from -z
-			shapes_in_use.terrain.choose_to_check(this.shared_scratchpad.position, p_heading);
+			shapes_in_use.terrain.choose_to_check(this.shared_scratchpad.position, this.shared_scratchpad.orientation);
 			
 			//Next, check all of them
 			shapes_in_use.terrain.check_all();
