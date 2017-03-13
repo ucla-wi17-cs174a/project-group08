@@ -1,5 +1,5 @@
 
-var RES_RATIO = 16;	
+var RES_RATIO = 8;	
 var RES = 4;
 
 
@@ -700,7 +700,7 @@ Declare_Any_Class("Example_Animation", {
 		
 		graphics_state.lights.push(new Light(spotLoc14, Color(0, 0, 4, 1), 100));
         graphics_state.lights.push(new Light(spotLoc24, Color(4, 0, 0, 1), 100));
-		console.log("1: ", spotLoc14, " 2: ", spotLoc24);
+		//console.log("1: ", spotLoc14, " 2: ", spotLoc24);
         graphics_state.lights.push(new Light(vec4(-10, 10, 0, 1), Color(1, 1, 1, 1), 1000));
 		graphics_state.lights.push(new Light(vec4(2.0, 1.0, 0.0, 0.0), Color(1, 1, .7, 1), -1000*(t%2)));
 		graphics_state.lights.push(new Light(vec4(-10, 10, -100, 1), Color(1, 0, 0, 1), 5000));
