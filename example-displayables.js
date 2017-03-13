@@ -6,9 +6,9 @@ var RES = 4;
 var DRAW_DIST = 2;
 var DIR_DRAW_DIST = 1;
 var LOW_DRAW_DIST = 3;
-var LOW_DIR_DRAW_DIST = 1;
+var LOW_DIR_DRAW_DIST = 2;
 
-var DRAW_CT = 1;	//How many blocks to draw per loop
+var DRAW_CT = 4;	//How many blocks to draw per loop
 
 var WORLD_SIZE = 16384;
 var WORLD_HEIGHT = 64;
@@ -515,8 +515,7 @@ Declare_Any_Class("Example_Animation", {
 		gl.bindTexture(gl.TEXTURE_2D, textures_in_use["ZTEX.png"].id);
 		// var landMaterial = new Material(Color(0.4, 0.4, .4, 1), .6, .8, .4, 4,"FAKE.CHICKEN");	//Just a placeholder for now
 		var landMaterial = new Material(Color(0.8, 0.5, 0.1, 1), .1, .8, .1, 80);	//Just a placeholder for now
-		
-		
+		var terrain_made_check = false;
 
 		if(this.t_loop_count == 0)
 		{
@@ -525,13 +524,11 @@ Declare_Any_Class("Example_Animation", {
 			//Next, check all of them
 			this.geom_changed = shapes_in_use.terrain.check_all();
 			//Now, purge old, unused geometry:
-			var counter = 0;
+			var counter = 0;			
 			while(shapes_in_use.terrain.all_geom.length >= ((DRAW_DIST*2+1)*((DRAW_DIST*2+1)+DIR_DRAW_DIST)*8 + (LOW_DRAW_DIST*2+1)*((LOW_DRAW_DIST*2+1)+LOW_DIR_DRAW_DIST))*3)	//Want that value as small as possible without causing issues
 			{
-				
 				if(shapes_in_use.terrain.all_geom[0].checked == 5 || shapes_in_use.terrain.all_geom[0].checked == 3)
-				{
-					//console.log("here?");
+				{					
 					shapes_in_use.terrain.all_geom[0].contents = new Node_contents;
 					shapes_in_use.terrain.all_geom[0].checked = 3;
 					shapes_in_use.terrain.all_geom[0].collectables = [];
@@ -544,15 +541,14 @@ Declare_Any_Class("Example_Animation", {
 					shapes_in_use.terrain.all_geom.shift();
 				}
 				counter++;
-				if(counter >= 600)
+				if(counter >= ((DRAW_DIST*2+1)*((DRAW_DIST*2+1)+DIR_DRAW_DIST)*8 + (LOW_DRAW_DIST*2+1)*((LOW_DRAW_DIST*2+1)+LOW_DIR_DRAW_DIST))*3)
 				{					
 					console.log("Need more old geometry saved");	//Also a good indicator that the number needs to increase
 					counter = 0;
 					break;	//So we don't get stuck in an infinite loop
 				}
-			}
-			
-			
+			}			
+									
 		}
 		else
 		{
@@ -564,29 +560,39 @@ Declare_Any_Class("Example_Animation", {
 					shapes_in_use.terrain.populate_CPU(shapes_in_use.terrain.to_create[i]);	//Generate that block's terrain
 				else
 				{
-					
-					//All the new geometry is drawn, yay!
-					if(this.geom_changed)	//Don't bother doing all this if nothing changed
-					{
-						for(var i = 0; i < shapes_in_use.terrain.to_draw.length; i++)
-						{
-							shapes_in_use.terrain.to_draw[i].checked = 5;	//It can be purged now
-						}							
-						shapes_in_use.terrain.to_draw = shapes_in_use.terrain.to_draw_new;	//Now we draw the new geometry						
-						for(var i = 0; i < shapes_in_use.terrain.to_draw_new.length; i++)
-						{
-							shapes_in_use.terrain.all_geom.push(shapes_in_use.terrain.to_draw_new[i]);
-							shapes_in_use.terrain.to_draw_new[i].checked = 4;
-						}							
-						this.geom_changed = false;
-					}
-					shapes_in_use.terrain.to_draw_new = []; //Reset it for the next loop
-					shapes_in_use.terrain.to_create = [];
-					this.t_loop_count = -1;	//Because we increment it later
+					terrain_made_check = true;
 					break;
 				}
-				
 			}
+			
+			if(terrain_made_check == true)
+			{				
+				//All the new geometry is drawn, yay!
+				// if(this.geom_changed)	//Don't bother doing all this if nothing changed
+				// {
+					//console.log(this.t_loop_count, shapes_in_use.terrain.to_draw.length)
+				for(var i = 0; i < shapes_in_use.terrain.to_draw.length; i++)
+				{
+					shapes_in_use.terrain.to_draw[i].checked = 5;	//It can be purged now
+				}							
+				shapes_in_use.terrain.to_draw = shapes_in_use.terrain.to_draw_new;	//Now we draw the new geometry	
+				
+				for(var i = 0; i < shapes_in_use.terrain.to_draw_new.length; i++)
+				{
+					shapes_in_use.terrain.to_draw_new[i].checked = 4;
+					if(shapes_in_use.terrain.to_draw_new[i].added_to_all == false)
+					{
+						shapes_in_use.terrain.all_geom.push(shapes_in_use.terrain.to_draw_new[i]);
+						shapes_in_use.terrain.to_draw_new[i].added_to_all = true;
+					}
+					
+				}							
+				this.geom_changed = false;
+				//}
+				shapes_in_use.terrain.to_draw_new = []; //Reset it for the next loop
+				shapes_in_use.terrain.to_create = [];
+				this.t_loop_count = -1;	//Because we increment it later
+			}							
 		}
 		//Draw everything, as usual
 		for(var i = 0; i < shapes_in_use.terrain.to_draw.length; i++)
@@ -683,7 +689,9 @@ Declare_Any_Class("Example_Animation", {
 		// draw grass
 		this.drawGrass(graphics_state, grassMat);
 		
-		//shapes_in_use.terrain.water_shape.draw(graphics_state, model_transform, water_material);
+
+		this.drawWater(graphics_state, model_transform, water_material);
+
 		// make camera follow the plane
 		this.drawCamera(graphics_state, current_orientation);
 

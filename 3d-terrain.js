@@ -68,7 +68,7 @@ function f_density(ws)	//Positive corresponds to ground
 	dens += ampl3*perlin(ws[0]*freq3[0], ws[1]*freq3[1], ws[2]*freq3[2]);
 	dens += ampl4*perlin(ws[0]*freq4[0], ws[1]*freq4[1], ws[2]*freq4[2]);
 	dens += ampl5*perlin(ws[0]*freq5[0], ws[1]*freq5[1], ws[2]*freq5[2]);
-	// dens += ampl6*perlin(ws[0]*freq6[0], ws[1]*freq6[1], ws[2]*freq6[2]);			
+	dens += ampl6*perlin(ws[0]*freq6[0], ws[1]*freq6[1], ws[2]*freq6[2]);			
 	/*Soft floor:*/
 	var soft_floor = 5;
 	if(ws[1] < soft_floor)
@@ -88,29 +88,29 @@ function f_density(ws)	//Positive corresponds to ground
 	
 	
 	//Canyons, kind of
-	ws = vec3(ws[0], ws[1], ws[2]+12*Math.sin(0.05*ws[0]));
-	var dens = -ws[1] + 4;
-	var freq0 = vec3(0.016, 0.012, 0.016);
-	var freq1 = vec3(0.036, 0.026, 0.041);
-	var freq2 = vec3(0.046, 0.026, 0.026);
-	var freq3 = vec3(0.066, 0.046, 0.056);
-	var freq4 = vec3(0.091, 0.131, 0.111);
-	var freq5 = vec3(0.191, 0.291, 0.191);
-	var freq6 = vec3(0.291, 0.391, 0.291);
-	var ampl0 = 128;
-	var ampl1 = 84;
-	var ampl2 = 42;
-	var ampl3 = 21;
-	var ampl4 = 8;
-	var ampl5 = 4;
-	var ampl6 = 3;
-	dens += ampl0*perlin(ws[0]*freq0[0], ws[1]*freq0[1], ws[2]*freq0[2]);
-	dens += ampl1*perlin(ws[0]*freq1[0], ws[1]*freq1[1], ws[2]*freq1[2]);
-	dens += ampl2*perlin(ws[0]*freq2[0], ws[1]*freq2[1], ws[2]*freq2[2]);
-	dens += ampl3*perlin(ws[0]*freq3[0], ws[1]*freq3[1], ws[2]*freq3[2]);
-	dens += ampl4*perlin(ws[0]*freq4[0], ws[1]*freq4[1], ws[2]*freq4[2]);
-	dens += ampl5*perlin(ws[0]*freq5[0], ws[1]*freq5[1], ws[2]*freq5[2]);
-	dens += ampl6*perlin(ws[0]*freq6[0], ws[1]*freq6[1], ws[2]*freq6[2]);
+	// ws = vec3(ws[0], ws[1], ws[2]+12*Math.sin(0.05*ws[0]));
+	// var dens = -ws[1] + 4;
+	// var freq0 = vec3(0.016, 0.012, 0.016);
+	// var freq1 = vec3(0.036, 0.026, 0.041);
+	// var freq2 = vec3(0.046, 0.026, 0.026);
+	// var freq3 = vec3(0.066, 0.046, 0.056);
+	// var freq4 = vec3(0.091, 0.131, 0.111);
+	// var freq5 = vec3(0.191, 0.291, 0.191);
+	// var freq6 = vec3(0.291, 0.391, 0.291);
+	// var ampl0 = 96;
+	// var ampl1 = 64;
+	// var ampl2 = 25;
+	// var ampl3 = 8;
+	// var ampl4 = 8;
+	// var ampl5 = 4;
+	// var ampl6 = 3;
+	// dens += ampl0*perlin(ws[0]*freq0[0], ws[1]*freq0[1], ws[2]*freq0[2]);
+	// dens += ampl1*perlin(ws[0]*freq1[0], ws[1]*freq1[1], ws[2]*freq1[2]);
+	// dens += ampl2*perlin(ws[0]*freq2[0], ws[1]*freq2[1], ws[2]*freq2[2]);
+	// dens += ampl3*perlin(ws[0]*freq3[0], ws[1]*freq3[1], ws[2]*freq3[2]);
+	// dens += ampl4*perlin(ws[0]*freq4[0], ws[1]*freq4[1], ws[2]*freq4[2]);
+	// dens += ampl5*perlin(ws[0]*freq5[0], ws[1]*freq5[1], ws[2]*freq5[2]);
+	// dens += ampl6*perlin(ws[0]*freq6[0], ws[1]*freq6[1], ws[2]*freq6[2]);
 	
 	
 	
@@ -406,14 +406,14 @@ Declare_Any_Class( "Terrain",
 					ntriang = new_ntriang;
 				}
 				
-		node.checked = 4;	//Set it as "drawn"
+		node.checked = 3;	//Set it as "drawn"
 		
 		//Now create the collectables
-		for(var i = 0; i < 3; i++)	//Give up after some number of tries
+		for(var i = 0; i < 1; i++)	//Give up after some number of tries
 		{
 			var check_pos = vec3(node.coords[0]+c_size*Math.random(), node.coords[1]+c_size*Math.random(), node.coords[2]+c_size*Math.random());
 			var check_pos_dens = f_density(check_pos);
-			if(check_pos_dens < -4 && check_pos_dens > -8)
+			if(check_pos_dens < -4 && check_pos_dens > -5)
 			{
 				node.collectables.push(new Collection_Object(this.collection_object_shell, vec3(check_pos[0], check_pos[1], check_pos[2])));
 				node.collectables.push(new Collection_Object(this.collection_object_shell_twirl, vec3(check_pos[0], check_pos[1], check_pos[2])));
@@ -1427,6 +1427,7 @@ function Node(coords, size, base) {	//To make a new tree, put in (vec3(-size/2,-
 	this.contents = new Node_contents;	//Add a terrain to this when it's generated
 	this.collectables = [];	//List of the block's collectables
 	this.cleared = false;
+	this.added_to_all = false;
 }
 
 function Node_find(loc, size, node, base)	//This size is the goal size - for the current size, use node.size
