@@ -3,7 +3,7 @@ normals = []
 textures = []
 indices = []
 
-with open('Grass.obj') as fp:
+with open('Gate.obj') as fp:
 	for line in fp:
 		if(line[0] == 'v'):
 			if(line[1] == 'n'):
@@ -15,6 +15,7 @@ with open('Grass.obj') as fp:
 		elif(line[0] == 'f'):
 			indices.append(line)
 	
+num_vertices = 1;
 # read each indices and add to new.obj
 f = open("new.obj", 'w')
 for line in indices:
@@ -22,17 +23,24 @@ for line in indices:
 	temp = split_line[1]
 	split_single = temp.split('/')
 	f.write(vertices[int(split_single[0])-1])
-	f.write(textures[int(split_single[1])-1])
+	if(not split_single[1]) 
+		f.write(textures[int(split_single[1])-1])
 	f.write(normals[int(split_single[2])-1])
+
 	temp = split_line[2]
 	split_single = temp.split('/')
 	f.write(vertices[int(split_single[0])-1])
 	f.write(textures[int(split_single[1])-1])
 	f.write(normals[int(split_single[2])-1])
+
 	temp = split_line[3]
 	split_single = temp.split('/')
 	f.write(vertices[int(split_single[0])-1])
 	f.write(textures[int(split_single[1])-1])
 	f.write(normals[int(split_single[2])-1])
+	
+	write_string = 'f' + num_vertices + '/' + num_vertices + '/' + num_vertices + ' ' +  (num_vertices+1) + '/' + (num_vertices+1) + '/' + (num_vertices+1) + ' ' (num_vertices+2) + '/' + (num_vertices+2) + '/' + (num_vertices+2)
+	f.write(write_string) 
+	num_vertices += 3
 		
 f.close()

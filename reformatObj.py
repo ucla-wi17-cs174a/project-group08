@@ -15,6 +15,7 @@ with open('Grass.obj') as fp:
 		elif(line[0] == 'f'):
 			indices.append(line)
 	
+num_vertices = 1;
 # read each indices and add to new.obj
 f = open("new.obj", 'w')
 for line in indices:
@@ -24,15 +25,23 @@ for line in indices:
 	f.write(vertices[int(split_single[0])-1])
 	f.write(textures[int(split_single[1])-1])
 	f.write(normals[int(split_single[2])-1])
+
 	temp = split_line[2]
 	split_single = temp.split('/')
 	f.write(vertices[int(split_single[0])-1])
 	f.write(textures[int(split_single[1])-1])
 	f.write(normals[int(split_single[2])-1])
+
 	temp = split_line[3]
 	split_single = temp.split('/')
 	f.write(vertices[int(split_single[0])-1])
 	f.write(textures[int(split_single[1])-1])
 	f.write(normals[int(split_single[2])-1])
+	f.write('f' + num_vertices + '/' + num_vertices + '/' + num_vertices) 
+	num_vertices += 1
+	
+	write_string = 'f' + num_vertices + '/' + num_vertices + '/' + num_vertices + ' ' +  num_vertices++ + '/' + num_vertices++ + '/' + num_vertices++ + ' ' num_vertices+2 + '/' + num_vertices+2 + '/' + num_vertices+2
+	f.write(write_string) 
+	num_vertices += 3
 		
 f.close()
