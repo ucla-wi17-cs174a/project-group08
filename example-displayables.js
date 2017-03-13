@@ -82,6 +82,10 @@ Declare_Any_Class( "Debug_Screen",
 			model_transform = mult(translation(0, -0.08, 0), model_transform);
 			shapes_in_use.debug_text.set_string("SPEED:    Z - /");
 			shapes_in_use.debug_text.draw( this.graphics_state, model_transform, true, vec4(0,0,0,1) );
+			
+			model_transform = mult(translation(0, -0.08, 0), model_transform);
+			shapes_in_use.debug_text.set_string("HEADLIGHT:L");
+			shapes_in_use.debug_text.draw( this.graphics_state, model_transform, true, vec4(0,0,0,1) );
 
 			model_transform = mult(translation(0, -0.08, 0), model_transform);
 			shapes_in_use.debug_text.set_string("NEW GAME: ENTER");
@@ -94,11 +98,41 @@ Declare_Any_Class( "Debug_Screen",
 			model_transform = mult( translation( -.95, -.9, 0 ), font_scale );
 
 			// draw the text box
-			shapes_in_use.debug_text.set_string("Collected: " + this.numCollected.toString() );
+			shapes_in_use.debug_text.set_string("COLLECTED: " + this.numCollected.toString() );
 			shapes_in_use.debug_text.draw( this.graphics_state, model_transform, true, vec4(0,0,0,1) );
 			
 			shapes_in_use.debug_text.set_string("FPS: " + this.FPS);
 			model_transform = mult( translation( 0, .08, 0 ), model_transform );
+			shapes_in_use.debug_text.draw( this.graphics_state, model_transform, true, vec4(0,0,0,1) );
+			
+			// draw controls
+			model_transform = mat3();
+			model_transform = mult(translation(0.5, 0.9, 0), font_scale);
+			shapes_in_use.debug_text.set_string("CONTROLS");
+			shapes_in_use.debug_text.draw(this.graphics_state, model_transform, true, vec4(0,0,0,1));
+			
+			model_transform = mult(translation(0, -0.08, 0), model_transform);
+			shapes_in_use.debug_text.set_string("YAW:      ARROWS");
+			shapes_in_use.debug_text.draw( this.graphics_state, model_transform, true, vec4(0,0,0,1) );
+			
+			model_transform = mult(translation(0, -0.08, 0), model_transform);
+			shapes_in_use.debug_text.set_string("PITCH:    ARROWS");
+			shapes_in_use.debug_text.draw( this.graphics_state, model_transform, true, vec4(0,0,0,1) ); 
+			
+			model_transform = mult(translation(0, -0.08, 0), model_transform);
+			shapes_in_use.debug_text.set_string("ROLL:     G ; H");
+			shapes_in_use.debug_text.draw( this.graphics_state, model_transform, true, vec4(0,0,0,1) );
+		
+			model_transform = mult(translation(0, -0.08, 0), model_transform);
+			shapes_in_use.debug_text.set_string("SPEED:    Z - .");
+			shapes_in_use.debug_text.draw( this.graphics_state, model_transform, true, vec4(0,0,0,1) );
+			
+			model_transform = mult(translation(0, -0.08, 0), model_transform);
+			shapes_in_use.debug_text.set_string("HEADLIGHT:L");
+			shapes_in_use.debug_text.draw( this.graphics_state, model_transform, true, vec4(0,0,0,1) );
+
+			model_transform = mult(translation(0, -0.08, 0), model_transform);
+			shapes_in_use.debug_text.set_string("NEW GAME: ENTER");
 			shapes_in_use.debug_text.draw( this.graphics_state, model_transform, true, vec4(0,0,0,1) );
 	    }
 		else if(this.gameState == "end")
@@ -183,6 +217,8 @@ Declare_Any_Class("Example_Animation", {
 		
 		this.shared_scratchpad.camera_extra_pitch = 0;
 		this.shared_scratchpad.camera_extra_heading = 0;
+		
+		this.shared_scratchpad.headlight_on = false;
     },
     'init_keys': function(controls) {
 		controls.add("enter", this, function() {
@@ -219,6 +255,10 @@ Declare_Any_Class("Example_Animation", {
 				this.shared_scratchpad.numCollected = 0;
 			}
 		});
+		controls.add("l", this, function() {
+            this.shared_scratchpad.headlight_on = !this.shared_scratchpad.headlight_on;
+        });
+
         controls.add("up", this, function() {
             this.shared_scratchpad.pitch_change = 0.6;
         });
@@ -698,9 +738,11 @@ Declare_Any_Class("Example_Animation", {
 		var spotLoc14 = vec4(spotLoc[0],spotLoc[1],spotLoc[2],1);
 
 		
-		graphics_state.lights.push(new Light(spotLoc14, Color(0, 0, 4, 1), 100));
-        graphics_state.lights.push(new Light(spotLoc24, Color(4, 0, 0, 1), 100));
-		console.log("1: ", spotLoc14, " 2: ", spotLoc24);
+		if(this.shared_scratchpad.headlight_on)
+		{
+			graphics_state.lights.push(new Light(spotLoc14, Color(0, 0, 4, 1), 100));
+			graphics_state.lights.push(new Light(spotLoc24, Color(4, 0, 0, 1), 100));
+		}
         graphics_state.lights.push(new Light(vec4(-10, 10, 0, 1), Color(1, 1, 1, 1), 1000));
 		graphics_state.lights.push(new Light(vec4(2.0, 1.0, 0.0, 0.0), Color(1, 1, .7, 1), -1000*(t%2)));
 		graphics_state.lights.push(new Light(vec4(-10, 10, -100, 1), Color(1, 0, 0, 1), 5000));
