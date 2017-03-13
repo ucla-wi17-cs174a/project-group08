@@ -835,15 +835,12 @@ Declare_Any_Class("Example_Animation", {
 				{
 					var model_transform = mat4();
 					model_transform = mult(model_transform, translation(cur_collection.x, cur_collection.y, cur_collection.z));
-					var coll_dir = normalize(cross(vec3(0,1,0),find_grad(vec3(cur_collection.x, cur_collection.y, cur_collection.z))));
 					if(i % 2 == 1)
 					{
 						cur_collection.rotation += 1;						
-						model_transform = mult(model_transform, rotation(90,coll_dir[0],coll_dir[1],coll_dir[2]));
 						model_transform = mult(model_transform, rotation(cur_collection.rotation, 0, 0, 1));
 					}
-					if(i % 2 == 0)
-						model_transform = mult(model_transform, rotation(90,coll_dir[0],coll_dir[1],coll_dir[2]));
+					
 					model_transform = mult(model_transform, rotation(90,1,0,0));
 					model_transform = mult(model_transform, scale(2,2,2));
 					
@@ -856,15 +853,11 @@ Declare_Any_Class("Example_Animation", {
 			{
 					var model_transform = mat4();
 					model_transform = mult(model_transform, translation(cur_collection.x, cur_collection.y, cur_collection.z));
-					var coll_dir = normalize(cross(vec3(0,1,0),find_grad(vec3(cur_collection.x, cur_collection.y, cur_collection.z))));
 					if(i % 2 == 1)
 					{
 						cur_collection.rotation += 1;
-						model_transform = mult(model_transform, rotation(90,coll_dir[0],coll_dir[1],coll_dir[2]));
 						model_transform = mult(model_transform, rotation(cur_collection.rotation, 0, 0, 1));						
 					}
-					if(i % 2 == 0)
-						model_transform = mult(model_transform, rotation(90,coll_dir[0],coll_dir[1],coll_dir[2]));
 					model_transform = mult(model_transform, rotation(90,1,0,0));
 					model_transform = mult(model_transform, scale(2,2,2));
 					cur_collection.draw(graphics_state, model_transform, collectedMaterial);
@@ -937,15 +930,15 @@ Declare_Any_Class("Example_Animation", {
 		var left_transition = new mat4();
 		left_transition = mult(left_transition, translation(this.shared_scratchpad.position[0], this.shared_scratchpad.position[1], this.shared_scratchpad.position[2]));
 		left_transition = mult(left_transition, this.shared_scratchpad.orientation);
-		left_transition = mult(left_transition, translation(-0.775, 0, 0.75));
-		left_transition = mult(left_transition, scale(0.15, 0.15, 0.15));
+		left_transition = mult(left_transition, translation(-0.775, 0, 0.89));
+		left_transition = mult(left_transition, scale(0.2, 0.2, 0.2));
 		shapes_in_use.engineLeft.draw(graphics_state, left_transition, engine_material);
 		
 		var right_transition = new mat4();
 		right_transition = mult(right_transition, translation(this.shared_scratchpad.position[0], this.shared_scratchpad.position[1], this.shared_scratchpad.position[2]));
 		right_transition = mult(right_transition, this.shared_scratchpad.orientation);
-		right_transition = mult(right_transition, translation(0.775, 0, 0.75));
-		right_transition = mult(right_transition, scale(0.15, 0.15, 0.15));
+		right_transition = mult(right_transition, translation(0.775, 0, 0.89));
+		right_transition = mult(right_transition, scale(0.2, 0.2, 0.2));
 		shapes_in_use.engineRight.draw(graphics_state, right_transition, engine_material);
 		
 		var transition = new mat4();
