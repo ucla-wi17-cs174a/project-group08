@@ -14,7 +14,9 @@ var WORLD_SIZE = 16384;
 var WORLD_HEIGHT = 64;
 
 var SPEED_INC = .01;
-var DEFERRED = false;
+var DEFERRED = true;
+var old=0;
+var checkT = false;
 
 // Create the textbox
 Declare_Any_Class( "Debug_Screen",
@@ -447,15 +449,14 @@ Declare_Any_Class("Example_Animation", {
 	},
     
 	'display': function(time) {
-		
+
 		var aMaterial = new Material(Color(0.4, 0.5, 0, 1.0), .6, .8, .4, 4,"FAKE.CHICKEN");	//Just a placeholder for now
 		var skyMat = new Material(Color(0.0,0.0,0.0,1.0), 1.0, 0.0, 0.0, 0.0, "SkyTex.png");
-		
 		shaders_in_use["Default"].activate();
 		gl.clear( gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 		shapes_in_use.skybox.draw(this.shared_scratchpad.graphics_state,this.sbtrans, skyMat);
 		gl.clear(gl.DEPTH_BUFFER_BIT);
-			
+
 		if(DEFERRED){
 			////bind GBuffer and disable transparency
 			this.GBuffer.activate();
@@ -478,7 +479,7 @@ Declare_Any_Class("Example_Animation", {
 			
 			//Render to screen
 			shapes_in_use.square.draw(this.shared_scratchpad.graphics_state,new mat4(),aMaterial );
-
+			checkT = false;
 			//cleanup
 			gl.activeTexture(gl.TEXTURE0);
 			gl.bindTexture(gl.TEXTURE_2D, null);
