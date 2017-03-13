@@ -1,3 +1,8 @@
+NAMES
+Paul Kim 	- 504274994
+Iyal Suresh - 104277517
+Kenzo Neff	- 104280567
+
 DESCRIPTION
 Flight simulator developed on WebGL. The plane can be controlled using either the keyboard or a joystick. The main goal of the game is to fly through gates (collecting points) 
 without crashing into the map. The map is autogenerating using an isosurface of a 3D noise function and the collectable objects are generated to be near the physical map. When you fly
