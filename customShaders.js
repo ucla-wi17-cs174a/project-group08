@@ -621,7 +621,7 @@ Declare_Any_Class( "G_buf_gen_phong",
 			vec4 fMatl = texture2D( matl, fTexCoord );
 			vec4 inPosxy = texture2D(posxy,fTexCoord);
 			vec4 inPosz = texture2D(posz, fTexCoord);
-			 vec3 N = texture2D(norm, fTexCoord).xyz;
+			vec3 N = texture2D(norm, fTexCoord).xyz;
 			N = (N-.5)*2.0;
 			N = normalize(N);
 			//N.a = 1.0;
