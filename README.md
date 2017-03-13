@@ -32,10 +32,11 @@ ADVANCED TOPICS
 	small artifacts from the intermediate step due to not being able to write float values to the intermediate texture. For the most part these artifacts are not noticeable when playing the game.
 	Note: As it happens, our program is limited by javascript/cpu performance far more than lighting on the GPU.
 - Volumentic Rendering:
-
-TEXTURING
-- Skybox:
-- 
+	Generates a 3D noise function using Perlin noise to generate interesting terrain.
+	In order to generate the terrain, an isosurface of the noise function is taken by applying the marching cubes algorithm, which outputs all the geometry.
+	The terrain is currently created on the CPU in javascript, but the setup for calculating the noise function using the GPU is present. Basically, the Perlin noise is calculated in the fragment
+	shader, and the resulting texture is read in as an array of noise values. The marching cubes algorithm is then applied using those values. While it was mostly functional, it was significantly
+	slower than generating the density values in javascript, probably due either to bugs or inefficiency in sending the data between javascript and the GPU.
 
 OTHER
 - Assets:

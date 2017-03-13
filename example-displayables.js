@@ -835,15 +835,12 @@ Declare_Any_Class("Example_Animation", {
 				{
 					var model_transform = mat4();
 					model_transform = mult(model_transform, translation(cur_collection.x, cur_collection.y, cur_collection.z));
-					var coll_dir = normalize(cross(vec3(0,1,0),find_grad(vec3(cur_collection.x, cur_collection.y, cur_collection.z))));
 					if(i % 2 == 1)
 					{
 						cur_collection.rotation += 1;						
-						model_transform = mult(model_transform, rotation(90,coll_dir[0],coll_dir[1],coll_dir[2]));
 						model_transform = mult(model_transform, rotation(cur_collection.rotation, 0, 0, 1));
 					}
-					if(i % 2 == 0)
-						model_transform = mult(model_transform, rotation(90,coll_dir[0],coll_dir[1],coll_dir[2]));
+					
 					model_transform = mult(model_transform, rotation(90,1,0,0));
 					model_transform = mult(model_transform, scale(2,2,2));
 					
@@ -856,15 +853,11 @@ Declare_Any_Class("Example_Animation", {
 			{
 					var model_transform = mat4();
 					model_transform = mult(model_transform, translation(cur_collection.x, cur_collection.y, cur_collection.z));
-					var coll_dir = normalize(cross(vec3(0,1,0),find_grad(vec3(cur_collection.x, cur_collection.y, cur_collection.z))));
 					if(i % 2 == 1)
 					{
 						cur_collection.rotation += 1;
-						model_transform = mult(model_transform, rotation(90,coll_dir[0],coll_dir[1],coll_dir[2]));
 						model_transform = mult(model_transform, rotation(cur_collection.rotation, 0, 0, 1));						
 					}
-					if(i % 2 == 0)
-						model_transform = mult(model_transform, rotation(90,coll_dir[0],coll_dir[1],coll_dir[2]));
 					model_transform = mult(model_transform, rotation(90,1,0,0));
 					model_transform = mult(model_transform, scale(2,2,2));
 					cur_collection.draw(graphics_state, model_transform, collectedMaterial);
