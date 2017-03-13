@@ -253,14 +253,14 @@ Declare_Any_Class("Example_Animation", {
 					shapes_in_use.collection_object[i].touched = false;
 				}
 				this.shared_scratchpad.numCollected = 0;
-				if(shapes_in_use.terrain)
-				{
-					for(var i = 0; i < shapes_in_use.terrain.to_draw.length; i++)
-					{
-						shapes_in_use.terrain.to_draw[i].collectables = [];
-					}
-					shapes_in_use.terrain.to_draw = [];
-				}
+				// if(shapes_in_use.terrain)
+				// {
+					// for(var i = 0; i < shapes_in_use.terrain.to_draw.length; i++)
+					// {
+						// shapes_in_use.terrain.to_draw[i].collectables = [];
+					// }
+					// shapes_in_use.terrain.to_draw = [];
+				// }
 			}
 		});
 		controls.add("l", this, function() {
