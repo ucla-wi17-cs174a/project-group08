@@ -176,7 +176,7 @@ Declare_Any_Class("Example_Animation", {
 		this.shared_scratchpad.pitch_change = 0; // how much to change pitch
 		this.shared_scratchpad.heading_change = 0; // how much to change heading
 		this.shared_scratchpad.roll_change = 0;
-		this.shared_scratchpad.extra_roll = 1;
+		this.shared_scratchpad.extra_roll = 0;
 		
 		this.shared_scratchpad.orientation = mat4(1); // create identity matrix as orientation
 		this.shared_scratchpad.position = vec3(0,32,0);
@@ -201,7 +201,7 @@ Declare_Any_Class("Example_Animation", {
 				this.shared_scratchpad.pitch_change = 0; // how much to change pitch
 				this.shared_scratchpad.heading_change = 0; // how much to change heading
 				this.shared_scratchpad.roll_change = 0;
-				this.shared_scratchpad.extra_roll = 1;
+				this.shared_scratchpad.extra_roll = 0;
 				
 				this.shared_scratchpad.orientation = mat4(1); // create identity matrix as orientation
 				this.shared_scratchpad.position = vec3(0,32,0);
@@ -642,11 +642,7 @@ Declare_Any_Class("Example_Animation", {
 
 		var current_orientation = this.shared_scratchpad.orientation;
 		// draw plane
-		var dt = graphics_state.animation_delta_time;
-		dt = 16;
-		var planeLocation = this.drawPlane(graphics_state, tetraMaterial,dt);
-		
-
+		var planeLocation = this.drawPlane(graphics_state, tetraMaterial);
 	
 		this.draw_terrain(graphics_state, current_orientation);
 		
@@ -658,7 +654,7 @@ Declare_Any_Class("Example_Animation", {
 		
 		shapes_in_use.terrain.water_shape.draw(graphics_state, model_transform, water_material);
 		// make camera follow the plane
-		this.drawCamera(graphics_state, current_orientation,dt);
+		this.drawCamera(graphics_state, current_orientation);
 
 	
 
@@ -726,22 +722,14 @@ Declare_Any_Class("Example_Animation", {
 			}
 		}
 	},
-	'drawPlane': function(graphics_state, material,dt){
+	'drawPlane': function(graphics_state, material){
 		// draw plane
-		// time since last animation in seconds
-		var time_diff = graphics_state.animation_delta_time/1000;
-		time_diff = dt/1000.0;
-		if(time_diff == 0)
-		{
-			time_diff = 0.001;
-		}
-		var temp_scale = 100; // temporary scaling for testing based on time
 		
 		// change roll based on if yaw is changing
 		
 		// all variables are based on per second
 		var max_roll = 50;
-		var frame_change = 2*time_diff*temp_scale; 
+		var frame_change = 1; 
 		
 		var roll_amount = 0;
 		if(this.shared_scratchpad.heading_change > 0 && this.shared_scratchpad.extra_roll < max_roll)
@@ -771,12 +759,12 @@ Declare_Any_Class("Example_Animation", {
 		
 		var orientation = this.shared_scratchpad.orientation;
 		var pitch = new vec3(orientation[0][0], orientation[1][0], orientation[2][0]); // right
-		pitch = mult_vec_scalar(pitch, this.shared_scratchpad.pitch_change*time_diff*temp_scale);
+		pitch = mult_vec_scalar(pitch, this.shared_scratchpad.pitch_change);
 		var yaw = new vec3(orientation[0][1], orientation[1][1], orientation[2][1]); // up
-		yaw = mult_vec_scalar(yaw, this.shared_scratchpad.heading_change*time_diff*temp_scale);
+		yaw = mult_vec_scalar(yaw, this.shared_scratchpad.heading_change);
 		var roll = new vec3(-1*orientation[0][2], -1*orientation[1][2], -1*orientation[2][2]); //forward
 		var direction = roll;
-		roll = mult_vec_scalar(roll, this.shared_scratchpad.roll_change*time_diff*temp_scale-roll_amount);
+		roll = mult_vec_scalar(roll, this.shared_scratchpad.roll_change-roll_amount);
 		
 		var orientationChange = add(add(pitch, yaw), roll);
 		var angularChange = magnitude(orientationChange); // scalar
@@ -788,8 +776,8 @@ Declare_Any_Class("Example_Animation", {
 			
 			this.shared_scratchpad.orientation = mult( overallChange, this.shared_scratchpad.orientation);
 		}
-		
-		this.shared_scratchpad.position = add(this.shared_scratchpad.position, mult_vec_scalar(normalize(direction), temp_scale*this.shared_scratchpad.speed*time_diff));
+
+		this.shared_scratchpad.position = add(this.shared_scratchpad.position, mult_vec_scalar(normalize(direction), this.shared_scratchpad.speed));
 		
 		var transition = new mat4();
 		transition = mult(transition, translation(this.shared_scratchpad.position[0], this.shared_scratchpad.position[1], this.shared_scratchpad.position[2]));
@@ -801,14 +789,11 @@ Declare_Any_Class("Example_Animation", {
 		return transition;
 		
 	},
-	'drawCamera': function(graphics_state, current_orientation,dt){
+	'drawCamera': function(graphics_state, current_orientation){
 		// get pitch, yaw, and roll of plane. If heading or pitch is changing, exaggerage camera
-		var time_diff = graphics_state.animation_delta_time/1000;
-		time_diff = dt/1000.0;
-		var temp_scale = 100; // temporary scaling for testing based on time
 		var max_change = 1.3;
-		var frame_change_growing = 0.01*time_diff*temp_scale;
-		var frame_change_shrinking = 0.02*time_diff*temp_scale;
+		var frame_change_growing = 0.01;
+		var frame_change_shrinking = 0.02;
 		var orientation = current_orientation;
 		
 		if(this.shared_scratchpad.pitch_change > 0 && this.shared_scratchpad.camera_extra_pitch < max_change)
