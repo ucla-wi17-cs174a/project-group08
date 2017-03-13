@@ -25,7 +25,7 @@ Declare_Any_Class( "Phong_or_Gouraud_Shader",
 
         if( !g_state.lights.length )  return;
         var lightPositions_flattened = [], lightColors_flattened = []; lightAttenuations_flattened = [];
-        for( var i = 0; i < 4 * g_state.lights.length; i++ )
+        for( var i = 0; i < 4 * 2; i++ )
           { lightPositions_flattened                  .push( g_state.lights[ Math.floor(i/4) ].position[i%4] );
             lightColors_flattened                     .push( g_state.lights[ Math.floor(i/4) ].color[i%4] );
             lightAttenuations_flattened[ Math.floor(i/4) ] = g_state.lights[ Math.floor(i/4) ].attenuation;
@@ -116,7 +116,7 @@ Declare_Any_Class( "Phong_or_Gouraud_Shader",
 
           const int N_LIGHTS = 2;
 
-          uniform vec4 lightColor[N_LIGHTS], shapeColor;
+          uniform vec4 lightPosition[N_LIGHTS], lightColor[N_LIGHTS], shapeColor;
           varying vec3 L[N_LIGHTS], H[N_LIGHTS];
           varying float dist[N_LIGHTS];
           varying vec4 VERTEX_COLOR;
@@ -142,10 +142,13 @@ Declare_Any_Class( "Phong_or_Gouraud_Shader",
 			
             for( int i = 0; i < N_LIGHTS; i++ )
             {
-              float attenuation_multiplier = 1.0 / (1.0 + attenuation_factor[i] * (dist[i] * dist[i]));
+			
+			float atFac = attenuation_factor[i] > 0.0 ? attenuation_factor[i] : 0.0;
+
+              float attenuation_multiplier = 1.0 / (1.0 + atFac * (dist[i] * dist[i]));
 
               float diffuse  = max(dot(L[i], N), 0.0001);
-              float specular = pow(max(dot(N, H[i]), 0.0001), shininess);
+              float specular = pow(max(dot(N, H[i]), 0.0001), smoothness);
 
 
               gl_FragColor.xyz += attenuation_multiplier * (shapeColor.xyz * diffusivity * diffuse  + lightColor[i].xyz * shininess * specular );
@@ -153,7 +156,7 @@ Declare_Any_Class( "Phong_or_Gouraud_Shader",
 
             gl_FragColor.a = gl_FragColor.w;
 			//DEBUG DELETE ME PLS
-			//gl_FragColor.xyz = abs(pos/10.0);
+			//gl_FragColor = vec4(lightPosition[0].xyz/20.0,1.0);
 			//DEBUG DELETE ME PLS
 			if(gl_FragColor.a < 0.5)
 				discard;

@@ -365,7 +365,7 @@ Declare_Any_Class( "G_buf_gen_NormalSpray",
 			biasedNorm = .5*biasedNorm+.5;
 			gl_FragData[1] = vec4(biasedNorm,1.0);
 			gl_FragData[0] = shapeColor;
-			gl_FragData[2] = vec4(ambient,diffusivity,shininess,1.0);
+			gl_FragData[2] = vec4(smoothness/255.0,diffusivity,shininess,1.0);
 			vec2 posZ;
 			vec2 posX;
 			vec2 posY;
@@ -380,7 +380,7 @@ Declare_Any_Class( "G_buf_gen_NormalSpray",
 			vec4 zCol = texture2D(zTex,vec2(fTexCoord.x/10.0,fTexCoord.y/5.0));
 			vec3 cVec = abs(colNorm);
 			gl_FragData[0] = vec4(xCol*cVec.x+yCol*cVec.y+zCol*cVec.z);
-			gl_FragData[0].xyz *= .5;
+			gl_FragData[0].a = 1.0;
 			//gl_FragData[0] = vec4(0.0,0.0,0.0,1.0);
 			
 		}
@@ -493,7 +493,7 @@ Declare_Any_Class( "G_buf_gen_phong",
 			//biasedNorm = abs(biasedNorm);
 			gl_FragData[1] = vec4(biasedNorm,1.0);
 			gl_FragData[0] = shapeColor;
-			gl_FragData[2] = vec4(smoothness,diffusivity,shininess,1.0);
+			gl_FragData[2] = vec4(smoothness/255.0,diffusivity,shininess,1.0);
 			vec2 posZ;
 			vec2 posX;
 			vec2 posY;
@@ -532,23 +532,25 @@ Declare_Any_Class( "G_buf_gen_phong",
         gl.uniform1i( g_addrs.COLOR_NORMALS_loc,   g_state.color_normals);
 
         gl.uniform4fv( g_addrs.shapeColor_loc,     material.color       );    // Send a desired shape-wide color to the graphics card
-        gl.uniform1f ( g_addrs.ambient_loc,        material.ambient     );
+        gl.uniform1f ( g_addrs.amb_loc,        		material.ambient     );
         gl.uniform1f ( g_addrs.diffusivity_loc,    material.diffusivity );
         gl.uniform1f ( g_addrs.shininess_loc,      material.shininess   );
         gl.uniform1f ( g_addrs.smoothness_loc,     material.smoothness  );
         gl.uniform1f ( g_addrs.animation_time_loc, g_state.animation_time / 1000 );
 
-        if( !g_state.lights.length )  return;
-        var lightPositions_flattened = [], lightColors_flattened = []; lightAttenuations_flattened = [];
-        for( var i = 0; i < 4 * g_state.lights.length; i++ )
-          { lightPositions_flattened                  .push( g_state.lights[ Math.floor(i/4) ].position[i%4] );
-            lightColors_flattened                     .push( g_state.lights[ Math.floor(i/4) ].color[i%4] );
-            lightAttenuations_flattened[ Math.floor(i/4) ] = g_state.lights[ Math.floor(i/4) ].attenuation;
-          }
-        gl.uniform4fv( g_addrs.lightPosition_loc,       lightPositions_flattened );
-        gl.uniform4fv( g_addrs.lightColor_loc,          lightColors_flattened );
-        gl.uniform1fv( g_addrs.attenuation_factor_loc,  lightAttenuations_flattened );
-		
+		var lightPositions_flattened = [], lightColors_flattened = []; lightAttenuations_flattened = [];
+        if( g_state.lights.length ){
+			for( var i = 0; i < 4 * g_state.lights.length; i++ )
+			  { lightPositions_flattened                  .push( g_state.lights[ Math.floor(i/4) ].position[i%4] );
+				lightColors_flattened                     .push( g_state.lights[ Math.floor(i/4) ].color[i%4] );
+				lightAttenuations_flattened[ Math.floor(i/4) ] = g_state.lights[ Math.floor(i/4) ].attenuation;
+			  }
+			gl.uniform4fv( g_addrs.lightPosition_loc,       lightPositions_flattened );
+			gl.uniform4fv( g_addrs.lightColor_loc,          lightColors_flattened );
+			gl.uniform1fv( g_addrs.attenuation_factor_loc,  lightAttenuations_flattened );
+			
+			gl.uniform1i(g_addrs.NUM_LIGHTS_loc,g_state.lights.length);
+		}
 		gl.uniform1i(g_addrs.col_loc, 0);
 		gl.uniform1i(g_addrs.norm_loc,1);
 		gl.uniform1i(g_addrs.matl_loc, 2);
@@ -593,9 +595,11 @@ Declare_Any_Class( "G_buf_gen_phong",
 			ret = dot( rg, vec2(div,div/256.0) )-fc;
 		}
 	
-		const int MAX_LIGHTS = 2;
+		const int MAX_LIGHTS = 50;
 		const vec4 fogCol = vec4(.5,.5,.5,1.0);
 		varying vec2 fTexCoord;
+		uniform int NUM_LIGHTS;
+		uniform float amb;
 		
 		uniform vec4 lightPosition[MAX_LIGHTS], lightColor[MAX_LIGHTS];
 		uniform float attenuation_factor[MAX_LIGHTS];
@@ -628,25 +632,30 @@ Declare_Any_Class( "G_buf_gen_phong",
 			RGtofloat16(inPosz.rg,zz);
 			vec4 fPos = vec4(xx,yy,zz,1.0);
 			vec3 pos = fPos.xyz;
-			float ambient = .3;
+			float ambient = .15;
 			float diffusivity = fMatl.g;
 			float shininess = fMatl.b;
-			float smoothness = fMatl.r;
+			float smoothness = fMatl.r*255.0;
 			gl_FragColor = vec4(tex_color.rgb * ambient,tex_color.a);
+			vec3 lum = vec3(0.0,0.0,0.0);
 			vec3 E = normalize( -pos );
+			float dist;
              for( int i = 0; i < MAX_LIGHTS; i++ )
              {
 				vec3 L = normalize( ( camera_transform * lightPosition[i] ).xyz - lightPosition[i].w * pos );   // Use w = 0 for a directional light -- a vector instead of a point.
 				vec3 H = normalize( L + E );
-				float dist = distance(fPos,lightPosition[i]);
-				float attenuation_multiplier = 1.0 / (1.0 + attenuation_factor[i] * (dist * dist));
+				dist = lightPosition[i].w > 0.0 ? distance((camera_transform * lightPosition[i]).xyz, pos): 10.0;
+				float atFac = attenuation_factor[i] > 0.0 ? attenuation_factor[i] : 0.0;
+				float attenuation_multiplier = 1.0 / (1.0 + atFac * (dist * dist));
                float diffuse  = max(dot(L, N), 0.0001);
-               float specular = pow(max(dot(N, H), 0.0001), shininess);
+               float specular = pow(max(dot(N, H), 0.0001), smoothness);
 
-               gl_FragColor.xyz += attenuation_multiplier * (tex_color.xyz * diffusivity * diffuse  + lightColor[i].xyz * shininess * specular );
+               lum += float(i<=NUM_LIGHTS)*attenuation_multiplier * (tex_color.xyz * diffusivity * diffuse*lightColor[i].xyz  + lightColor[i].xyz * shininess * specular );
 			}
+			//lum = min(lum,1.0-gl_FragColor.xyz);
+			gl_FragColor = vec4(lum+gl_FragColor.xyz,tex_color.a);
 			//Do Fog Attenuation
-			// float fogw=min(1.0,(length(pos)/200.0));
+			// float fogw=min(1.0,(dot(pos,pos)/40000.0));
 			// gl_FragColor.xyz = (1.0-fogw)*gl_FragColor.rgb+fogw*fogCol.rgb;
 			// if(gl_FragColor.a<.5)
 				// discard;
