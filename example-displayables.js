@@ -76,7 +76,7 @@ Declare_Any_Class( "Debug_Screen",
 			shapes_in_use.debug_text.draw( this.graphics_state, model_transform, true, vec4(0,0,0,1) );
 		
 			model_transform = mult(translation(0, -0.08, 0), model_transform);
-			shapes_in_use.debug_text.set_string("SPEED:    Z-/");
+			shapes_in_use.debug_text.set_string("SPEED:    Z - /");
 			shapes_in_use.debug_text.draw( this.graphics_state, model_transform, true, vec4(0,0,0,1) );
 
 			model_transform = mult(translation(0, -0.08, 0), model_transform);
@@ -105,12 +105,12 @@ Declare_Any_Class( "Debug_Screen",
 			shapes_in_use.debug_text.draw( this.graphics_state, model_transform, true, vec4(0,0,0,1) );
 
 			model_transform = new mat3();
-			model_transform = mult(translation(-0.25,-0.3,0), font_scale);
+			model_transform = mult(translation(-0.20,-0.3,0), font_scale);
 			shapes_in_use.debug_text.set_string("TOTAL COLLECTED: " + this.numCollected.toString());
 			shapes_in_use.debug_text.draw( this.graphics_state, model_transform, true, vec4(0,0,0,1) );
 			
 			model_transform = new mat3();
-			model_transform = mult(translation(-0.25,-0.45,0), font_scale);
+			model_transform = mult(translation(-0.27,-0.45,0), font_scale);
 			shapes_in_use.debug_text.set_string("PRESS ENTER TO RESTART");
 			shapes_in_use.debug_text.draw( this.graphics_state, model_transform, true, vec4(0,0,0,1) );
 		}
@@ -184,7 +184,7 @@ Declare_Any_Class("Example_Animation", {
 			if(this.shared_scratchpad.gameState == "start")
 			{
 				this.shared_scratchpad.gameState = "playing";
-				this.shared_scratchpad.speed = 0.1;
+				this.shared_scratchpad.speed = 0.5;
 			}
 			else
 			{
@@ -669,15 +669,16 @@ Declare_Any_Class("Example_Animation", {
         // 1st parameter:  Color (4 floats in RGBA format), 2nd: Ambient light, 3rd: Diffuse reflectivity, 4th: Specular reflectivity, 5th: Smoothness exponent, 6th: Texture image.
         var collectableMaterial = new Material(Color(1, 0, 0, 1), .4, .4, .8, 40); // Omit the final (string) parameter if you want no texture
         var collectedMaterial = new Material(Color(0, 1, 0, 1), .4, .4, .8, 40); // Omit the final (string) parameter if you want no texture
-        var tetraMaterial = new Material(Color(0, 1, 1, 1), .4, .4, .4, 40); // Omit the final (string) parameter if you want no texture
+        var tetraMaterial = new Material(Color(0.7, 0.1, 0.3, 1), 1, 0.5, 1, 40); // Omit the final (string) parameter if you want no texture
 		var landMaterial = new Material(Color(0.4, 0.5, 0, 1), .6, .8, .4, 40);	//Just a placeholder for now
         var grassMat = new Material(Color(0.0,0.0,0.0, 1), .3, .6, .3, 80,"Grass.png"); 
 		var water_material = new Material(Color(0.0, 0.0, 0.0, 1), .5, .2, .1, 80, "water_texture.png");	//Add texture later
+		var engine_material = new Material(Color(0.0, 0.0, 0.0, 1), .5, .2, .1, 80, "engine.png");
 
 
 		var current_orientation = this.shared_scratchpad.orientation;
 		// draw plane
-		var planeLocation = this.drawPlane(graphics_state, tetraMaterial, water_material);
+		var planeLocation = this.drawPlane(graphics_state, tetraMaterial, engine_material);
 	
 		this.draw_terrain(graphics_state, current_orientation);
 		this.collidePlane();
@@ -688,7 +689,6 @@ Declare_Any_Class("Example_Animation", {
 
 		// draw grass
 		this.drawGrass(graphics_state, grassMat);
-		
 
 		this.drawWater(graphics_state, model_transform, water_material);
 
@@ -771,38 +771,30 @@ Declare_Any_Class("Example_Animation", {
 					if(i % 2 == 0)
 						this.shared_scratchpad.numCollected += 1;
 				}
-				else
-				{
-					var model_transform = mat4();
-					model_transform = mult(model_transform, translation(cur_collection.x, cur_collection.y, cur_collection.z));
-					var coll_dir = normalize(cross(vec3(0.2*Math.sin(cur_collection.x),1,0.2*Math.sin(cur_collection.z)),find_grad(vec3(cur_collection.x, cur_collection.y, cur_collection.z))));
-					if(i % 2 == 1)
-					{
-						cur_collection.rotation += 1;						
-						model_transform = mult(model_transform, rotation(90,coll_dir[0],coll_dir[1],coll_dir[2]));
-						model_transform = mult(model_transform, rotation(cur_collection.rotation, 0, 0, 1));
-					}
-					if(i % 2 == 0)
-						model_transform = mult(model_transform, rotation(90,coll_dir[0],coll_dir[1],coll_dir[2]));
-					model_transform = mult(model_transform, rotation(90,1,0,0));
-					model_transform = mult(model_transform, scale(2,2,2));
-					
-						
-					cur_collection.copy_onto_graphics_card();					
-					cur_collection.draw(graphics_state, model_transform, collectableMaterial);
-				}
+			}
+			var model_transform = mat4();
+			model_transform = mult(model_transform, translation(cur_collection.x, cur_collection.y, cur_collection.z));
+			var coll_dir = normalize(cross(vec3(0.2*Math.sin(cur_collection.x),1,0.2*Math.sin(cur_collection.z)),find_grad(vec3(cur_collection.x, cur_collection.y, cur_collection.z))));
+			if(i % 2 == 1)
+			{
+				cur_collection.rotation += 1;						
+				model_transform = mult(model_transform, rotation(90,coll_dir[0],coll_dir[1],coll_dir[2]));
+				model_transform = mult(model_transform, rotation(cur_collection.rotation, 0, 0, 1));
+			}
+			if(i % 2 == 0)
+				model_transform = mult(model_transform, rotation(90,coll_dir[0],coll_dir[1],coll_dir[2]));
+			model_transform = mult(model_transform, rotation(90,1,0,0));
+			model_transform = mult(model_transform, scale(2,2,2));
+			
+				
+			cur_collection.copy_onto_graphics_card();	
+			if(cur_collection.collected == true)
+			{
+				cur_collection.draw(graphics_state, model_transform, collectedMaterial);				
 			}
 			else
 			{
-					var model_transform = mat4();
-					model_transform = mult(model_transform, translation(cur_collection.x, cur_collection.y, cur_collection.z));
-					if(i % 2 == 1)
-					{
-						cur_collection.rotation += 1;
-						model_transform = mult(model_transform, rotation(cur_collection.rotation, 0, 0, 1));
-					}
-					model_transform = mult(model_transform, rotation(90,1,0,0));
-					cur_collection.draw(graphics_state, model_transform, collectedMaterial);
+				cur_collection.draw(graphics_state, model_transform, collectableMaterial);
 			}
 		}
 		shapes_in_use.collection_object = [];
@@ -816,6 +808,7 @@ Declare_Any_Class("Example_Animation", {
 		// all variables are based on per second
 		var max_roll = 50;
 		var frame_change = 1; 
+		var frame_change_back = 2;
 		
 		var roll_amount = 0;
 		if(this.shared_scratchpad.heading_change > 0 && this.shared_scratchpad.extra_roll < max_roll)
@@ -833,13 +826,13 @@ Declare_Any_Class("Example_Animation", {
 			// bring back to center
 			if(this.shared_scratchpad.extra_roll > 0)
 			{
-				this.shared_scratchpad.extra_roll -= frame_change;
-				roll_amount -= frame_change;
+				this.shared_scratchpad.extra_roll -= frame_change_back;
+				roll_amount -= frame_change_back;
 			}
 			if(this.shared_scratchpad.extra_roll < 0)
 			{
-				this.shared_scratchpad.extra_roll += frame_change;
-				roll_amount += frame_change;
+				this.shared_scratchpad.extra_roll += frame_change_back;
+				roll_amount += frame_change_back;
 			}
 		}
 		
@@ -866,16 +859,18 @@ Declare_Any_Class("Example_Animation", {
 		this.shared_scratchpad.position = add(this.shared_scratchpad.position, mult_vec_scalar(normalize(direction), this.shared_scratchpad.speed));
 		
 		var left_transition = new mat4();
-		left_transition = mult(left_transition, translation(this.shared_scratchpad.position[0] - 0.77, this.shared_scratchpad.position[1], this.shared_scratchpad.position[2]+0.8));
+		left_transition = mult(left_transition, translation(this.shared_scratchpad.position[0], this.shared_scratchpad.position[1], this.shared_scratchpad.position[2]));
 		left_transition = mult(left_transition, this.shared_scratchpad.orientation);
-		left_transition = mult(left_transition, scale(0.1, 0.1, 0.1));
-		//shapes_in_use.engineLeft.draw(graphics_state, left_transition, engine_material);
+		left_transition = mult(left_transition, translation(-0.775, 0, 0.75));
+		left_transition = mult(left_transition, scale(0.15, 0.15, 0.15));
+		shapes_in_use.engineLeft.draw(graphics_state, left_transition, engine_material);
 		
 		var right_transition = new mat4();
-		right_transition = mult(right_transition, translation(this.shared_scratchpad.position[0] + 0.77, this.shared_scratchpad.position[1], this.shared_scratchpad.position[2]+0.8));
+		right_transition = mult(right_transition, translation(this.shared_scratchpad.position[0], this.shared_scratchpad.position[1], this.shared_scratchpad.position[2]));
 		right_transition = mult(right_transition, this.shared_scratchpad.orientation);
-		right_transition = mult(right_transition, scale(0.1, 0.1, 0.1));
-		//shapes_in_use.engineRight.draw(graphics_state, right_transition, engine_material);
+		right_transition = mult(right_transition, translation(0.775, 0, 0.75));
+		right_transition = mult(right_transition, scale(0.15, 0.15, 0.15));
+		shapes_in_use.engineRight.draw(graphics_state, right_transition, engine_material);
 		
 		var transition = new mat4();
 		transition = mult(transition, translation(this.shared_scratchpad.position[0], this.shared_scratchpad.position[1], this.shared_scratchpad.position[2]));
@@ -981,16 +976,11 @@ Declare_Any_Class("Example_Animation", {
 		graphics_state.camera_transform = transition;
 		
 		// draw skybox around camera
-				//Hacky skyboxes, do properly later
 		var skybox = mat4();
 		var camera_loc = vec4(eye[0], eye[1], eye[2], 1);
 		skybox = mult(skybox, translation(eye));
 		this.sbtrans = mult(skybox, rotation(180,0,0,1));
-//		var invRot = mat4();
-//		invRot = mult(rotation(10,1,0,0),invRot);
-//		invRot = mult(rotation(this.shared_scratchpad.heading, 0, -1, 0),invRot);
-//		invRot = mult(rotation(this.shared_scratchpad.pitch, -1, 0, 0),invRot);
-//		this.sbtrans = mult(inverse(this.shared_scratchpad.graphics_state.camera_transform),invRot);
+
 
 	}
 }, Animation);
