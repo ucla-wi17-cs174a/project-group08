@@ -454,24 +454,28 @@ Declare_Any_Class("Example_Animation", {
     
 	'display': function(time) {
 		
-		var aMaterial = new Material(Color(0.4, 0.5, 0, 1), .6, .8, .4, 4,"FAKE.CHICKEN");	//Just a placeholder for now
-		var skyMat = new Material(Color(1.0,1.0,1.0,1.0), 1.0, 0.0, 0.0, 0.0, "LameBox.png");
+		var aMaterial = new Material(Color(0.4, 0.5, 0, 1.0), .6, .8, .4, 4,"FAKE.CHICKEN");	//Just a placeholder for now
+		var skyMat = new Material(Color(0.0,0.0,0.0,1.0), 1.0, 0.0, 0.0, 0.0, "LameBox.png");
 		
+		shaders_in_use["Default"].activate();
+		gl.clear( gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+		shapes_in_use.skybox.draw(this.shared_scratchpad.graphics_state,this.sbtrans, skyMat);
+		gl.clear(gl.DEPTH_BUFFER_BIT);
+			
 		if(DEFERRED){
 			////bind GBuffer and disable transparency
-			gl.disable(gl.BLEND);
 			this.GBuffer.activate();
 			gl.framebufferRenderbuffer(gl.FRAMEBUFFER, gl.DEPTH_ATTACHMENT, gl.RENDERBUFFER, this.GBuffer.rb);
-
-			gl.disable(gl.BLEND);
 			shaders_in_use["G_buf_gen_phong"].activate();
+			gl.clearColor(0.0,0.0,0.0,0.0);
 			gl.clear( gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
-			shapes_in_use.skybox.draw(this.shared_scratchpad.graphics_state,this.sbtrans, skyMat);
-			gl.clear(gl.DEPTH_BUFFER_BIT);
+			// shapes_in_use.skybox.draw(this.shared_scratchpad.graphics_state,this.sbtrans, skyMat);
+			// gl.clear(gl.DEPTH_BUFFER_BIT);
 			this.renderOpaque(time);
 			this.renderTransparent(time);
 			this.GBuffer.deactivate();
-			gl.clear( gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+			gl.clearColor(0.0,0.0,0.0,1.0);
+			// gl.clear( gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 			for (var i =0; i<this.GBuffer.layers;i++){
 				gl.activeTexture(texAddrs[i]);
 				gl.bindTexture(gl.TEXTURE_2D, this.GBuffer.tx[i]);
@@ -484,7 +488,6 @@ Declare_Any_Class("Example_Animation", {
 			//cleanup
 			gl.activeTexture(gl.TEXTURE0);
 			gl.bindTexture(gl.TEXTURE_2D, null);
-			gl.enable(gl.BLEND);
 			//Render transparency. Using alpha test to avoid sorting
 			//this.renderTransparent(time);
 			

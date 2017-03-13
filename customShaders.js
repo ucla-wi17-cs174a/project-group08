@@ -380,7 +380,7 @@ Declare_Any_Class( "G_buf_gen_NormalSpray",
 			vec4 zCol = texture2D(zTex,vec2(fTexCoord.x/10.0,fTexCoord.y/5.0));
 			vec3 cVec = abs(colNorm);
 			gl_FragData[0] = vec4(xCol*cVec.x+yCol*cVec.y+zCol*cVec.z);
-			gl_FragData[0].xyz *= .5;
+			gl_FragData[0].a = 1.0;
 			//gl_FragData[0] = vec4(0.0,0.0,0.0,1.0);
 			
 		}
@@ -532,7 +532,7 @@ Declare_Any_Class( "G_buf_gen_phong",
         gl.uniform1i( g_addrs.COLOR_NORMALS_loc,   g_state.color_normals);
 
         gl.uniform4fv( g_addrs.shapeColor_loc,     material.color       );    // Send a desired shape-wide color to the graphics card
-        gl.uniform1f ( g_addrs.ambient_loc,        material.ambient     );
+        gl.uniform1f ( g_addrs.amb_loc,        		material.ambient     );
         gl.uniform1f ( g_addrs.diffusivity_loc,    material.diffusivity );
         gl.uniform1f ( g_addrs.shininess_loc,      material.shininess   );
         gl.uniform1f ( g_addrs.smoothness_loc,     material.smoothness  );
@@ -599,6 +599,7 @@ Declare_Any_Class( "G_buf_gen_phong",
 		const vec4 fogCol = vec4(.5,.5,.5,1.0);
 		varying vec2 fTexCoord;
 		uniform int NUM_LIGHTS;
+		uniform float amb;
 		
 		uniform vec4 lightPosition[MAX_LIGHTS], lightColor[MAX_LIGHTS];
 		uniform float attenuation_factor[MAX_LIGHTS];
@@ -631,7 +632,7 @@ Declare_Any_Class( "G_buf_gen_phong",
 			RGtofloat16(inPosz.rg,zz);
 			vec4 fPos = vec4(xx,yy,zz,1.0);
 			vec3 pos = fPos.xyz;
-			float ambient = .1;
+			float ambient = .15;
 			float diffusivity = fMatl.g;
 			float shininess = fMatl.b;
 			float smoothness = fMatl.r*255.0;
@@ -652,10 +653,10 @@ Declare_Any_Class( "G_buf_gen_phong",
                lum += float(i<=NUM_LIGHTS)*attenuation_multiplier * (tex_color.xyz * diffusivity * diffuse*lightColor[i].xyz  + lightColor[i].xyz * shininess * specular );
 			}
 			//lum = min(lum,1.0-gl_FragColor.xyz);
-			gl_FragColor = vec4(lum+gl_FragColor.xyz,1.0);
+			gl_FragColor = vec4(lum+gl_FragColor.xyz,tex_color.a);
 			//Do Fog Attenuation
-			float fogw=min(1.0,(dot(pos,pos)/200.0));
-			gl_FragColor.xyz = (1.0-fogw)*gl_FragColor.rgb+fogw*fogCol.rgb;
+			// float fogw=min(1.0,(dot(pos,pos)/40000.0));
+			// gl_FragColor.xyz = (1.0-fogw)*gl_FragColor.rgb+fogw*fogCol.rgb;
 			// if(gl_FragColor.a<.5)
 				// discard;
 			//gl_FragColor = texture2D(TESTER,fTexCoord);
