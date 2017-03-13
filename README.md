@@ -21,7 +21,7 @@ ADVANCED TOPICS
 	Detects any collision to the map by comparing 5 points of the plane with the height map
 	Detects any collision to a collectable and marks as collected when the models' hit boxes collide
 - Object Importation:
-	Python script reinterpret .obj file to an easily reable format
+	Python script reinterpret .obj file to an easily reable format (still a vaild .obj file)
 	Reads vertex coordinates, normals, textures, and indices from .obj file and sends them to the graphics card
 - Deffered Shading:
 - Volumentic Rendering:

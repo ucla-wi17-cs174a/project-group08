@@ -222,8 +222,6 @@ Declare_Any_Class( "Collection_Object_Shell",
 	}	
   }, Shape )
   
-  
-
 // *********** SQUARE ***********
 Declare_Any_Class( "Square",    // A square, demonstrating shared vertices.  On any planar surface, the interior edges don't make any important seams.
   { 'populate': function()      // In these cases there's no reason not to re-use values of the common vertices between triangles.  This makes all the
