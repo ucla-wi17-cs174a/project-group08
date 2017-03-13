@@ -554,11 +554,7 @@ Declare_Any_Class("Example_Animation", {
 		}
 		else
 		{
-<<<<<<< HEAD
 			
-=======
-			var draw_ct = 2;	//How many blocks to draw per loop
->>>>>>> d4a6719a9847a98648f5b23c33fc4084085b26ba
 			//On loop 1 and subsequent loops, gradually create terrain
 			for(var i = this.t_loop_count*DRAW_CT - DRAW_CT; i < this.t_loop_count*DRAW_CT; i++)	//DRAW_CT per loop
 			{
@@ -667,11 +663,8 @@ Declare_Any_Class("Example_Animation", {
         var tetraMaterial = new Material(Color(0, 1, 1, 1), .4, .4, .4, 40); // Omit the final (string) parameter if you want no texture
 		var landMaterial = new Material(Color(0.4, 0.5, 0, 1), .6, .8, .4, 40);	//Just a placeholder for now
         var grassMat = new Material(Color(0.0,0.0,0.0, 1), .3, .6, .3, 80,"Grass.png"); 
-<<<<<<< HEAD
 		var water_material = new Material(Color(0.0, 0.0, 0.0, 1), .5, .2, .1, 80, "water_texture.png");	//Add texture later
-=======
-		var water_material = new Material(Color(0.0, 0.3, 1.0, 1), .5, .7, .1, 80);	//Add texture later
->>>>>>> d4a6719a9847a98648f5b23c33fc4084085b26ba
+
 
 		var current_orientation = this.shared_scratchpad.orientation;
 		// draw plane
@@ -687,13 +680,10 @@ Declare_Any_Class("Example_Animation", {
 		// draw grass
 		this.drawGrass(graphics_state, grassMat);
 		
-<<<<<<< HEAD
-		this.drawWater(graphics_state, model_transform, water_material);
-=======
 		shapes_in_use.terrain.water_shape.draw(graphics_state, model_transform, water_material);
 		// make camera follow the plane
 		this.drawCamera(graphics_state, current_orientation);
->>>>>>> d4a6719a9847a98648f5b23c33fc4084085b26ba
+
 
 	
 
