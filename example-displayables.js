@@ -3,9 +3,9 @@ var RES_RATIO = 8;
 var RES = 4;
 
 
-var DRAW_DIST = 3;
+var DRAW_DIST = 2;
 var DIR_DRAW_DIST = 1;
-var LOW_DRAW_DIST = 4;
+var LOW_DRAW_DIST = 3;
 var LOW_DIR_DRAW_DIST = 2;
 
 var DRAW_CT = 4;	//How many blocks to draw per loop
