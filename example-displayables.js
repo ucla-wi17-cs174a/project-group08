@@ -1,5 +1,5 @@
 
-var RES_RATIO = 8;	
+var RES_RATIO = 16;	
 var RES = 4;
 
 
@@ -14,7 +14,11 @@ var WORLD_SIZE = 16384;
 var WORLD_HEIGHT = 64;
 
 var SPEED_INC = .01;
-var DEFERRED = false;
+var DEFERRED = true;
+var old=0;
+var checkT = false;
+
+var planeAxes;
 
 // Create the textbox
 Declare_Any_Class( "Debug_Screen",
@@ -76,7 +80,7 @@ Declare_Any_Class( "Debug_Screen",
 			shapes_in_use.debug_text.draw( this.graphics_state, model_transform, true, vec4(0,0,0,1) );
 		
 			model_transform = mult(translation(0, -0.08, 0), model_transform);
-			shapes_in_use.debug_text.set_string("SPEED:    Z-/");
+			shapes_in_use.debug_text.set_string("SPEED:    Z - /");
 			shapes_in_use.debug_text.draw( this.graphics_state, model_transform, true, vec4(0,0,0,1) );
 
 			model_transform = mult(translation(0, -0.08, 0), model_transform);
@@ -105,12 +109,12 @@ Declare_Any_Class( "Debug_Screen",
 			shapes_in_use.debug_text.draw( this.graphics_state, model_transform, true, vec4(0,0,0,1) );
 
 			model_transform = new mat3();
-			model_transform = mult(translation(-0.25,-0.3,0), font_scale);
+			model_transform = mult(translation(-0.20,-0.3,0), font_scale);
 			shapes_in_use.debug_text.set_string("TOTAL COLLECTED: " + this.numCollected.toString());
 			shapes_in_use.debug_text.draw( this.graphics_state, model_transform, true, vec4(0,0,0,1) );
 			
 			model_transform = new mat3();
-			model_transform = mult(translation(-0.25,-0.45,0), font_scale);
+			model_transform = mult(translation(-0.27,-0.45,0), font_scale);
 			shapes_in_use.debug_text.set_string("PRESS ENTER TO RESTART");
 			shapes_in_use.debug_text.draw( this.graphics_state, model_transform, true, vec4(0,0,0,1) );
 		}
@@ -151,6 +155,8 @@ Declare_Any_Class("Example_Animation", {
 		
 		// create plane
 		shapes_in_use.plane = new Imported_Object("ThreePlane.obj",0,0,0,0,0,0);
+		shapes_in_use.engineLeft = new Square();
+		shapes_in_use.engineRight = new Square();
 
 		
 		shapes_in_use.square = new Square();
@@ -162,6 +168,7 @@ Declare_Any_Class("Example_Animation", {
 		this.t_loop_count = 0;
 		this.geom_changed = true;
 		
+		planeAxes = [vec3(1,0,0),vec3(0,1,0),vec3(0,0,1)];
 		
         this.shared_scratchpad.speed = 0;
 		
@@ -182,7 +189,7 @@ Declare_Any_Class("Example_Animation", {
 			if(this.shared_scratchpad.gameState == "start")
 			{
 				this.shared_scratchpad.gameState = "playing";
-				this.shared_scratchpad.speed = 0.1;
+				this.shared_scratchpad.speed = 0.5;
 			}
 			else
 			{
@@ -447,15 +454,14 @@ Declare_Any_Class("Example_Animation", {
 	},
     
 	'display': function(time) {
-		
+
 		var aMaterial = new Material(Color(0.4, 0.5, 0, 1.0), .6, .8, .4, 4,"FAKE.CHICKEN");	//Just a placeholder for now
 		var skyMat = new Material(Color(0.0,0.0,0.0,1.0), 1.0, 0.0, 0.0, 0.0, "SkyTex.png");
-		
 		shaders_in_use["Default"].activate();
 		gl.clear( gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 		shapes_in_use.skybox.draw(this.shared_scratchpad.graphics_state,this.sbtrans, skyMat);
 		gl.clear(gl.DEPTH_BUFFER_BIT);
-			
+
 		if(DEFERRED){
 			////bind GBuffer and disable transparency
 			this.GBuffer.activate();
@@ -478,7 +484,7 @@ Declare_Any_Class("Example_Animation", {
 			
 			//Render to screen
 			shapes_in_use.square.draw(this.shared_scratchpad.graphics_state,new mat4(),aMaterial );
-
+			checkT = false;
 			//cleanup
 			gl.activeTexture(gl.TEXTURE0);
 			gl.bindTexture(gl.TEXTURE_2D, null);
@@ -647,6 +653,54 @@ Declare_Any_Class("Example_Animation", {
         graphics_state.lights = [];
 
         var t = graphics_state.animation_time / 1000;
+		
+
+
+		
+        // *** Materials: *** Declare new ones as temps when needed; they're just cheap wrappers for some numbers.
+        // 1st parameter:  Color (4 floats in RGBA format), 2nd: Ambient light, 3rd: Diffuse reflectivity, 4th: Specular reflectivity, 5th: Smoothness exponent, 6th: Texture image.
+        var collectableMaterial = new Material(Color(1, 0, 0, 1), .4, .4, .8, 40); // Omit the final (string) parameter if you want no texture
+        var collectedMaterial = new Material(Color(0, 1, 0, 1), .4, .4, .8, 40); // Omit the final (string) parameter if you want no texture
+        var tetraMaterial = new Material(Color(0.7, 0.1, 0.3, 1), 1, 0.5, 1, 40); // Omit the final (string) parameter if you want no texture
+		var landMaterial = new Material(Color(0.4, 0.5, 0, 1), .6, .8, .4, 40);	//Just a placeholder for now
+        var grassMat = new Material(Color(0.0,0.0,0.0, 1), .3, .6, .3, 80,"Grass.png"); 
+		var water_material = new Material(Color(0.0, 0.0, 0.0, 1), .5, .2, .1, 80, "water_texture.png");	//Add texture later
+		var engine_material = new Material(Color(0.0, 0.0, 0.0, 1), .5, .2, .1, 80, "engine.png");
+
+
+		var current_orientation = this.shared_scratchpad.orientation;
+		// draw plane
+		var planeLocation = this.drawPlane(graphics_state, tetraMaterial, engine_material);
+	
+		this.draw_terrain(graphics_state, current_orientation);
+		this.collidePlane();
+		
+		// draw collectable
+		this.createCollectables();
+		this.drawCollectables(graphics_state, collectableMaterial, collectedMaterial); 
+
+		// draw grass
+
+		//this.drawGrass(graphics_state, grassMat);
+
+		this.drawWater(graphics_state, model_transform, water_material);
+
+		// make camera follow the plane
+		this.drawCamera(graphics_state, current_orientation);
+
+		var forAxis = planeAxes[2];
+		var spotLoc = vec3(planeLocation[0][3],planeLocation[1][3],planeLocation[2][3]);
+		var spotLoc2 = add(spotLoc,mult_vec_scalar(forAxis,50.0));
+		spotLoc2 = add(spotLoc2,mult_vec_scalar(planeAxes[0],10.0));
+		spotLoc = add(spotLoc,mult_vec_scalar(forAxis,50.0));
+		spotLoc = add(spotLoc,mult_vec_scalar(planeAxes[0],-10.0));
+		var spotLoc24 = vec4(spotLoc2[0],spotLoc2[1],spotLoc2[2],1);
+		var spotLoc14 = vec4(spotLoc[0],spotLoc[1],spotLoc[2],1);
+
+		
+		graphics_state.lights.push(new Light(spotLoc14, Color(0, 0, 4, 1), 100));
+        graphics_state.lights.push(new Light(spotLoc24, Color(4, 0, 0, 1), 100));
+		console.log("1: ", spotLoc14, " 2: ", spotLoc24);
         graphics_state.lights.push(new Light(vec4(-10, 10, 0, 1), Color(1, 1, 1, 1), 1000));
 		graphics_state.lights.push(new Light(vec4(2.0, 1.0, 0.0, 0.0), Color(1, 1, .7, 1), -1000*(t%2)));
 		graphics_state.lights.push(new Light(vec4(-10, 10, -100, 1), Color(1, 0, 0, 1), 5000));
@@ -659,38 +713,6 @@ Declare_Any_Class("Example_Animation", {
         graphics_state.lights.push(new Light(vec4(-10, 10, -800, 1), Color(1, .5, .5, 1), 5000));
         graphics_state.lights.push(new Light(vec4(-10, 10, -900, 1), Color(.5, 1, .5, 1), 5000));
         graphics_state.lights.push(new Light(vec4(-10, 10, -1000, 1), Color(1, 1, 1, 1), 5000));
-
-
-		
-        // *** Materials: *** Declare new ones as temps when needed; they're just cheap wrappers for some numbers.
-        // 1st parameter:  Color (4 floats in RGBA format), 2nd: Ambient light, 3rd: Diffuse reflectivity, 4th: Specular reflectivity, 5th: Smoothness exponent, 6th: Texture image.
-        var collectableMaterial = new Material(Color(1, 0, 0, 1), .4, .4, .8, 40); // Omit the final (string) parameter if you want no texture
-        var collectedMaterial = new Material(Color(0, 1, 0, 1), .4, .4, .8, 40); // Omit the final (string) parameter if you want no texture
-        var tetraMaterial = new Material(Color(0, 1, 1, 1), .4, .4, .4, 40); // Omit the final (string) parameter if you want no texture
-		var landMaterial = new Material(Color(0.4, 0.5, 0, 1), .6, .8, .4, 40);	//Just a placeholder for now
-        var grassMat = new Material(Color(0.0,0.0,0.0, 1), .3, .6, .3, 80,"Grass.png"); 
-		var water_material = new Material(Color(0.0, 0.0, 0.0, 1), .5, .2, .1, 80, "water_texture.png");	//Add texture later
-
-
-		var current_orientation = this.shared_scratchpad.orientation;
-		// draw plane
-		var planeLocation = this.drawPlane(graphics_state, tetraMaterial);
-	
-		this.draw_terrain(graphics_state, current_orientation);
-		this.collidePlane();
-		
-		// draw collectable
-		this.createCollectables();
-		this.drawCollectables(graphics_state, collectableMaterial, collectedMaterial); 
-
-		// draw grass
-		//this.drawGrass(graphics_state, grassMat);
-		
-		this.drawWater(graphics_state, model_transform, water_material);
-		// make camera follow the plane
-		this.drawCamera(graphics_state, current_orientation);
-
-
 	
 
 		
@@ -803,12 +825,13 @@ Declare_Any_Class("Example_Animation", {
 					model_transform = mult(model_transform, rotation(90,1,0,0));
 					model_transform = mult(model_transform, scale(2,2,2));
 					cur_collection.draw(graphics_state, model_transform, collectedMaterial);
+
 			}
 		}
 		shapes_in_use.collection_object = [];
 	},
 	
-	'drawPlane': function(graphics_state, material){
+	'drawPlane': function(graphics_state, material, engine_material){
 		// draw plane
 		
 		// change roll based on if yaw is changing
@@ -816,6 +839,7 @@ Declare_Any_Class("Example_Animation", {
 		// all variables are based on per second
 		var max_roll = 50;
 		var frame_change = 1; 
+		var frame_change_back = 2;
 		
 		var roll_amount = 0;
 		if(this.shared_scratchpad.heading_change > 0 && this.shared_scratchpad.extra_roll < max_roll)
@@ -833,25 +857,27 @@ Declare_Any_Class("Example_Animation", {
 			// bring back to center
 			if(this.shared_scratchpad.extra_roll > 0)
 			{
-				this.shared_scratchpad.extra_roll -= frame_change;
-				roll_amount -= frame_change;
+				this.shared_scratchpad.extra_roll -= frame_change_back;
+				roll_amount -= frame_change_back;
 			}
 			if(this.shared_scratchpad.extra_roll < 0)
 			{
-				this.shared_scratchpad.extra_roll += frame_change;
-				roll_amount += frame_change;
+				this.shared_scratchpad.extra_roll += frame_change_back;
+				roll_amount += frame_change_back;
 			}
 		}
 		
 		var orientation = this.shared_scratchpad.orientation;
 		var pitch = new vec3(orientation[0][0], orientation[1][0], orientation[2][0]); // right
+		planeAxes[0] = pitch;
 		pitch = mult_vec_scalar(pitch, this.shared_scratchpad.pitch_change);
 		var yaw = new vec3(orientation[0][1], orientation[1][1], orientation[2][1]); // up
+		planeAxes[1] = yaw;
 		yaw = mult_vec_scalar(yaw, this.shared_scratchpad.heading_change);
 		var roll = new vec3(-1*orientation[0][2], -1*orientation[1][2], -1*orientation[2][2]); //forward
+		planeAxes[2] = roll;
 		var direction = roll;
 		roll = mult_vec_scalar(roll, this.shared_scratchpad.roll_change-roll_amount);
-		
 		var orientationChange = add(add(pitch, yaw), roll);
 		var angularChange = magnitude(orientationChange); // scalar
 		
@@ -865,12 +891,28 @@ Declare_Any_Class("Example_Animation", {
 
 		this.shared_scratchpad.position = add(this.shared_scratchpad.position, mult_vec_scalar(normalize(direction), this.shared_scratchpad.speed));
 		
+		var left_transition = new mat4();
+		left_transition = mult(left_transition, translation(this.shared_scratchpad.position[0], this.shared_scratchpad.position[1], this.shared_scratchpad.position[2]));
+		left_transition = mult(left_transition, this.shared_scratchpad.orientation);
+		left_transition = mult(left_transition, translation(-0.775, 0, 0.75));
+		left_transition = mult(left_transition, scale(0.15, 0.15, 0.15));
+		shapes_in_use.engineLeft.draw(graphics_state, left_transition, engine_material);
+		
+		var right_transition = new mat4();
+		right_transition = mult(right_transition, translation(this.shared_scratchpad.position[0], this.shared_scratchpad.position[1], this.shared_scratchpad.position[2]));
+		right_transition = mult(right_transition, this.shared_scratchpad.orientation);
+		right_transition = mult(right_transition, translation(0.775, 0, 0.75));
+		right_transition = mult(right_transition, scale(0.15, 0.15, 0.15));
+		shapes_in_use.engineRight.draw(graphics_state, right_transition, engine_material);
+		
 		var transition = new mat4();
 		transition = mult(transition, translation(this.shared_scratchpad.position[0], this.shared_scratchpad.position[1], this.shared_scratchpad.position[2]));
 		transition = mult(transition, this.shared_scratchpad.orientation);
 		transition = mult(transition, scale(1.5, 1.5, 1.5));
 		
 		shapes_in_use.plane.draw(graphics_state, transition, material);
+		
+		
 		
 		return transition;
 		
@@ -967,16 +1009,11 @@ Declare_Any_Class("Example_Animation", {
 		graphics_state.camera_transform = transition;
 		
 		// draw skybox around camera
-				//Hacky skyboxes, do properly later
 		var skybox = mat4();
 		var camera_loc = vec4(eye[0], eye[1], eye[2], 1);
 		skybox = mult(skybox, translation(eye));
 		this.sbtrans = mult(skybox, rotation(180,0,0,1));
-//		var invRot = mat4();
-//		invRot = mult(rotation(10,1,0,0),invRot);
-//		invRot = mult(rotation(this.shared_scratchpad.heading, 0, -1, 0),invRot);
-//		invRot = mult(rotation(this.shared_scratchpad.pitch, -1, 0, 0),invRot);
-//		this.sbtrans = mult(inverse(this.shared_scratchpad.graphics_state.camera_transform),invRot);
+
 
 	}
 }, Animation);
