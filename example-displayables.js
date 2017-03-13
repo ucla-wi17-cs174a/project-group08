@@ -2,9 +2,9 @@
 var RES_RATIO = 8;	
 var RES = 4;
 
-var DRAW_DIST = 1;
-var DIR_DRAW_DIST = 1;
-var LOW_DRAW_DIST = 3;
+var DRAW_DIST = 2;
+var DIR_DRAW_DIST = 2;
+var LOW_DRAW_DIST = 4;
 var LOW_DIR_DRAW_DIST = 2;
 
 var WORLD_SIZE = 16384;
@@ -454,24 +454,28 @@ Declare_Any_Class("Example_Animation", {
     
 	'display': function(time) {
 		
-		var aMaterial = new Material(Color(0.4, 0.5, 0, 1), .6, .8, .4, 4,"FAKE.CHICKEN");	//Just a placeholder for now
-		var skyMat = new Material(Color(1.0,1.0,1.0,1.0), 1.0, 0.0, 0.0, 0.0, "LameBox.png");
+		var aMaterial = new Material(Color(0.4, 0.5, 0, 1.0), .6, .8, .4, 4,"FAKE.CHICKEN");	//Just a placeholder for now
+		var skyMat = new Material(Color(0.0,0.0,0.0,1.0), 1.0, 0.0, 0.0, 0.0, "LameBox.png");
 		
+		shaders_in_use["Default"].activate();
+		gl.clear( gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+		shapes_in_use.skybox.draw(this.shared_scratchpad.graphics_state,this.sbtrans, skyMat);
+		gl.clear(gl.DEPTH_BUFFER_BIT);
+			
 		if(DEFERRED){
 			////bind GBuffer and disable transparency
-			gl.disable(gl.BLEND);
 			this.GBuffer.activate();
 			gl.framebufferRenderbuffer(gl.FRAMEBUFFER, gl.DEPTH_ATTACHMENT, gl.RENDERBUFFER, this.GBuffer.rb);
-
-			gl.disable(gl.BLEND);
 			shaders_in_use["G_buf_gen_phong"].activate();
+			gl.clearColor(0.0,0.0,0.0,0.0);
 			gl.clear( gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
-			shapes_in_use.skybox.draw(this.shared_scratchpad.graphics_state,this.sbtrans, skyMat);
-			gl.clear(gl.DEPTH_BUFFER_BIT);
+			// shapes_in_use.skybox.draw(this.shared_scratchpad.graphics_state,this.sbtrans, skyMat);
+			// gl.clear(gl.DEPTH_BUFFER_BIT);
 			this.renderOpaque(time);
 			this.renderTransparent(time);
 			this.GBuffer.deactivate();
-			gl.clear( gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+			gl.clearColor(0.0,0.0,0.0,1.0);
+			// gl.clear( gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 			for (var i =0; i<this.GBuffer.layers;i++){
 				gl.activeTexture(texAddrs[i]);
 				gl.bindTexture(gl.TEXTURE_2D, this.GBuffer.tx[i]);
@@ -484,7 +488,6 @@ Declare_Any_Class("Example_Animation", {
 			//cleanup
 			gl.activeTexture(gl.TEXTURE0);
 			gl.bindTexture(gl.TEXTURE_2D, null);
-			gl.enable(gl.BLEND);
 			//Render transparency. Using alpha test to avoid sorting
 			//this.renderTransparent(time);
 			
@@ -515,7 +518,7 @@ Declare_Any_Class("Example_Animation", {
 		gl.activeTexture(texAddrs[2]);
 		gl.bindTexture(gl.TEXTURE_2D, textures_in_use["ZTEX.png"].id);
 		// var landMaterial = new Material(Color(0.4, 0.4, .4, 1), .6, .8, .4, 4,"FAKE.CHICKEN");	//Just a placeholder for now
-		var landMaterial = new Material(Color(0.8, 0.5, 0.1, 1), .1, .7, .1, 80);	//Just a placeholder for now
+		var landMaterial = new Material(Color(0.8, 0.5, 0.1, 1), .1, .8, .1, 80);	//Just a placeholder for now
 		
 
 
@@ -549,7 +552,7 @@ Declare_Any_Class("Example_Animation", {
 		}
 		else
 		{
-			var draw_ct = 1;	//How many blocks to draw per loop
+			var draw_ct = 2;	//How many blocks to draw per loop
 			//On loop 1 and subsequent loops, gradually create terrain
 			for(var i = this.t_loop_count*draw_ct - draw_ct; i < this.t_loop_count*draw_ct; i++)	//4 per loop
 			{
@@ -626,10 +629,20 @@ Declare_Any_Class("Example_Animation", {
             model_transform = mat4();
         graphics_state.lights = [];
 
-        var t = graphics_state.animation_time / 1000,
-            light_orbit = [Math.cos(t), Math.sin(t)];
-        //graphics_state.lights.push(new Light(vec4(-10, 10, 0, 1), Color(1, 1, 1, 1), 1000));
+        var t = graphics_state.animation_time / 1000;
+        graphics_state.lights.push(new Light(vec4(-10, 10, 0, 1), Color(1, 1, 1, 1), 1000));
 		graphics_state.lights.push(new Light(vec4(2.0, 1.0, 0.0, 0.0), Color(1, 1, .7, 1), -1000*(t%2)));
+		graphics_state.lights.push(new Light(vec4(-10, 10, -100, 1), Color(1, 0, 0, 1), 5000));
+        graphics_state.lights.push(new Light(vec4(-10, 10, -200, 1), Color(0, 1, 0, 1), 5000));
+        graphics_state.lights.push(new Light(vec4(-10, 10, -300, 1), Color(0, 0, 1, 1), 5000));
+        graphics_state.lights.push(new Light(vec4(-10, 10, -400, 1), Color(0, 1, 1, 1), 5000));
+        graphics_state.lights.push(new Light(vec4(-10, 10, -500, 1), Color(1, 0, 1, 1), 5000));
+        graphics_state.lights.push(new Light(vec4(-10, 10, -600, 1), Color(1, 1, 0, 1), 5000));
+        graphics_state.lights.push(new Light(vec4(-10, 10, -700, 1), Color(.5, .5, 1, 1), 5000));
+        graphics_state.lights.push(new Light(vec4(-10, 10, -800, 1), Color(1, .5, .5, 1), 5000));
+        graphics_state.lights.push(new Light(vec4(-10, 10, -900, 1), Color(.5, 1, .5, 1), 5000));
+        graphics_state.lights.push(new Light(vec4(-10, 10, -1000, 1), Color(1, 1, 1, 1), 5000));
+
 
 		
         // *** Materials: *** Declare new ones as temps when needed; they're just cheap wrappers for some numbers.
@@ -638,7 +651,7 @@ Declare_Any_Class("Example_Animation", {
         var tetraMaterial = new Material(Color(0, 1, 1, 1), .4, .4, .4, 40); // Omit the final (string) parameter if you want no texture
 		var landMaterial = new Material(Color(0.4, 0.5, 0, 1), .6, .8, .4, 40);	//Just a placeholder for now
         var grassMat = new Material(Color(0.0,0.0,0.0, 1), .3, .6, .3, 80,"Grass.png"); 
-		var water_material = new Material(Color(0.0, 0.3, 1.0, 1), .5, .2, .1, 80);	//Add texture later
+		var water_material = new Material(Color(0.0, 0.3, 1.0, 1), .5, .7, .1, 80);	//Add texture later
 
 		var current_orientation = this.shared_scratchpad.orientation;
 		// draw plane

@@ -25,7 +25,7 @@ Declare_Any_Class( "Phong_or_Gouraud_Shader",
 
         if( !g_state.lights.length )  return;
         var lightPositions_flattened = [], lightColors_flattened = []; lightAttenuations_flattened = [];
-        for( var i = 0; i < 4 * g_state.lights.length; i++ )
+        for( var i = 0; i < 4 * 2; i++ )
           { lightPositions_flattened                  .push( g_state.lights[ Math.floor(i/4) ].position[i%4] );
             lightColors_flattened                     .push( g_state.lights[ Math.floor(i/4) ].color[i%4] );
             lightAttenuations_flattened[ Math.floor(i/4) ] = g_state.lights[ Math.floor(i/4) ].attenuation;
