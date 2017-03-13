@@ -538,17 +538,19 @@ Declare_Any_Class( "G_buf_gen_phong",
         gl.uniform1f ( g_addrs.smoothness_loc,     material.smoothness  );
         gl.uniform1f ( g_addrs.animation_time_loc, g_state.animation_time / 1000 );
 
-        if( !g_state.lights.length )  return;
-        var lightPositions_flattened = [], lightColors_flattened = []; lightAttenuations_flattened = [];
-        for( var i = 0; i < 4 * g_state.lights.length; i++ )
-          { lightPositions_flattened                  .push( g_state.lights[ Math.floor(i/4) ].position[i%4] );
-            lightColors_flattened                     .push( g_state.lights[ Math.floor(i/4) ].color[i%4] );
-            lightAttenuations_flattened[ Math.floor(i/4) ] = g_state.lights[ Math.floor(i/4) ].attenuation;
-          }
-        gl.uniform4fv( g_addrs.lightPosition_loc,       lightPositions_flattened );
-        gl.uniform4fv( g_addrs.lightColor_loc,          lightColors_flattened );
-        gl.uniform1fv( g_addrs.attenuation_factor_loc,  lightAttenuations_flattened );
-		
+		var lightPositions_flattened = [], lightColors_flattened = []; lightAttenuations_flattened = [];
+        if( g_state.lights.length ){
+			for( var i = 0; i < 4 * g_state.lights.length; i++ )
+			  { lightPositions_flattened                  .push( g_state.lights[ Math.floor(i/4) ].position[i%4] );
+				lightColors_flattened                     .push( g_state.lights[ Math.floor(i/4) ].color[i%4] );
+				lightAttenuations_flattened[ Math.floor(i/4) ] = g_state.lights[ Math.floor(i/4) ].attenuation;
+			  }
+			gl.uniform4fv( g_addrs.lightPosition_loc,       lightPositions_flattened );
+			gl.uniform4fv( g_addrs.lightColor_loc,          lightColors_flattened );
+			gl.uniform1fv( g_addrs.attenuation_factor_loc,  lightAttenuations_flattened );
+			
+			gl.uniform1i(g_addrs.NUM_LIGHTS_loc,g_state.lights.length);
+		}
 		gl.uniform1i(g_addrs.col_loc, 0);
 		gl.uniform1i(g_addrs.norm_loc,1);
 		gl.uniform1i(g_addrs.matl_loc, 2);
@@ -593,9 +595,10 @@ Declare_Any_Class( "G_buf_gen_phong",
 			ret = dot( rg, vec2(div,div/256.0) )-fc;
 		}
 	
-		const int MAX_LIGHTS = 2;
+		const int MAX_LIGHTS = 50;
 		const vec4 fogCol = vec4(.5,.5,.5,1.0);
 		varying vec2 fTexCoord;
+		uniform int NUM_LIGHTS;
 		
 		uniform vec4 lightPosition[MAX_LIGHTS], lightColor[MAX_LIGHTS];
 		uniform float attenuation_factor[MAX_LIGHTS];
@@ -646,13 +649,13 @@ Declare_Any_Class( "G_buf_gen_phong",
                float diffuse  = max(dot(L, N), 0.0001);
                float specular = pow(max(dot(N, H), 0.0001), smoothness);
 
-               lum += attenuation_multiplier * (tex_color.xyz * diffusivity * diffuse  + lightColor[i].xyz * shininess * specular );
+               lum += float(i<=NUM_LIGHTS)*attenuation_multiplier * (tex_color.xyz * diffusivity * diffuse*lightColor[i].xyz  + lightColor[i].xyz * shininess * specular );
 			}
 			//lum = min(lum,1.0-gl_FragColor.xyz);
 			gl_FragColor = vec4(lum+gl_FragColor.xyz,1.0);
 			//Do Fog Attenuation
-			// float fogw=min(1.0,(length(pos)/200.0));
-			// gl_FragColor.xyz = (1.0-fogw)*gl_FragColor.rgb+fogw*fogCol.rgb;
+			float fogw=min(1.0,(dot(pos,pos)/200.0));
+			gl_FragColor.xyz = (1.0-fogw)*gl_FragColor.rgb+fogw*fogCol.rgb;
 			// if(gl_FragColor.a<.5)
 				// discard;
 			//gl_FragColor = texture2D(TESTER,fTexCoord);
