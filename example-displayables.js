@@ -225,10 +225,10 @@ Declare_Any_Class("Example_Animation", {
 			if(this.shared_scratchpad.gameState == "start")
 			{
 				this.shared_scratchpad.gameState = "playing";
-				this.shared_scratchpad.speed = 0.5;
+				this.shared_scratchpad.speed = 0.3;
 			}
 			else
-			{
+			{			
 				this.shared_scratchpad.gameState = "start";
 				
 				this.shared_scratchpad.speed = 0;
@@ -253,6 +253,14 @@ Declare_Any_Class("Example_Animation", {
 					shapes_in_use.collection_object[i].touched = false;
 				}
 				this.shared_scratchpad.numCollected = 0;
+				if(shapes_in_use.terrain)
+				{
+					for(var i = 0; i < shapes_in_use.terrain.to_draw.length; i++)
+					{
+						shapes_in_use.terrain.to_draw[i].collectables = [];
+					}
+					shapes_in_use.terrain.to_draw = [];
+				}
 			}
 		});
 		controls.add("l", this, function() {
@@ -544,7 +552,6 @@ Declare_Any_Class("Example_Animation", {
     },
 	
 	'draw_terrain': function(graphics_state, collectableMaterial){
-	
 		var landMaterialYellow = new Material(Color(0.25, 0.4, 0.0, 1.0), 0.6, 0.8, 0.2, 5);	//Just a placeholder for now
 
 		var prevShader = active_shader;

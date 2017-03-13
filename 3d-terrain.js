@@ -108,7 +108,7 @@ function f_density(ws)	//Positive corresponds to ground
 		if(ws[1] > soft_ceil)
 			dens += (soft_ceil - ws[1])*3;
 		/*Hard ceiling:*/
-		var hard_ceil = WORLD_HEIGHT + 1;
+		var hard_ceil = WORLD_HEIGHT - 1;
 		if(ws[1] > hard_ceil)
 			dens = -5000;
 	}
@@ -141,6 +141,14 @@ function f_density(ws)	//Positive corresponds to ground
 		var softer_floor = 1;
 		if(ws[1] < softer_floor)
 			dens += (softer_floor - ws[1])*5;
+		/*Soft ceiling:*/
+		var soft_ceil = 59;
+		if(ws[1] > soft_ceil)
+			dens += (soft_ceil - ws[1])*4;
+		/*Hard ceiling:*/
+		var hard_ceil = WORLD_HEIGHT - 1;
+		if(ws[1] > hard_ceil)
+			dens = -5000;
 	}
 	if(ws[0] >= -50 && ws[0] <= 50)
 	{
@@ -179,7 +187,7 @@ function f_density(ws)	//Positive corresponds to ground
 		if(ws[1] > soft_ceil)
 			dens3 += (soft_ceil - ws[1])*3;
 		/*Hard ceiling:*/
-		var hard_ceil = WORLD_HEIGHT + 1;
+		var hard_ceil = WORLD_HEIGHT - 1;
 		if(ws[1] > hard_ceil)
 			dens3 = -5000;
 		dens3 = dens3*(50+ws[0])*0.01
@@ -210,6 +218,14 @@ function f_density(ws)	//Positive corresponds to ground
 		var softer_floor = 1;
 		if(ws2[1] < softer_floor)
 			dens2 += (softer_floor - ws2[1])*5;
+		/*Soft ceiling:*/
+		var soft_ceil = 59;
+		if(ws[1] > soft_ceil)
+			dens += (soft_ceil - ws[1])*4;
+		/*Hard ceiling:*/
+		var hard_ceil = WORLD_HEIGHT - 1;
+		if(ws[1] > hard_ceil)
+			dens = -5000;
 		dens2 = dens2*(50-ws[0])*0.01
 		
 		dens = dens2+dens3;		
