@@ -151,6 +151,8 @@ Declare_Any_Class("Example_Animation", {
 		
 		// create plane
 		shapes_in_use.plane = new Imported_Object("ThreePlane.obj",0,0,0,0,0,0);
+		shapes_in_use.engineLeft = new Square();
+		shapes_in_use.engineRight = new Square();
 
 		
 		shapes_in_use.square = new Square();
@@ -669,7 +671,7 @@ Declare_Any_Class("Example_Animation", {
 
 		var current_orientation = this.shared_scratchpad.orientation;
 		// draw plane
-		var planeLocation = this.drawPlane(graphics_state, tetraMaterial);
+		var planeLocation = this.drawPlane(graphics_state, tetraMaterial, water_material);
 	
 		this.draw_terrain(graphics_state, current_orientation);
 		this.collidePlane();
@@ -681,7 +683,7 @@ Declare_Any_Class("Example_Animation", {
 		// draw grass
 		this.drawGrass(graphics_state, grassMat);
 		
-		shapes_in_use.terrain.water_shape.draw(graphics_state, model_transform, water_material);
+		//shapes_in_use.terrain.water_shape.draw(graphics_state, model_transform, water_material);
 		// make camera follow the plane
 		this.drawCamera(graphics_state, current_orientation);
 
@@ -798,7 +800,7 @@ Declare_Any_Class("Example_Animation", {
 		shapes_in_use.collection_object = [];
 	},
 	
-	'drawPlane': function(graphics_state, material){
+	'drawPlane': function(graphics_state, material, engine_material){
 		// draw plane
 		
 		// change roll based on if yaw is changing
@@ -855,12 +857,26 @@ Declare_Any_Class("Example_Animation", {
 
 		this.shared_scratchpad.position = add(this.shared_scratchpad.position, mult_vec_scalar(normalize(direction), this.shared_scratchpad.speed));
 		
+		var left_transition = new mat4();
+		left_transition = mult(left_transition, translation(this.shared_scratchpad.position[0] - 0.77, this.shared_scratchpad.position[1], this.shared_scratchpad.position[2]+0.8));
+		left_transition = mult(left_transition, this.shared_scratchpad.orientation);
+		left_transition = mult(left_transition, scale(0.1, 0.1, 0.1));
+		//shapes_in_use.engineLeft.draw(graphics_state, left_transition, engine_material);
+		
+		var right_transition = new mat4();
+		right_transition = mult(right_transition, translation(this.shared_scratchpad.position[0] + 0.77, this.shared_scratchpad.position[1], this.shared_scratchpad.position[2]+0.8));
+		right_transition = mult(right_transition, this.shared_scratchpad.orientation);
+		right_transition = mult(right_transition, scale(0.1, 0.1, 0.1));
+		//shapes_in_use.engineRight.draw(graphics_state, right_transition, engine_material);
+		
 		var transition = new mat4();
 		transition = mult(transition, translation(this.shared_scratchpad.position[0], this.shared_scratchpad.position[1], this.shared_scratchpad.position[2]));
 		transition = mult(transition, this.shared_scratchpad.orientation);
 		transition = mult(transition, scale(1.5, 1.5, 1.5));
 		
 		shapes_in_use.plane.draw(graphics_state, transition, material);
+		
+		
 		
 		return transition;
 		
