@@ -24,94 +24,186 @@ function f_density(ws)	//Positive corresponds to ground
 	
 	
 	//For tons of floating islands:
+	// ws = vec3(ws[0] + 100, ws[1], ws[2]);
+	// var dens = -ws[1] + 2;
 	// var freq0 = vec3(0.022, 0.047, 0.026);
 	// var freq1 = vec3(0.046, 0.043, 0.041);
 	// var freq2 = vec3(0.066, 0.086, 0.066);
 	// var freq3 = vec3(0.096, 0.106, 0.096);
 	// var freq4 = vec3(0.151, 0.151, 0.151);
 	// var freq5 = vec3(0.211, 0.211, 0.211);
-	// var freq6 = vec3(0.291, 0.291, 0.291);
 	// var ampl0 = 128;
 	// var ampl1 = 64;
 	// var ampl2 = 27;
 	// var ampl3 = 19;
 	// var ampl4 = 13;
 	// var ampl5 = 9;
-	// var ampl6 = 6;
 	// dens += ampl0*perlin(ws[0]*freq0[0], ws[1]*freq0[1], ws[2]*freq0[2]);
 	// dens += ampl1*perlin(ws[0]*freq1[0], ws[1]*freq1[1], ws[2]*freq1[2]);
 	// dens += ampl2*perlin(ws[0]*freq2[0], ws[1]*freq2[1], ws[2]*freq2[2]);
 	// dens += ampl3*perlin(ws[0]*freq3[0], ws[1]*freq3[1], ws[2]*freq3[2]);
 	// dens += ampl4*perlin(ws[0]*freq4[0], ws[1]*freq4[1], ws[2]*freq4[2]);
 	// dens += ampl5*perlin(ws[0]*freq5[0], ws[1]*freq5[1], ws[2]*freq5[2]);
-	// dens += ampl6*perlin(ws[0]*freq6[0], ws[1]*freq6[1], ws[2]*freq6[2]);
+	// /*Hard floor:*/
+	// var hard_floor = -0.01;
+	// if(ws[1] < hard_floor)
+		// dens = 5000;	
+	// /*Soft ceiling:*/
+	// var soft_ceil = 59;
+	// if(ws[1] > soft_ceil)
+		// dens += (soft_ceil - ws[1])*3;
+	ws = vec3(ws[0], ws[1], ws[2]-80);	//Just so we don't start crashed
 	
-	//Lakes and pillars
-	var dens = -ws[1]  + 2;
-	var freq0 = vec3(0.016, 0.032, 0.016);
-	var freq1 = vec3(0.036, 0.036, 0.041);
-	var freq2 = vec3(0.046, 0.026, 0.026);
-	var freq3 = vec3(0.066, 0.046, 0.056);
-	var freq4 = vec3(0.091, 0.131, 0.111);
-	var freq5 = vec3(0.191, 0.291, 0.191);
-	var freq6 = vec3(0.291, 0.391, 0.291);
-	var ampl0 = 128;
-	var ampl1 = 84;
-	var ampl2 = 42;
-	var ampl3 = 21;
-	var ampl4 = 8;
-	var ampl5 = 4;
-	var ampl6 = 3;
-	dens += ampl0*perlin(ws[0]*freq0[0], ws[1]*freq0[1], ws[2]*freq0[2]);
-	dens += ampl1*perlin(ws[0]*freq1[0], ws[1]*freq1[1], ws[2]*freq1[2]);
-	dens += ampl2*perlin(ws[0]*freq2[0], ws[1]*freq2[1], ws[2]*freq2[2]);
-	dens += ampl3*perlin(ws[0]*freq3[0], ws[1]*freq3[1], ws[2]*freq3[2]);
-	dens += ampl4*perlin(ws[0]*freq4[0], ws[1]*freq4[1], ws[2]*freq4[2]);
-	dens += ampl5*perlin(ws[0]*freq5[0], ws[1]*freq5[1], ws[2]*freq5[2]);
-	dens += ampl6*perlin(ws[0]*freq6[0], ws[1]*freq6[1], ws[2]*freq6[2]);			
-	/*Soft floor:*/
-	var soft_floor = 5;
-	if(ws[1] < soft_floor)
-		dens += (soft_floor - ws[1])*1;	
-	/*Hard floor:*/
-	var hard_floor = -0.01;
-	if(ws[1] < hard_floor)
-		dens = 5000;	
-	/*Soft ceiling:*/
-	var soft_ceil = 59;
-	if(ws[1] > soft_ceil)
-		dens += (soft_ceil - ws[1])*3;
-	/*Hard ceiling:*/
-	var hard_ceil = WORLD_HEIGHT + 1;
-	if(ws[1] > hard_ceil)
-		dens = -5000;
+	if(ws[0] > 50)
+	{
+		//Lakes and pillars
+		ws = vec3(ws[0], ws[1], ws[2]);
+		var dens = -ws[1]*0.2 + 2;
+		var freq0 = vec3(0.016, 0.032, 0.016);
+		var freq1 = vec3(0.036, 0.036, 0.041);
+		var freq2 = vec3(0.046, 0.031, 0.026);
+		var freq3 = vec3(0.066, 0.046, 0.056);
+		var freq4 = vec3(0.091, 0.131, 0.111);
+		var ampl0 = 128;
+		var ampl1 = 84;
+		var ampl2 = 42;
+		var ampl3 = 21;
+		var ampl4 = 8;
+		dens += ampl0*perlin(ws[0]*freq0[0], ws[1]*freq0[1], ws[2]*freq0[2]);
+		// dens += ampl1*perlin(ws[0]*freq1[0], ws[1]*freq1[1], ws[2]*freq1[2]);
+		//dens += ampl2*perlin(ws[0]*freq2[0], ws[1]*freq2[1], ws[2]*freq2[2]);
+		// dens += ampl3*perlin(ws[0]*freq3[0], ws[1]*freq3[1], ws[2]*freq3[2]);
+		// dens += ampl4*perlin(ws[0]*freq4[0], ws[1]*freq4[1], ws[2]*freq4[2]);		
+		/*Soft floor:*/
+		var soft_floor = 5;
+		if(ws[1] < soft_floor)
+			dens += (soft_floor - ws[1])*1;	
+		/*Hard floor:*/
+		var hard_floor = -0.01;
+		if(ws[1] < hard_floor)
+			dens = 5000;	
+		/*Pocket:*/
+		var pocket = 9;
+		if(ws[1] < pocket+8 && ws[1] > pocket-8)
+			dens += (12-Math.abs(pocket - ws[1]))*-0.8;	
+		/*Soft ceiling:*/
+		var soft_ceil = 59;
+		if(ws[1] > soft_ceil)
+			dens += (soft_ceil - ws[1])*3;
+		/*Hard ceiling:*/
+		var hard_ceil = WORLD_HEIGHT + 1;
+		if(ws[1] > hard_ceil)
+			dens = -5000;
+	}
+	if(ws[0] < -50)
+	{
+		//Canyons and overhangs, kind of
+		ws = vec3(ws[0], ws[1], ws[2]+32*Math.sin(0.05*ws[0]));
+		var dens = -ws[1] + 8;
+		var freq0 = vec3(0.006, 0.066, 0.016);
+		var freq1 = vec3(0.016, 0.051, 0.016);
+		var freq2 = vec3(0.026, 0.046, 0.026);
+		var freq3 = vec3(0.086, 0.026, 0.086);
+		var ampl0 = 108;
+		var ampl1 = 64;
+		var ampl2 = 25;
+		var ampl3 = 12;
+		dens += ampl0*perlin(ws[0]*freq0[0], ws[1]*freq0[1], ws[2]*freq0[2]);
+		// dens += ampl1*perlin(ws[0]*freq1[0], ws[1]*freq1[1], ws[2]*freq1[2]);
+		//dens += ampl2*perlin(ws[0]*freq2[0], ws[1]*freq2[1], ws[2]*freq2[2]);
+		// dens += ampl3*perlin(ws[0]*freq3[0], ws[1]*freq3[1], ws[2]*freq3[2]);	
+		/*Hard floor:*/
+		var hard_floor = -0.01;
+		if(ws[1] < hard_floor)
+			dens = 5000;	
+		/*Soft un-floor:*/
+		var soft_floor = 10;
+		if(ws[1] < soft_floor)
+			dens += (soft_floor - ws[1])*-2;
+		/*Soft actual floor:*/
+		var softer_floor = 1;
+		if(ws[1] < softer_floor)
+			dens += (softer_floor - ws[1])*5;
+	}
+	if(ws[0] >= -50 && ws[0] <= 50)
+	{
+		//In between
+		ws = vec3(ws[0], ws[1], ws[2]);
+		var dens3 = -ws[1]*0.2  + 2;
+		var freq0 = vec3(0.016, 0.032, 0.016);
+		var freq1 = vec3(0.036, 0.036, 0.041);
+		var freq2 = vec3(0.046, 0.031, 0.026);
+		var freq3 = vec3(0.066, 0.046, 0.056);
+		var freq4 = vec3(0.091, 0.131, 0.111);
+		var ampl0 = 128;
+		var ampl1 = 84;
+		var ampl2 = 42;
+		var ampl3 = 21;
+		var ampl4 = 8;
+		dens3 += ampl0*perlin(ws[0]*freq0[0], ws[1]*freq0[1], ws[2]*freq0[2]);
+		// dens3 += ampl1*perlin(ws[0]*freq1[0], ws[1]*freq1[1], ws[2]*freq1[2]);
+		//dens3 += ampl2*perlin(ws[0]*freq2[0], ws[1]*freq2[1], ws[2]*freq2[2]);
+		// dens3 += ampl3*perlin(ws[0]*freq3[0], ws[1]*freq3[1], ws[2]*freq3[2]);
+		// dens3 += ampl4*perlin(ws[0]*freq4[0], ws[1]*freq4[1], ws[2]*freq4[2]);		
+		/*Soft floor:*/
+		var soft_floor = 5;
+		if(ws[1] < soft_floor)
+			dens3 += (soft_floor - ws[1])*1;	
+		/*Hard floor:*/
+		var hard_floor = -0.01;
+		if(ws[1] < hard_floor)
+			dens3 = 5000;	
+		/*Pocket:*/
+		var pocket = 9;
+		if(ws[1] < pocket+8 && ws[1] > pocket-8)
+			dens3 += (12-Math.abs(pocket - ws[1]))*-0.8;	
+		/*Soft ceiling:*/
+		var soft_ceil = 59;
+		if(ws[1] > soft_ceil)
+			dens3 += (soft_ceil - ws[1])*3;
+		/*Hard ceiling:*/
+		var hard_ceil = WORLD_HEIGHT + 1;
+		if(ws[1] > hard_ceil)
+			dens3 = -5000;
+		dens3 = dens3*(50+ws[0])*0.01
+		
+		ws2 = vec3(ws[0], ws[1], ws[2]+32*Math.sin(0.05*ws[0]));
+		var dens2 = -ws2[1] + 8;
+		var freq0 = vec3(0.006, 0.066, 0.016);
+		var freq1 = vec3(0.016, 0.051, 0.016);
+		var freq2 = vec3(0.026, 0.046, 0.026);
+		var freq3 = vec3(0.086, 0.026, 0.086);
+		var ampl0 = 108;
+		var ampl1 = 64;
+		var ampl2 = 25;
+		var ampl3 = 12;
+		dens2 += ampl0*perlin(ws2[0]*freq0[0], ws2[1]*freq0[1], ws2[2]*freq0[2]);
+		// dens2 += ampl1*perlin(ws2[0]*freq1[0], ws2[1]*freq1[1], ws2[2]*freq1[2]);
+		//dens2 += ampl2*perlin(ws2[0]*freq2[0], ws2[1]*freq2[1], ws2[2]*freq2[2]);
+		// dens2 += ampl3*perlin(ws2[0]*freq3[0], ws2[1]*freq3[1], ws2[2]*freq3[2]);	
+		/*Hard floor:*/
+		var hard_floor = -0.01;
+		if(ws2[1] < hard_floor)
+			dens2 = 5000;	
+		/*Soft un-floor:*/
+		var soft_floor = 10;
+		if(ws2[1] < soft_floor)
+			dens2 += (soft_floor - ws2[1])*-2;
+		/*Soft actual floor:*/
+		var softer_floor = 1;
+		if(ws2[1] < softer_floor)
+			dens2 += (softer_floor - ws2[1])*5;
+		dens2 = dens2*(50-ws[0])*0.01
+		
+		dens = dens2+dens3;		
+	}
 	
 	
-	//Canyons, kind of
-	// ws = vec3(ws[0], ws[1], ws[2]+12*Math.sin(0.05*ws[0]));
-	// var dens = -ws[1] + 4;
-	// var freq0 = vec3(0.016, 0.012, 0.016);
-	// var freq1 = vec3(0.036, 0.026, 0.041);
-	// var freq2 = vec3(0.046, 0.026, 0.026);
-	// var freq3 = vec3(0.066, 0.046, 0.056);
-	// var freq4 = vec3(0.091, 0.131, 0.111);
-	// var freq5 = vec3(0.191, 0.291, 0.191);
-	// var freq6 = vec3(0.291, 0.391, 0.291);
-	// var ampl0 = 96;
-	// var ampl1 = 64;
-	// var ampl2 = 25;
-	// var ampl3 = 8;
-	// var ampl4 = 8;
-	// var ampl5 = 4;
-	// var ampl6 = 3;
-	// dens += ampl0*perlin(ws[0]*freq0[0], ws[1]*freq0[1], ws[2]*freq0[2]);
-	// dens += ampl1*perlin(ws[0]*freq1[0], ws[1]*freq1[1], ws[2]*freq1[2]);
-	// dens += ampl2*perlin(ws[0]*freq2[0], ws[1]*freq2[1], ws[2]*freq2[2]);
-	// dens += ampl3*perlin(ws[0]*freq3[0], ws[1]*freq3[1], ws[2]*freq3[2]);
-	// dens += ampl4*perlin(ws[0]*freq4[0], ws[1]*freq4[1], ws[2]*freq4[2]);
-	// dens += ampl5*perlin(ws[0]*freq5[0], ws[1]*freq5[1], ws[2]*freq5[2]);
-	// dens += ampl6*perlin(ws[0]*freq6[0], ws[1]*freq6[1], ws[2]*freq6[2]);
 	
+	
+	
+	
+		
 	
 	
 	return dens;
@@ -413,7 +505,7 @@ Declare_Any_Class( "Terrain",
 		{
 			var check_pos = vec3(node.coords[0]+c_size*Math.random(), node.coords[1]+c_size*Math.random(), node.coords[2]+c_size*Math.random());
 			var check_pos_dens = f_density(check_pos);
-			if(check_pos_dens < -4 && check_pos_dens > -5)
+			if(check_pos_dens < -7 && check_pos_dens > -11)
 			{
 				node.collectables.push(new Collection_Object(this.collection_object_shell, vec3(check_pos[0], check_pos[1], check_pos[2])));
 				node.collectables.push(new Collection_Object(this.collection_object_shell_twirl, vec3(check_pos[0], check_pos[1], check_pos[2])));

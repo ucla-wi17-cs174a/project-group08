@@ -5,10 +5,10 @@ var RES = 4;
 
 var DRAW_DIST = 2;
 var DIR_DRAW_DIST = 1;
-var LOW_DRAW_DIST = 3;
+var LOW_DRAW_DIST = 2;
 var LOW_DIR_DRAW_DIST = 2;
 
-var DRAW_CT = 4;	//How many blocks to draw per loop
+var DRAW_CT = 1;	//How many blocks to draw per loop
 
 var WORLD_SIZE = 16384;
 var WORLD_HEIGHT = 64;
@@ -514,7 +514,6 @@ Declare_Any_Class("Example_Animation", {
 		// var landMaterial = new Material(Color(0.4, 0.4, .4, 1), .6, .8, .4, 4,"FAKE.CHICKEN");	//Just a placeholder for now
 		var landMaterial = new Material(Color(0.8, 0.5, 0.1, 1), .1, .8, .1, 80);	//Just a placeholder for now
 		var terrain_made_check = false;
-
 		if(this.t_loop_count == 0)
 		{
 			//On each larger loop, first get a new to_check list	
@@ -522,8 +521,8 @@ Declare_Any_Class("Example_Animation", {
 			//Next, check all of them
 			this.geom_changed = shapes_in_use.terrain.check_all();
 			//Now, purge old, unused geometry:
-			var counter = 0;			
-			while(shapes_in_use.terrain.all_geom.length >= ((DRAW_DIST*2+1)*((DRAW_DIST*2+1)+DIR_DRAW_DIST)*8 + (LOW_DRAW_DIST*2+1)*((LOW_DRAW_DIST*2+1)+LOW_DIR_DRAW_DIST))*3)	//Want that value as small as possible without causing issues
+			var counter = 0;		
+			while(shapes_in_use.terrain.all_geom.length >= ((DRAW_DIST*2+1)*((DRAW_DIST*2+1)+DIR_DRAW_DIST)*8 + (LOW_DRAW_DIST*2+1)*((LOW_DRAW_DIST*2+1)+LOW_DIR_DRAW_DIST))*2)	//Want that value as small as possible without causing issues
 			{
 				if(shapes_in_use.terrain.all_geom[0].checked == 5 || shapes_in_use.terrain.all_geom[0].checked == 3)
 				{					
@@ -539,13 +538,13 @@ Declare_Any_Class("Example_Animation", {
 					shapes_in_use.terrain.all_geom.shift();
 				}
 				counter++;
-				if(counter >= ((DRAW_DIST*2+1)*((DRAW_DIST*2+1)+DIR_DRAW_DIST)*8 + (LOW_DRAW_DIST*2+1)*((LOW_DRAW_DIST*2+1)+LOW_DIR_DRAW_DIST))*3)
+				if(counter >= ((DRAW_DIST*2+1)*((DRAW_DIST*2+1)+DIR_DRAW_DIST)*8 + (LOW_DRAW_DIST*2+1)*((LOW_DRAW_DIST*2+1)+LOW_DIR_DRAW_DIST))*2)
 				{					
 					console.log("Need more old geometry saved");	//Also a good indicator that the number needs to increase
 					counter = 0;
 					break;	//So we don't get stuck in an infinite loop
 				}
-			}			
+			}				
 									
 		}
 		else
@@ -685,7 +684,7 @@ Declare_Any_Class("Example_Animation", {
 		this.drawCollectables(graphics_state, collectableMaterial, collectedMaterial); 
 
 		// draw grass
-		this.drawGrass(graphics_state, grassMat);
+		//this.drawGrass(graphics_state, grassMat);
 		
 		this.drawWater(graphics_state, model_transform, water_material);
 		// make camera follow the plane
@@ -757,11 +756,11 @@ Declare_Any_Class("Example_Animation", {
 			var cur_collection = shapes_in_use.collection_object[i];
 			if(cur_collection.collected == false)
 			{
-				if(cur_collection.touched == false && this.checkCollision(this.shared_scratchpad.position[0], this.shared_scratchpad.position[1], this.shared_scratchpad.position[2], 1, cur_collection.x, cur_collection.y, cur_collection.z, 1))
+				if(cur_collection.touched == false && this.checkCollision(this.shared_scratchpad.position[0], this.shared_scratchpad.position[1], this.shared_scratchpad.position[2], 1, cur_collection.x, cur_collection.y, cur_collection.z, 4))
 				{
 					cur_collection.touched = true;
 				}
-				else if(cur_collection.touched == true && !this.checkCollision(this.shared_scratchpad.position[0], this.shared_scratchpad.position[1], this.shared_scratchpad.position[2], 1, cur_collection.x, cur_collection.y, cur_collection.z, 1))
+				else if(cur_collection.touched == true && !this.checkCollision(this.shared_scratchpad.position[0], this.shared_scratchpad.position[1], this.shared_scratchpad.position[2], 1, cur_collection.x, cur_collection.y, cur_collection.z, 4))
 				{
 					cur_collection.collected = true;
 					if(i % 2 == 0)
@@ -771,7 +770,7 @@ Declare_Any_Class("Example_Animation", {
 				{
 					var model_transform = mat4();
 					model_transform = mult(model_transform, translation(cur_collection.x, cur_collection.y, cur_collection.z));
-					var coll_dir = normalize(cross(vec3(0.2*Math.sin(cur_collection.x),1,0.2*Math.sin(cur_collection.z)),find_grad(vec3(cur_collection.x, cur_collection.y, cur_collection.z))));
+					var coll_dir = normalize(cross(vec3(0,1,0),find_grad(vec3(cur_collection.x, cur_collection.y, cur_collection.z))));
 					if(i % 2 == 1)
 					{
 						cur_collection.rotation += 1;						
@@ -792,12 +791,17 @@ Declare_Any_Class("Example_Animation", {
 			{
 					var model_transform = mat4();
 					model_transform = mult(model_transform, translation(cur_collection.x, cur_collection.y, cur_collection.z));
+					var coll_dir = normalize(cross(vec3(0,1,0),find_grad(vec3(cur_collection.x, cur_collection.y, cur_collection.z))));
 					if(i % 2 == 1)
 					{
 						cur_collection.rotation += 1;
-						model_transform = mult(model_transform, rotation(cur_collection.rotation, 0, 0, 1));
+						model_transform = mult(model_transform, rotation(90,coll_dir[0],coll_dir[1],coll_dir[2]));
+						model_transform = mult(model_transform, rotation(cur_collection.rotation, 0, 0, 1));						
 					}
+					if(i % 2 == 0)
+						model_transform = mult(model_transform, rotation(90,coll_dir[0],coll_dir[1],coll_dir[2]));
 					model_transform = mult(model_transform, rotation(90,1,0,0));
+					model_transform = mult(model_transform, scale(2,2,2));
 					cur_collection.draw(graphics_state, model_transform, collectedMaterial);
 			}
 		}
