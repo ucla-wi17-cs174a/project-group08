@@ -1,12 +1,12 @@
 
-var RES_RATIO = 16;	
+var RES_RATIO = 8;	
 var RES = 4;
 
 
 var DRAW_DIST = 2;
 var DIR_DRAW_DIST = 1;
 var LOW_DRAW_DIST = 2;
-var LOW_DIR_DRAW_DIST = 1;
+var LOW_DIR_DRAW_DIST = 2;
 
 var DRAW_CT = 1;	//How many blocks to draw per loop
 
@@ -82,6 +82,10 @@ Declare_Any_Class( "Debug_Screen",
 			model_transform = mult(translation(0, -0.08, 0), model_transform);
 			shapes_in_use.debug_text.set_string("SPEED:    Z - /");
 			shapes_in_use.debug_text.draw( this.graphics_state, model_transform, true, vec4(0,0,0,1) );
+			
+			model_transform = mult(translation(0, -0.08, 0), model_transform);
+			shapes_in_use.debug_text.set_string("HEADLIGHT:L");
+			shapes_in_use.debug_text.draw( this.graphics_state, model_transform, true, vec4(0,0,0,1) );
 
 			model_transform = mult(translation(0, -0.08, 0), model_transform);
 			shapes_in_use.debug_text.set_string("NEW GAME: ENTER");
@@ -94,11 +98,41 @@ Declare_Any_Class( "Debug_Screen",
 			model_transform = mult( translation( -.95, -.9, 0 ), font_scale );
 
 			// draw the text box
-			shapes_in_use.debug_text.set_string("Collected: " + this.numCollected.toString() );
+			shapes_in_use.debug_text.set_string("COLLECTED: " + this.numCollected.toString() );
 			shapes_in_use.debug_text.draw( this.graphics_state, model_transform, true, vec4(0,0,0,1) );
 			
 			shapes_in_use.debug_text.set_string("FPS: " + this.FPS);
 			model_transform = mult( translation( 0, .08, 0 ), model_transform );
+			shapes_in_use.debug_text.draw( this.graphics_state, model_transform, true, vec4(0,0,0,1) );
+			
+			// draw controls
+			model_transform = mat3();
+			model_transform = mult(translation(0.5, 0.9, 0), font_scale);
+			shapes_in_use.debug_text.set_string("CONTROLS");
+			shapes_in_use.debug_text.draw(this.graphics_state, model_transform, true, vec4(0,0,0,1));
+			
+			model_transform = mult(translation(0, -0.08, 0), model_transform);
+			shapes_in_use.debug_text.set_string("YAW:      ARROWS");
+			shapes_in_use.debug_text.draw( this.graphics_state, model_transform, true, vec4(0,0,0,1) );
+			
+			model_transform = mult(translation(0, -0.08, 0), model_transform);
+			shapes_in_use.debug_text.set_string("PITCH:    ARROWS");
+			shapes_in_use.debug_text.draw( this.graphics_state, model_transform, true, vec4(0,0,0,1) ); 
+			
+			model_transform = mult(translation(0, -0.08, 0), model_transform);
+			shapes_in_use.debug_text.set_string("ROLL:     G ; H");
+			shapes_in_use.debug_text.draw( this.graphics_state, model_transform, true, vec4(0,0,0,1) );
+		
+			model_transform = mult(translation(0, -0.08, 0), model_transform);
+			shapes_in_use.debug_text.set_string("SPEED:    Z - .");
+			shapes_in_use.debug_text.draw( this.graphics_state, model_transform, true, vec4(0,0,0,1) );
+			
+			model_transform = mult(translation(0, -0.08, 0), model_transform);
+			shapes_in_use.debug_text.set_string("HEADLIGHT:L");
+			shapes_in_use.debug_text.draw( this.graphics_state, model_transform, true, vec4(0,0,0,1) );
+
+			model_transform = mult(translation(0, -0.08, 0), model_transform);
+			shapes_in_use.debug_text.set_string("NEW GAME: ENTER");
 			shapes_in_use.debug_text.draw( this.graphics_state, model_transform, true, vec4(0,0,0,1) );
 	    }
 		else if(this.gameState == "end")
@@ -183,6 +217,8 @@ Declare_Any_Class("Example_Animation", {
 		
 		this.shared_scratchpad.camera_extra_pitch = 0;
 		this.shared_scratchpad.camera_extra_heading = 0;
+		
+		this.shared_scratchpad.headlight_on = false;
     },
     'init_keys': function(controls) {
 		controls.add("enter", this, function() {
@@ -219,6 +255,10 @@ Declare_Any_Class("Example_Animation", {
 				this.shared_scratchpad.numCollected = 0;
 			}
 		});
+		controls.add("l", this, function() {
+            this.shared_scratchpad.headlight_on = !this.shared_scratchpad.headlight_on;
+        });
+
         controls.add("up", this, function() {
             this.shared_scratchpad.pitch_change = 0.6;
         });
@@ -520,7 +560,6 @@ Declare_Any_Class("Example_Animation", {
 		// var landMaterial = new Material(Color(0.4, 0.4, .4, 1), .6, .8, .4, 4,"FAKE.CHICKEN");	//Just a placeholder for now
 		var landMaterial = new Material(Color(0.8, 0.5, 0.1, 1), .1, .8, .1, 80);	//Just a placeholder for now
 		var terrain_made_check = false;
-
 		if(this.t_loop_count == 0)
 		{
 			//On each larger loop, first get a new to_check list	
@@ -528,8 +567,8 @@ Declare_Any_Class("Example_Animation", {
 			//Next, check all of them
 			this.geom_changed = shapes_in_use.terrain.check_all();
 			//Now, purge old, unused geometry:
-			var counter = 0;			
-			while(shapes_in_use.terrain.all_geom.length >= ((DRAW_DIST*2+1)*((DRAW_DIST*2+1)+DIR_DRAW_DIST)*8 + (LOW_DRAW_DIST*2+1)*((LOW_DRAW_DIST*2+1)+LOW_DIR_DRAW_DIST))*3)	//Want that value as small as possible without causing issues
+			var counter = 0;		
+			while(shapes_in_use.terrain.all_geom.length >= ((DRAW_DIST*2+1)*((DRAW_DIST*2+1)+DIR_DRAW_DIST)*8 + (LOW_DRAW_DIST*2+1)*((LOW_DRAW_DIST*2+1)+LOW_DIR_DRAW_DIST))*2)	//Want that value as small as possible without causing issues
 			{
 				if(shapes_in_use.terrain.all_geom[0].checked == 5 || shapes_in_use.terrain.all_geom[0].checked == 3)
 				{					
@@ -545,13 +584,13 @@ Declare_Any_Class("Example_Animation", {
 					shapes_in_use.terrain.all_geom.shift();
 				}
 				counter++;
-				if(counter >= ((DRAW_DIST*2+1)*((DRAW_DIST*2+1)+DIR_DRAW_DIST)*8 + (LOW_DRAW_DIST*2+1)*((LOW_DRAW_DIST*2+1)+LOW_DIR_DRAW_DIST))*3)
+				if(counter >= ((DRAW_DIST*2+1)*((DRAW_DIST*2+1)+DIR_DRAW_DIST)*8 + (LOW_DRAW_DIST*2+1)*((LOW_DRAW_DIST*2+1)+LOW_DIR_DRAW_DIST))*2)
 				{					
 					console.log("Need more old geometry saved");	//Also a good indicator that the number needs to increase
 					counter = 0;
 					break;	//So we don't get stuck in an infinite loop
 				}
-			}			
+			}				
 									
 		}
 		else
@@ -681,7 +720,8 @@ Declare_Any_Class("Example_Animation", {
 		this.drawCollectables(graphics_state, collectableMaterial, collectedMaterial); 
 
 		// draw grass
-		this.drawGrass(graphics_state, grassMat);
+
+		//this.drawGrass(graphics_state, grassMat);
 
 		this.drawWater(graphics_state, model_transform, water_material);
 
@@ -691,28 +731,31 @@ Declare_Any_Class("Example_Animation", {
 		var forAxis = planeAxes[2];
 		var spotLoc = vec3(planeLocation[0][3],planeLocation[1][3],planeLocation[2][3]);
 		var spotLoc2 = add(spotLoc,mult_vec_scalar(forAxis,50.0));
-		spotLoc2 = add(spotLoc2,mult_vec_scalar(planeAxes[1],20.0));
+		spotLoc2 = add(spotLoc2,mult_vec_scalar(planeAxes[0],10.0));
 		spotLoc = add(spotLoc,mult_vec_scalar(forAxis,50.0));
-		spotLoc = add(spotLoc,mult_vec_scalar(planeAxes[1],-20.0));
+		spotLoc = add(spotLoc,mult_vec_scalar(planeAxes[0],-10.0));
 		var spotLoc24 = vec4(spotLoc2[0],spotLoc2[1],spotLoc2[2],1);
 		var spotLoc14 = vec4(spotLoc[0],spotLoc[1],spotLoc[2],1);
 
 		
-		graphics_state.lights.push(new Light(spotLoc14, Color(0, 0, 4, 1), 100));
-        graphics_state.lights.push(new Light(spotLoc24, Color(4, 0, 0, 1), 100));
-		console.log("1: ", spotLoc14, " 2: ", spotLoc24);
-        // graphics_state.lights.push(new Light(vec4(-10, 10, 0, 1), Color(1, 1, 1, 1), 1000));
-		// graphics_state.lights.push(new Light(vec4(2.0, 1.0, 0.0, 0.0), Color(1, 1, .7, 1), -1000*(t%2)));
-		// graphics_state.lights.push(new Light(vec4(-10, 10, -100, 1), Color(1, 0, 0, 1), 5000));
-        // graphics_state.lights.push(new Light(vec4(-10, 10, -200, 1), Color(0, 1, 0, 1), 5000));
-        // graphics_state.lights.push(new Light(vec4(-10, 10, -300, 1), Color(0, 0, 1, 1), 5000));
-        // graphics_state.lights.push(new Light(vec4(-10, 10, -400, 1), Color(0, 1, 1, 1), 5000));
-        // graphics_state.lights.push(new Light(vec4(-10, 10, -500, 1), Color(1, 0, 1, 1), 5000));
-        // graphics_state.lights.push(new Light(vec4(-10, 10, -600, 1), Color(1, 1, 0, 1), 5000));
-        // graphics_state.lights.push(new Light(vec4(-10, 10, -700, 1), Color(.5, .5, 1, 1), 5000));
-        // graphics_state.lights.push(new Light(vec4(-10, 10, -800, 1), Color(1, .5, .5, 1), 5000));
-        // graphics_state.lights.push(new Light(vec4(-10, 10, -900, 1), Color(.5, 1, .5, 1), 5000));
-        // graphics_state.lights.push(new Light(vec4(-10, 10, -1000, 1), Color(1, 1, 1, 1), 5000));
+
+		if(this.shared_scratchpad.headlight_on)
+		{
+			graphics_state.lights.push(new Light(spotLoc14, Color(0, 0, 4, 1), 100));
+			graphics_state.lights.push(new Light(spotLoc24, Color(4, 0, 0, 1), 100));
+		}
+        graphics_state.lights.push(new Light(vec4(-10, 10, 0, 1), Color(1, 1, 1, 1), 1000));
+		graphics_state.lights.push(new Light(vec4(2.0, 1.0, 0.0, 0.0), Color(1, 1, .7, 1), -1000*(t%2)));
+		graphics_state.lights.push(new Light(vec4(-10, 10, -100, 1), Color(1, 0, 0, 1), 5000));
+        graphics_state.lights.push(new Light(vec4(-10, 10, -200, 1), Color(0, 1, 0, 1), 5000));
+        graphics_state.lights.push(new Light(vec4(-10, 10, -300, 1), Color(0, 0, 1, 1), 5000));
+        graphics_state.lights.push(new Light(vec4(-10, 10, -400, 1), Color(0, 1, 1, 1), 5000));
+        graphics_state.lights.push(new Light(vec4(-10, 10, -500, 1), Color(1, 0, 1, 1), 5000));
+        graphics_state.lights.push(new Light(vec4(-10, 10, -600, 1), Color(1, 1, 0, 1), 5000));
+        graphics_state.lights.push(new Light(vec4(-10, 10, -700, 1), Color(.5, .5, 1, 1), 5000));
+        graphics_state.lights.push(new Light(vec4(-10, 10, -800, 1), Color(1, .5, .5, 1), 5000));
+        graphics_state.lights.push(new Light(vec4(-10, 10, -900, 1), Color(.5, 1, .5, 1), 5000));
+        graphics_state.lights.push(new Light(vec4(-10, 10, -1000, 1), Color(1, 1, 1, 1), 5000));
 	
 
 		
@@ -778,40 +821,54 @@ Declare_Any_Class("Example_Animation", {
 			var cur_collection = shapes_in_use.collection_object[i];
 			if(cur_collection.collected == false)
 			{
-				if(cur_collection.touched == false && this.checkCollision(this.shared_scratchpad.position[0], this.shared_scratchpad.position[1], this.shared_scratchpad.position[2], 1, cur_collection.x, cur_collection.y, cur_collection.z, 1))
+				if(cur_collection.touched == false && this.checkCollision(this.shared_scratchpad.position[0], this.shared_scratchpad.position[1], this.shared_scratchpad.position[2], 1, cur_collection.x, cur_collection.y, cur_collection.z, 4))
 				{
 					cur_collection.touched = true;
 				}
-				else if(cur_collection.touched == true && !this.checkCollision(this.shared_scratchpad.position[0], this.shared_scratchpad.position[1], this.shared_scratchpad.position[2], 1, cur_collection.x, cur_collection.y, cur_collection.z, 1))
+				else if(cur_collection.touched == true && !this.checkCollision(this.shared_scratchpad.position[0], this.shared_scratchpad.position[1], this.shared_scratchpad.position[2], 1, cur_collection.x, cur_collection.y, cur_collection.z, 4))
 				{
 					cur_collection.collected = true;
 					if(i % 2 == 0)
 						this.shared_scratchpad.numCollected += 1;
 				}
-			}
-			var model_transform = mat4();
-			model_transform = mult(model_transform, translation(cur_collection.x, cur_collection.y, cur_collection.z));
-			var coll_dir = normalize(cross(vec3(0.2*Math.sin(cur_collection.x),1,0.2*Math.sin(cur_collection.z)),find_grad(vec3(cur_collection.x, cur_collection.y, cur_collection.z))));
-			if(i % 2 == 1)
-			{
-				cur_collection.rotation += 1;						
-				model_transform = mult(model_transform, rotation(90,coll_dir[0],coll_dir[1],coll_dir[2]));
-				model_transform = mult(model_transform, rotation(cur_collection.rotation, 0, 0, 1));
-			}
-			if(i % 2 == 0)
-				model_transform = mult(model_transform, rotation(90,coll_dir[0],coll_dir[1],coll_dir[2]));
-			model_transform = mult(model_transform, rotation(90,1,0,0));
-			model_transform = mult(model_transform, scale(2,2,2));
-			
-				
-			cur_collection.copy_onto_graphics_card();	
-			if(cur_collection.collected == true)
-			{
-				cur_collection.draw(graphics_state, model_transform, collectedMaterial);				
+				else
+				{
+					var model_transform = mat4();
+					model_transform = mult(model_transform, translation(cur_collection.x, cur_collection.y, cur_collection.z));
+					var coll_dir = normalize(cross(vec3(0,1,0),find_grad(vec3(cur_collection.x, cur_collection.y, cur_collection.z))));
+					if(i % 2 == 1)
+					{
+						cur_collection.rotation += 1;						
+						model_transform = mult(model_transform, rotation(90,coll_dir[0],coll_dir[1],coll_dir[2]));
+						model_transform = mult(model_transform, rotation(cur_collection.rotation, 0, 0, 1));
+					}
+					if(i % 2 == 0)
+						model_transform = mult(model_transform, rotation(90,coll_dir[0],coll_dir[1],coll_dir[2]));
+					model_transform = mult(model_transform, rotation(90,1,0,0));
+					model_transform = mult(model_transform, scale(2,2,2));
+					
+						
+					cur_collection.copy_onto_graphics_card();					
+					cur_collection.draw(graphics_state, model_transform, collectableMaterial);
+				}
 			}
 			else
 			{
-				cur_collection.draw(graphics_state, model_transform, collectableMaterial);
+					var model_transform = mat4();
+					model_transform = mult(model_transform, translation(cur_collection.x, cur_collection.y, cur_collection.z));
+					var coll_dir = normalize(cross(vec3(0,1,0),find_grad(vec3(cur_collection.x, cur_collection.y, cur_collection.z))));
+					if(i % 2 == 1)
+					{
+						cur_collection.rotation += 1;
+						model_transform = mult(model_transform, rotation(90,coll_dir[0],coll_dir[1],coll_dir[2]));
+						model_transform = mult(model_transform, rotation(cur_collection.rotation, 0, 0, 1));						
+					}
+					if(i % 2 == 0)
+						model_transform = mult(model_transform, rotation(90,coll_dir[0],coll_dir[1],coll_dir[2]));
+					model_transform = mult(model_transform, rotation(90,1,0,0));
+					model_transform = mult(model_transform, scale(2,2,2));
+					cur_collection.draw(graphics_state, model_transform, collectedMaterial);
+
 			}
 		}
 		shapes_in_use.collection_object = [];
@@ -855,14 +912,15 @@ Declare_Any_Class("Example_Animation", {
 		
 		var orientation = this.shared_scratchpad.orientation;
 		var pitch = new vec3(orientation[0][0], orientation[1][0], orientation[2][0]); // right
+		planeAxes[0] = pitch;
 		pitch = mult_vec_scalar(pitch, this.shared_scratchpad.pitch_change);
 		var yaw = new vec3(orientation[0][1], orientation[1][1], orientation[2][1]); // up
+		planeAxes[1] = yaw;
 		yaw = mult_vec_scalar(yaw, this.shared_scratchpad.heading_change);
 		var roll = new vec3(-1*orientation[0][2], -1*orientation[1][2], -1*orientation[2][2]); //forward
+		planeAxes[2] = roll;
 		var direction = roll;
-
 		roll = mult_vec_scalar(roll, this.shared_scratchpad.roll_change-roll_amount);
-				planeAxes = [pitch,yaw,roll];
 		var orientationChange = add(add(pitch, yaw), roll);
 		var angularChange = magnitude(orientationChange); // scalar
 		
