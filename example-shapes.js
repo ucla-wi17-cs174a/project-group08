@@ -119,12 +119,12 @@ Declare_Any_Class("Imported_Object",
 	}
 }, Shape)
 
-Declare_Any_Class( "Collection_Object",      // A subdivision surface ( Wikipedia ) is initially simple, then builds itself into a more and more detailed shape of the same 
-  {                                           // layout.  Each act of subdivision makes it a better approximation of some desired mathematical surface by projecting each new 
-                                              // point onto that surface's known implicit equation.  For a sphere, we begin with a closed 3-simplex (a tetrahedron).  For 
-                                              // each face, connect the midpoints of each edge together to make more faces.  Repeat recursively until the desired level of 
-    populate: function ( file_name, x, y, z)   // detail is obtained.  Project all new vertices to unit vectors (onto the unit sphere) and group them into triangles by 
-      {                                       // following the predictable pattern of the recursion.
+Declare_Any_Class( "Collection_Object_Shell",
+  {                                          
+                                             
+                                             
+    populate: function ( file_name, x, y, z) 
+      {                                      
         this.collected = false;
 		this.touched = false;
 		this.x = x;
@@ -194,6 +194,35 @@ Declare_Any_Class( "Collection_Object",      // A subdivision surface ( Wikipedi
 		rawFile.send(null);
       }
   }, Shape )
+  
+  Declare_Any_Class( "Collection_Object",
+  {  
+	populate: function ( gate_shape, position ) 
+	{  
+		this.collected = false;
+		this.touched = false;
+		this.x = position[0];
+		this.y = position[1];
+		this.z = position[2];
+		this.rotation = 0;    
+		//So we don't load it in every time
+		for(var i = 0; i < gate_shape.positions.length; i++)
+		{
+			this.positions[i] = vec3(gate_shape.positions[i][0], gate_shape.positions[i][1], gate_shape.positions[i][2]);
+			this.normals[i] = gate_shape.normals[i];
+			this.indices[i] = gate_shape.indices[i];
+		}
+		
+		// for(var i = 0; i < gate_twirl_shape.positions.length; i++)
+		// {
+			// this.positions[i] = vec3(gate_twirl_shape.positions[i][0]+position[0], gate_twirl_shape.positions[i][1]+position[1], gate_twirl_shape.positions[i][2]+position[2]);
+			// this.normals[i] = gate_twirl_shape.normals[i];
+			// this.indices[i] = gate_twirl_shape.indices[i];
+		// }		
+	}	
+  }, Shape )
+  
+  
 
 // *********** SQUARE ***********
 Declare_Any_Class( "Square",    // A square, demonstrating shared vertices.  On any planar surface, the interior edges don't make any important seams.

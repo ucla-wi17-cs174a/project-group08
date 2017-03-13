@@ -21,7 +21,7 @@ function f_density(ws)	//Positive corresponds to ground
 	
 	
 	// ws = vec3(ws[0]+WORLD_SIZE, ws[1], ws[2]+WORLD_SIZE);
-	var dens = -ws[1]  + 2;
+	
 	
 	//For tons of floating islands:
 	// var freq0 = vec3(0.022, 0.047, 0.026);
@@ -46,7 +46,8 @@ function f_density(ws)	//Positive corresponds to ground
 	// dens += ampl5*perlin(ws[0]*freq5[0], ws[1]*freq5[1], ws[2]*freq5[2]);
 	// dens += ampl6*perlin(ws[0]*freq6[0], ws[1]*freq6[1], ws[2]*freq6[2]);
 	
-	//More like canyons, but actual canyons are hard
+	//Lakes and pillars
+	var dens = -ws[1]  + 2;
 	var freq0 = vec3(0.016, 0.032, 0.016);
 	var freq1 = vec3(0.036, 0.036, 0.041);
 	var freq2 = vec3(0.046, 0.026, 0.026);
@@ -67,27 +68,51 @@ function f_density(ws)	//Positive corresponds to ground
 	dens += ampl3*perlin(ws[0]*freq3[0], ws[1]*freq3[1], ws[2]*freq3[2]);
 	dens += ampl4*perlin(ws[0]*freq4[0], ws[1]*freq4[1], ws[2]*freq4[2]);
 	dens += ampl5*perlin(ws[0]*freq5[0], ws[1]*freq5[1], ws[2]*freq5[2]);
-	//dens += ampl6*perlin(ws[0]*freq6[0], ws[1]*freq6[1], ws[2]*freq6[2]);
-	
-	//Soft floor:
+	// dens += ampl6*perlin(ws[0]*freq6[0], ws[1]*freq6[1], ws[2]*freq6[2]);			
+	/*Soft floor:*/
 	var soft_floor = 5;
 	if(ws[1] < soft_floor)
-		dens += (soft_floor - ws[1])*1;
-	
-	//Hard floor:
+		dens += (soft_floor - ws[1])*1;	
+	/*Hard floor:*/
 	var hard_floor = -0.01;
 	if(ws[1] < hard_floor)
-		dens = 5000;
-	
-	//Soft ceiling:
+		dens = 5000;	
+	/*Soft ceiling:*/
 	var soft_ceil = 59;
 	if(ws[1] > soft_ceil)
 		dens += (soft_ceil - ws[1])*3;
-	
-	//Hard ceiling:
+	/*Hard ceiling:*/
 	var hard_ceil = WORLD_HEIGHT + 1;
 	if(ws[1] > hard_ceil)
 		dens = -5000;
+	
+	
+	//Canyons, kind of
+	ws = vec3(ws[0], ws[1], ws[2]+12*Math.sin(0.05*ws[0]));
+	var dens = -ws[1] + 4;
+	var freq0 = vec3(0.016, 0.012, 0.016);
+	var freq1 = vec3(0.036, 0.026, 0.041);
+	var freq2 = vec3(0.046, 0.026, 0.026);
+	var freq3 = vec3(0.066, 0.046, 0.056);
+	var freq4 = vec3(0.091, 0.131, 0.111);
+	var freq5 = vec3(0.191, 0.291, 0.191);
+	var freq6 = vec3(0.291, 0.391, 0.291);
+	var ampl0 = 128;
+	var ampl1 = 84;
+	var ampl2 = 42;
+	var ampl3 = 21;
+	var ampl4 = 8;
+	var ampl5 = 4;
+	var ampl6 = 3;
+	dens += ampl0*perlin(ws[0]*freq0[0], ws[1]*freq0[1], ws[2]*freq0[2]);
+	dens += ampl1*perlin(ws[0]*freq1[0], ws[1]*freq1[1], ws[2]*freq1[2]);
+	dens += ampl2*perlin(ws[0]*freq2[0], ws[1]*freq2[1], ws[2]*freq2[2]);
+	dens += ampl3*perlin(ws[0]*freq3[0], ws[1]*freq3[1], ws[2]*freq3[2]);
+	dens += ampl4*perlin(ws[0]*freq4[0], ws[1]*freq4[1], ws[2]*freq4[2]);
+	dens += ampl5*perlin(ws[0]*freq5[0], ws[1]*freq5[1], ws[2]*freq5[2]);
+	dens += ampl6*perlin(ws[0]*freq6[0], ws[1]*freq6[1], ws[2]*freq6[2]);
+	
+	
 	
 	return dens;
 } 
@@ -99,6 +124,7 @@ Declare_Any_Class( "Water",
 		this.positions = [];
 		this.normals = [];
 		this.indices = [];
+		this.texture_coords = [];
       }
   }, Shape ); 
   
@@ -120,6 +146,10 @@ Declare_Any_Class( "Terrain",
 		this.all_geom = [];	//So we can get rid of geometry once it's far away enough
 		
 		this.water_shape = new Water;	//Water shape, adjust the positions and normals manually
+		
+		//To make collection objects:
+		this.collection_object_shell = new Collection_Object_Shell("Gate.obj", 0, 0, 0);
+		this.collection_object_shell_twirl = new Collection_Object_Shell("Gate_twirl.obj", 0, 0, 0);
       },
 	  
 	  'copy_onto_graphics_card': function()
@@ -377,6 +407,19 @@ Declare_Any_Class( "Terrain",
 				}
 				
 		node.checked = 4;	//Set it as "drawn"
+		
+		//Now create the collectables
+		for(var i = 0; i < 3; i++)	//Give up after some number of tries
+		{
+			var check_pos = vec3(node.coords[0]+c_size*Math.random(), node.coords[1]+c_size*Math.random(), node.coords[2]+c_size*Math.random());
+			var check_pos_dens = f_density(check_pos);
+			if(check_pos_dens < -4 && check_pos_dens > -8)
+			{
+				node.collectables.push(new Collection_Object(this.collection_object_shell, vec3(check_pos[0], check_pos[1], check_pos[2])));
+				node.collectables.push(new Collection_Object(this.collection_object_shell_twirl, vec3(check_pos[0], check_pos[1], check_pos[2])));
+				break;
+			}
+		}
 								
 	},
 	
@@ -463,6 +506,7 @@ Declare_Any_Class( "Terrain",
 				//Then, tell it to draw water underneath	
 				this.water_shape.positions.push(vec3(i,0.2,k), vec3(i+c_size*2,0.2,k), vec3(i,0.2,k+c_size*2), vec3(i+c_size*2,0.2,k), vec3(i+c_size*2,0.2,k+c_size*2), vec3(i,0.2,k+c_size*2));	//FIX
 				this.water_shape.normals.push(vec3(0,1,0), vec3(0,1,0), vec3(0,1,0), vec3(0,1,0), vec3(0,1,0), vec3(0,1,0));
+				this.water_shape.texture_coords.push(vec2(0,0), vec2(1,0), vec2(0,1), vec2(1,0), vec2(1,1), vec2(0,1));
 			}
 		}	
 		//Fill water indices:
@@ -475,28 +519,41 @@ Declare_Any_Class( "Terrain",
 	'check_all': function()
 	{
 		//We don't actually check anymore, so this should be fast
+		var changed = false;
 		for(i = 0; i < this.to_check.length; i++)
 		{
-			if(this.to_check[i].size == RES*RES_RATIO*2)
-			{
-				//Check if it needs to be created first
+			//if(this.to_check[i].size == RES*RES_RATIO*2)
+			//{
+				
+				
+				//Check if it needs to be created first								
 				if(this.to_check[i].checked != 4 && this.to_check[i].checked != 5)
 				{
+					changed = true;
 					this.to_create.push(this.to_check[i]);
 					this.to_check[i].checked = 3;	//It's a bigger block, so it always has geometry
 				}								
 				this.to_draw_new.push(this.to_check[i]);
-			}
+				
+				
+				// if(this.to_check[i].checked == 5)	//If the check revealed it's in view, created, and we need to stop it from getting purged	
+				// {
+					// this.to_check[i].checked = 4;
+				// }
+			//}
+			/*
 			else
 			{	
 				//For now, assume that all terrain must be drawn - probably faster than checking them all with the current density function
 				if(this.to_check[i].checked == 0)
 				{
+					changed = true;
 					//this.to_check[i].checked = check_block(this.to_check[i].coords, this.to_check[i].size);
 					this.to_check[i].checked = 3;
 				}
 				if(this.to_check[i].checked == 3)	//If the check revealed it needs to be created
 				{
+					changed = true;
 					this.to_create.push(this.to_check[i]);
 					this.to_draw_new.push(this.to_check[i]);
 				}
@@ -504,12 +561,14 @@ Declare_Any_Class( "Terrain",
 					this.to_draw_new.push(this.to_check[i]);
 				if(this.to_check[i].checked == 5)	//If the check revealed it's in view, created, and we need to stop it from getting purged	
 				{
-					this.to_check[i].checked = 4;
+					//this.to_check[i].checked = 4;
 					this.to_draw_new.push(this.to_check[i]);
 				}	
-			}				
+			}
+*/			
 		}		
 		this.to_check = [];	//Reset the list	
+		return changed;		
 	}
 	
 	
@@ -1366,6 +1425,8 @@ function Node(coords, size, base) {	//To make a new tree, put in (vec3(-size/2,-
     this.base = base;	//Because parent is reserved for something?
     this.children = [];
 	this.contents = new Node_contents;	//Add a terrain to this when it's generated
+	this.collectables = [];	//List of the block's collectables
+	this.cleared = false;
 }
 
 function Node_find(loc, size, node, base)	//This size is the goal size - for the current size, use node.size

@@ -4,8 +4,10 @@ var RES = 4;
 
 var DRAW_DIST = 1;
 var DIR_DRAW_DIST = 1;
-var LOW_DRAW_DIST = 3;
-var LOW_DIR_DRAW_DIST = 2;
+var LOW_DRAW_DIST = 2;
+var LOW_DIR_DRAW_DIST = 1;
+
+var DRAW_CT = 1;	//How many blocks to draw per loop
 
 var WORLD_SIZE = 16384;
 var WORLD_HEIGHT = 64;
@@ -139,25 +141,13 @@ Declare_Any_Class("Example_Animation", {
 		shapes_in_use.grass = new Array();
 		shapes_in_use.collection_object = new Array();
 		
+		
 		//Test Grass
 		shapes_in_use.grassyGnoll = new Imported_Object("Grass.obj",0,0,-100,0,1,0);
 		
 		// add grass
-		shapes_in_use.grass.push(new Imported_Object("Grass.obj",0,0,-100,0,1,1)); 
+		shapes_in_use.grass.push(new Imported_Object("Grass.obj",0,0,-100,0,1,1)); 		
 		
-		// declare any number of objects
-		shapes_in_use.collection_object.push(new Collection_Object("Gate.obj", 50, 50, -150));
-		shapes_in_use.collection_object.push(new Collection_Object("Gate_twirl.obj", 50, 50, -150));
-		
-		shapes_in_use.collection_object.push(new Collection_Object("Gate.obj", -50, 50, -150));
-		shapes_in_use.collection_object.push(new Collection_Object("Gate_twirl.obj", -50, 50, -150));
-		
-		shapes_in_use.collection_object.push(new Collection_Object("Gate.obj", 50, 50, -100));
-		shapes_in_use.collection_object.push(new Collection_Object("Gate_twirl.obj", 50, 50, -100));
-		
-		shapes_in_use.collection_object.push(new Collection_Object("Gate.obj", -50, 50, -100));
-		shapes_in_use.collection_object.push(new Collection_Object("Gate_twirl.obj", -50, 50, -100));
-
 		// create plane
 		shapes_in_use.plane = new Imported_Object("ThreePlane.obj",0,0,0,0,0,0);
 
@@ -169,6 +159,7 @@ Declare_Any_Class("Example_Animation", {
 		//World setup
 		shapes_in_use.terrain = new Terrain();	
 		this.t_loop_count = 0;
+		this.geom_changed = true;
 		
 		
         this.shared_scratchpad.speed = 0;
@@ -204,8 +195,10 @@ Declare_Any_Class("Example_Animation", {
 				this.shared_scratchpad.extra_roll = 1;
 				
 				this.shared_scratchpad.orientation = mat4(1); // create identity matrix as orientation
-				this.shared_scratchpad.position = vec3(0,0,0);
+				this.shared_scratchpad.position = vec3(0,32,0);
 				this.shared_scratchpad.position[2] = -5;
+				this.geom_changed = true;
+				this.t_loop_count = 0;
 				
 				this.shared_scratchpad.camera_extra_pitch = 0;
 				this.shared_scratchpad.camera_extra_heading = 0;
@@ -517,20 +510,26 @@ Declare_Any_Class("Example_Animation", {
 		// var landMaterial = new Material(Color(0.4, 0.4, .4, 1), .6, .8, .4, 4,"FAKE.CHICKEN");	//Just a placeholder for now
 		var landMaterial = new Material(Color(0.0, 0.0, 0.0, 1), .1, .2, .1, 80);	//Just a placeholder for now
 		
-
+		
 
 		if(this.t_loop_count == 0)
 		{
 			//On each larger loop, first get a new to_check list	
 			shapes_in_use.terrain.choose_to_check(this.shared_scratchpad.position, this.shared_scratchpad.orientation);
 			//Next, check all of them
-			shapes_in_use.terrain.check_all();
+			this.geom_changed = shapes_in_use.terrain.check_all();
 			//Now, purge old, unused geometry:
 			var counter = 0;
-			while(shapes_in_use.terrain.all_geom.length >= 500)	//Want that value as small as possible without causing issues
+			while(shapes_in_use.terrain.all_geom.length >= ((DRAW_DIST*2+1)*((DRAW_DIST*2+1)+DIR_DRAW_DIST)*8 + (LOW_DRAW_DIST*2+1)*((LOW_DRAW_DIST*2+1)+LOW_DIR_DRAW_DIST))*3)	//Want that value as small as possible without causing issues
 			{
-				if(shapes_in_use.terrain.all_geom[0].checked == 5)
+				
+				if(shapes_in_use.terrain.all_geom[0].checked == 5 || shapes_in_use.terrain.all_geom[0].checked == 3)
 				{
+					//console.log("here?");
+					shapes_in_use.terrain.all_geom[0].contents = new Node_contents;
+					shapes_in_use.terrain.all_geom[0].checked = 3;
+					shapes_in_use.terrain.all_geom[0].collectables = [];
+					shapes_in_use.terrain.all_geom[0].cleared = true;	//For testing
 					shapes_in_use.terrain.all_geom.shift();
 				}
 				else
@@ -539,19 +538,21 @@ Declare_Any_Class("Example_Animation", {
 					shapes_in_use.terrain.all_geom.shift();
 				}
 				counter++;
-				if(counter >= 500)
-				{
-					break;	//So we don't get stuck in an infinite loop
+				if(counter >= 600)
+				{					
 					console.log("Need more old geometry saved");	//Also a good indicator that the number needs to increase
+					counter = 0;
+					break;	//So we don't get stuck in an infinite loop
 				}
 			}
+			
 			
 		}
 		else
 		{
-			var draw_ct = 1;	//How many blocks to draw per loop
+			
 			//On loop 1 and subsequent loops, gradually create terrain
-			for(var i = this.t_loop_count*draw_ct - draw_ct; i < this.t_loop_count*draw_ct; i++)	//4 per loop
+			for(var i = this.t_loop_count*DRAW_CT - DRAW_CT; i < this.t_loop_count*DRAW_CT; i++)	//DRAW_CT per loop
 			{
 				if(shapes_in_use.terrain.to_create[i])	//If the node exists, i.e. if we aren't done drawing all the geometry yet
 					shapes_in_use.terrain.populate_CPU(shapes_in_use.terrain.to_create[i]);	//Generate that block's terrain
@@ -559,13 +560,21 @@ Declare_Any_Class("Example_Animation", {
 				{
 					
 					//All the new geometry is drawn, yay!
-					shapes_in_use.terrain.to_draw = shapes_in_use.terrain.to_draw_new;	//Now we draw the new geometry
-					for(var i = 0; i < shapes_in_use.terrain.to_draw_new.length; i++)
+					if(this.geom_changed)	//Don't bother doing all this if nothing changed
 					{
-						shapes_in_use.terrain.all_geom.push(shapes_in_use.terrain.to_draw_new[i]);
-						shapes_in_use.terrain.to_draw_new[i].checked = 5;
+						for(var i = 0; i < shapes_in_use.terrain.to_draw.length; i++)
+						{
+							shapes_in_use.terrain.to_draw[i].checked = 5;	//It can be purged now
+						}							
+						shapes_in_use.terrain.to_draw = shapes_in_use.terrain.to_draw_new;	//Now we draw the new geometry						
+						for(var i = 0; i < shapes_in_use.terrain.to_draw_new.length; i++)
+						{
+							shapes_in_use.terrain.all_geom.push(shapes_in_use.terrain.to_draw_new[i]);
+							shapes_in_use.terrain.to_draw_new[i].checked = 4;
+						}							
+						this.geom_changed = false;
 					}
-					shapes_in_use.terrain.to_draw_new = [];	//Reset it for the next loop
+					shapes_in_use.terrain.to_draw_new = []; //Reset it for the next loop
 					shapes_in_use.terrain.to_create = [];
 					this.t_loop_count = -1;	//Because we increment it later
 					break;
@@ -584,6 +593,17 @@ Declare_Any_Class("Example_Animation", {
 		model_transform = mat4();		
 		shapes_in_use.terrain.draw(graphics_state, model_transform, landMaterial);
 		this.t_loop_count++;
+		
+			
+		
+		//cleanup
+		gl.activeTexture(gl.TEXTURE0);
+		gl.bindTexture(gl.TEXTURE_2D, null);
+		prevShader.activate();	
+	},	
+	
+	'collidePlane': function(time){
+		
 		//Check for plane collision with ground:
 		//if(sign_density(add(this.shared_scratchpad.position, vec3()
 		var plane_col = [add(vec4(this.shared_scratchpad.position[0], this.shared_scratchpad.position[1], this.shared_scratchpad.position[2], 0), mult_vec(this.shared_scratchpad.orientation, vec4(0,0,-0.5,0))),
@@ -606,17 +626,8 @@ Declare_Any_Class("Example_Animation", {
 			}
 		}	
 		col_count = 0;
-		//Put this somewhere else later
-		//graphics_state.lights.push(new Light(add(vec4(this.shared_scratchpad.position[0], this.shared_scratchpad.position[1], this.shared_scratchpad.position[2], 1), mult_vec(this.shared_scratchpad.orientation, vec4(-0.5,0,0.3,0))), Color(0.8, 0.8, 0.8, 1), 1000));
 		
-		
-
-		
-		//cleanup
-		gl.activeTexture(gl.TEXTURE0);
-		gl.bindTexture(gl.TEXTURE_2D, null);
-		prevShader.activate();	
-	},	
+	},
 	
 	'renderTransparent': function(time){
 		var graphics_state = this.shared_scratchpad.graphics_state;
@@ -636,7 +647,7 @@ Declare_Any_Class("Example_Animation", {
         var tetraMaterial = new Material(Color(0, 1, 1, 1), .4, .4, .4, 40); // Omit the final (string) parameter if you want no texture
 		var landMaterial = new Material(Color(0.4, 0.5, 0, 1), .6, .8, .4, 4);	//Just a placeholder for now
         var grassMat = new Material(Color(0.0,0.0,0.0, 1), .3, .6, .3, 80,"Grass.png"); 
-		var water_material = new Material(Color(0.0, 0.3, 1.0, 1), .5, .2, .1, 80);	//Add texture later
+		var water_material = new Material(Color(0.0, 0.0, 0.0, 1), .5, .2, .1, 80, "water_texture.png");	//Add texture later
 
 		var current_orientation = this.shared_scratchpad.orientation;
 		// draw plane
@@ -646,15 +657,16 @@ Declare_Any_Class("Example_Animation", {
 		this.drawCamera(graphics_state, current_orientation);
 	
 		this.draw_terrain(graphics_state, current_orientation);
+		this.collidePlane();
 		
 		// draw collectable
+		this.createCollectables();
 		this.drawCollectables(graphics_state, collectableMaterial); 
 
 		// draw grass
 		this.drawGrass(graphics_state, grassMat);
 		
-		shapes_in_use.terrain.water_shape.draw(graphics_state, model_transform, water_material);
-
+		this.drawWater(graphics_state, model_transform, water_material);
 
 	
 		//Hacky skyboxes, do properly later
@@ -695,19 +707,43 @@ Declare_Any_Class("Example_Animation", {
 			cur_grass.draw(graphics_state, transition, material);
 		}
 	},
+	
+	'drawWater': function(graphics_state, model_transform, water_material) {
+		shapes_in_use.terrain.water_shape.draw(graphics_state, model_transform, water_material);
+	},
+	
+	'createCollectables': function(){
+		
+		//Each block should be responsible for its own collectables
+		
+		// For reference:
+		// shapes_in_use.collection_object.push(new Collection_Object("Gate.obj", 0, 20, 0));
+		// shapes_in_use.collection_object.push(new Collection_Object("Gate_twirl.obj", 0, 20, 0));
+		
+		//Go through each block we actually draw, and draw its collectables
+		for(var i = 0; i < shapes_in_use.terrain.to_draw.length; i++)
+		{			
+			if(shapes_in_use.terrain.to_draw[i].size == RES_RATIO*RES && shapes_in_use.terrain.to_draw[i].collectables.length != 0)	//The highest resolution, i.e. the close ones, and if the collectable exists
+			{
+				shapes_in_use.collection_object.push(shapes_in_use.terrain.to_draw[i].collectables[0]);	//Hard code a single collectable per block at most, for now
+				shapes_in_use.collection_object.push(shapes_in_use.terrain.to_draw[i].collectables[1]);	
+			}
+		}		
+	},
+	
 	'drawCollectables': function(graphics_state, collectableMaterial){
 		// DRAW COLLECTION_OBJECT
 		// create collection objects and check if it exists
 		for(var i = 0; i < shapes_in_use.collection_object.length; i++)
-		{
+		{			
 			var cur_collection = shapes_in_use.collection_object[i];
 			if(cur_collection.collected == false)
 			{
-				if(cur_collection.touched == false && this.checkCollision(this.shared_scratchpad.position[0], this.shared_scratchpad.position[1], this.shared_scratchpad.position[2], 1, cur_collection.x, cur_collection.y, cur_collection.z, 0.5))
+				if(cur_collection.touched == false && this.checkCollision(this.shared_scratchpad.position[0], this.shared_scratchpad.position[1], this.shared_scratchpad.position[2], 1, cur_collection.x, cur_collection.y, cur_collection.z, 1))
 				{
 					cur_collection.touched = true;
 				}
-				else if(cur_collection.touched == true && !this.checkCollision(this.shared_scratchpad.position[0], this.shared_scratchpad.position[1], this.shared_scratchpad.position[2], 1, cur_collection.x, cur_collection.y, cur_collection.z, 0.5))
+				else if(cur_collection.touched == true && !this.checkCollision(this.shared_scratchpad.position[0], this.shared_scratchpad.position[1], this.shared_scratchpad.position[2], 1, cur_collection.x, cur_collection.y, cur_collection.z, 1))
 				{
 					cur_collection.collected = true;
 					if(i % 2 == 0)
@@ -717,17 +753,27 @@ Declare_Any_Class("Example_Animation", {
 				{
 					var model_transform = mat4();
 					model_transform = mult(model_transform, translation(cur_collection.x, cur_collection.y, cur_collection.z));
+					var coll_dir = normalize(cross(vec3(0.2*Math.sin(cur_collection.x),1,0.2*Math.sin(cur_collection.z)),find_grad(vec3(cur_collection.x, cur_collection.y, cur_collection.z))));
 					if(i % 2 == 1)
 					{
-						cur_collection.rotation += 1;
+						cur_collection.rotation += 1;						
+						model_transform = mult(model_transform, rotation(90,coll_dir[0],coll_dir[1],coll_dir[2]));
 						model_transform = mult(model_transform, rotation(cur_collection.rotation, 0, 0, 1));
 					}
+					if(i % 2 == 0)
+						model_transform = mult(model_transform, rotation(90,coll_dir[0],coll_dir[1],coll_dir[2]));
 					model_transform = mult(model_transform, rotation(90,1,0,0));
+					model_transform = mult(model_transform, scale(2,2,2));
+					
+						
+					cur_collection.copy_onto_graphics_card();					
 					cur_collection.draw(graphics_state, model_transform, collectableMaterial);
 				}
 			}
 		}
+		shapes_in_use.collection_object = [];
 	},
+	
 	'drawPlane': function(graphics_state, material){
 		// draw plane
 		// time since last animation in seconds
