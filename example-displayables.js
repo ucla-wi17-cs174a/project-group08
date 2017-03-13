@@ -691,7 +691,7 @@ Declare_Any_Class("Example_Animation", {
 		var forAxis = planeAxes[2];
 		var spotLoc = vec3(planeLocation[0][3],planeLocation[1][3],planeLocation[2][3]);
 		var spotLoc2 = add(spotLoc,mult_vec_scalar(forAxis,50.0));
-		spotLoc2 = add(spotLoc2,mult_vec_scalar(planeAxes[1],20.0))
+		spotLoc2 = add(spotLoc2,mult_vec_scalar(planeAxes[1],20.0));
 		spotLoc = add(spotLoc,mult_vec_scalar(forAxis,50.0));
 		spotLoc = add(spotLoc,mult_vec_scalar(planeAxes[1],-20.0));
 		var spotLoc24 = vec4(spotLoc2[0],spotLoc2[1],spotLoc2[2],1);
