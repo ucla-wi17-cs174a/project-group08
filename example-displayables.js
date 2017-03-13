@@ -163,7 +163,7 @@ Declare_Any_Class("Example_Animation", {
 
 		
 		shapes_in_use.square = new Square();
-		shapes_in_use.skybox = new Cube();
+		shapes_in_use.skybox = new Imported_Object("SkyBoxBlue.obj",0,0,0,0,0,0);
 		this.GBuffer = new FBO(canvas.width,canvas.height,5,false);
 		
 		//World setup
@@ -455,7 +455,7 @@ Declare_Any_Class("Example_Animation", {
 	'display': function(time) {
 		
 		var aMaterial = new Material(Color(0.4, 0.5, 0, 1.0), .6, .8, .4, 4,"FAKE.CHICKEN");	//Just a placeholder for now
-		var skyMat = new Material(Color(0.0,0.0,0.0,1.0), 1.0, 0.0, 0.0, 0.0, "LameBox.png");
+		var skyMat = new Material(Color(0.0,0.0,0.0,1.0), 1.0, 0.0, 0.0, 0.0, "SkyTex.png");
 		
 		shaders_in_use["Default"].activate();
 		gl.clear( gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
@@ -647,7 +647,8 @@ Declare_Any_Class("Example_Animation", {
 		
         // *** Materials: *** Declare new ones as temps when needed; they're just cheap wrappers for some numbers.
         // 1st parameter:  Color (4 floats in RGBA format), 2nd: Ambient light, 3rd: Diffuse reflectivity, 4th: Specular reflectivity, 5th: Smoothness exponent, 6th: Texture image.
-        var collectableMaterial = new Material(Color(1, 0, 1, 1), .4, .4, .8, 40); // Omit the final (string) parameter if you want no texture
+        var collectableMaterial = new Material(Color(1, 0, 0, 1), .4, .4, .8, 40); // Omit the final (string) parameter if you want no texture
+        var collectedMaterial = new Material(Color(0, 1, 0, 1), .4, .4, .8, 40); // Omit the final (string) parameter if you want no texture
         var tetraMaterial = new Material(Color(0, 1, 1, 1), .4, .4, .4, 40); // Omit the final (string) parameter if you want no texture
 		var landMaterial = new Material(Color(0.4, 0.5, 0, 1), .6, .8, .4, 40);	//Just a placeholder for now
         var grassMat = new Material(Color(0.0,0.0,0.0, 1), .3, .6, .3, 80,"Grass.png"); 
@@ -660,7 +661,7 @@ Declare_Any_Class("Example_Animation", {
 		this.draw_terrain(graphics_state, current_orientation);
 		
 		// draw collectable
-		this.drawCollectables(graphics_state, collectableMaterial); 
+		this.drawCollectables(graphics_state, collectableMaterial, collectedMaterial); 
 
 		// draw grass
 		this.drawGrass(graphics_state, grassMat);
@@ -702,7 +703,7 @@ Declare_Any_Class("Example_Animation", {
 			cur_grass.draw(graphics_state, transition, material);
 		}
 	},
-	'drawCollectables': function(graphics_state, collectableMaterial){
+	'drawCollectables': function(graphics_state, collectableMaterial, collectedMaterial){
 		// DRAW COLLECTION_OBJECT
 		// create collection objects and check if it exists
 		for(var i = 0; i < shapes_in_use.collection_object.length; i++)
@@ -732,6 +733,18 @@ Declare_Any_Class("Example_Animation", {
 					model_transform = mult(model_transform, rotation(90,1,0,0));
 					cur_collection.draw(graphics_state, model_transform, collectableMaterial);
 				}
+			}
+			else
+			{
+					var model_transform = mat4();
+					model_transform = mult(model_transform, translation(cur_collection.x, cur_collection.y, cur_collection.z));
+					if(i % 2 == 1)
+					{
+						cur_collection.rotation += 1;
+						model_transform = mult(model_transform, rotation(cur_collection.rotation, 0, 0, 1));
+					}
+					model_transform = mult(model_transform, rotation(90,1,0,0));
+					cur_collection.draw(graphics_state, model_transform, collectedMaterial);
 			}
 		}
 	},
@@ -897,7 +910,8 @@ Declare_Any_Class("Example_Animation", {
 				//Hacky skyboxes, do properly later
 		var skybox = mat4();
 		var camera_loc = vec4(eye[0], eye[1], eye[2], 1);
-		this.sbtrans = mult(skybox, translation(eye));
+		skybox = mult(skybox, translation(eye));
+		this.sbtrans = mult(skybox, rotation(180,0,0,1));
 //		var invRot = mat4();
 //		invRot = mult(rotation(10,1,0,0),invRot);
 //		invRot = mult(rotation(this.shared_scratchpad.heading, 0, -1, 0),invRot);

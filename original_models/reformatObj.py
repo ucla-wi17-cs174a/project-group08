@@ -3,7 +3,7 @@ normals = []
 textures = []
 indices = []
 
-with open('Grass.obj') as fp:
+with open('SkyBoxBlue.obj') as fp:
 	for line in fp:
 		if(line[0] == 'v'):
 			if(line[1] == 'n'):
