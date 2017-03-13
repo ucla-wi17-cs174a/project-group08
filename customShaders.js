@@ -276,13 +276,13 @@ Declare_Any_Class( "G_buf_gen_NormalSpray",
           PCM            = mult( P, CM ),                               // Send the current matrices to the shader.  Go ahead and pre-compute the products
           inv_trans_CM   = toMat3( transpose( inverse( CM ) ) );        // we'll need of the of the three special matrices and just send those, since these
                                                                         // will be the same throughout this draw call & across each instance of the vertex shader.
-        gl.uniformMatrix4fv( g_addrs.camera_transform_loc,                  false, flatten(  C  ) );
+        // gl.uniformMatrix4fv( g_addrs.camera_transform_loc,                  false, flatten(  C  ) );
         gl.uniformMatrix4fv( g_addrs.camera_model_transform_loc,            false, flatten(  CM ) );
         gl.uniformMatrix4fv( g_addrs.projection_camera_model_transform_loc, false, flatten( PCM ) );
         gl.uniformMatrix3fv( g_addrs.camera_model_transform_normal_loc,     false, flatten( inv_trans_CM ) );
 		
         gl.uniform4fv( g_addrs.shapeColor_loc,     material.color       );    // Send a desired shape-wide color to the graphics card
-        gl.uniform1f ( g_addrs.ambient_loc,        material.ambient     );
+        // gl.uniform1f ( g_addrs.ambient_loc,        material.ambient     );
         gl.uniform1f ( g_addrs.diffusivity_loc,    material.diffusivity );
         gl.uniform1f ( g_addrs.shininess_loc,      material.shininess   );
         gl.uniform1f ( g_addrs.smoothness_loc,     material.smoothness  );
@@ -398,13 +398,13 @@ Declare_Any_Class( "G_buf_gen_phong",
           PCM            = mult( P, CM ),                               // Send the current matrices to the shader.  Go ahead and pre-compute the products
           inv_trans_CM   = toMat3( transpose( inverse( CM ) ) );        // we'll need of the of the three special matrices and just send those, since these
                                                                         // will be the same throughout this draw call & across each instance of the vertex shader.
-        gl.uniformMatrix4fv( g_addrs.camera_transform_loc,                  false, flatten(  C  ) );
+        // gl.uniformMatrix4fv( g_addrs.camera_transform_loc,                  false, flatten(  C  ) );
         gl.uniformMatrix4fv( g_addrs.camera_model_transform_loc,            false, flatten(  CM ) );
         gl.uniformMatrix4fv( g_addrs.projection_camera_model_transform_loc, false, flatten( PCM ) );
         gl.uniformMatrix3fv( g_addrs.camera_model_transform_normal_loc,     false, flatten( inv_trans_CM ) );
 		
         gl.uniform4fv( g_addrs.shapeColor_loc,     material.color       );    // Send a desired shape-wide color to the graphics card
-        gl.uniform1f ( g_addrs.ambient_loc,        material.ambient     );
+        // gl.uniform1f ( g_addrs.ambient_loc,        material.ambient     );
         gl.uniform1f ( g_addrs.diffusivity_loc,    material.diffusivity );
         gl.uniform1f ( g_addrs.shininess_loc,      material.shininess   );
         gl.uniform1f ( g_addrs.smoothness_loc,     material.smoothness  );
@@ -632,7 +632,7 @@ Declare_Any_Class( "G_buf_gen_phong",
 			RGtofloat16(inPosz.rg,zz);
 			vec4 fPos = vec4(xx,yy,zz,1.0);
 			vec3 pos = fPos.xyz;
-			float ambient = .15;
+			float ambient = .1;
 			float diffusivity = fMatl.g;
 			float shininess = fMatl.b;
 			float smoothness = fMatl.r*255.0;

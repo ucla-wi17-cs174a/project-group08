@@ -1,14 +1,14 @@
 
-var RES_RATIO = 8;	
+var RES_RATIO = 16;	
 var RES = 4;
 
 
 var DRAW_DIST = 2;
 var DIR_DRAW_DIST = 1;
-var LOW_DRAW_DIST = 3;
-var LOW_DIR_DRAW_DIST = 2;
+var LOW_DRAW_DIST = 2;
+var LOW_DIR_DRAW_DIST = 1;
 
-var DRAW_CT = 4;	//How many blocks to draw per loop
+var DRAW_CT = 1;	//How many blocks to draw per loop
 
 var WORLD_SIZE = 16384;
 var WORLD_HEIGHT = 64;
@@ -17,6 +17,8 @@ var SPEED_INC = .01;
 var DEFERRED = true;
 var old=0;
 var checkT = false;
+
+var planeAxes;
 
 // Create the textbox
 Declare_Any_Class( "Debug_Screen",
@@ -166,6 +168,7 @@ Declare_Any_Class("Example_Animation", {
 		this.t_loop_count = 0;
 		this.geom_changed = true;
 		
+		planeAxes = [vec3(1,0,0),vec3(0,1,0),vec3(0,0,1)];
 		
         this.shared_scratchpad.speed = 0;
 		
@@ -651,18 +654,7 @@ Declare_Any_Class("Example_Animation", {
         graphics_state.lights = [];
 
         var t = graphics_state.animation_time / 1000;
-        graphics_state.lights.push(new Light(vec4(-10, 10, 0, 1), Color(1, 1, 1, 1), 1000));
-		graphics_state.lights.push(new Light(vec4(2.0, 1.0, 0.0, 0.0), Color(1, 1, .7, 1), -1000*(t%2)));
-		graphics_state.lights.push(new Light(vec4(-10, 10, -100, 1), Color(1, 0, 0, 1), 5000));
-        graphics_state.lights.push(new Light(vec4(-10, 10, -200, 1), Color(0, 1, 0, 1), 5000));
-        graphics_state.lights.push(new Light(vec4(-10, 10, -300, 1), Color(0, 0, 1, 1), 5000));
-        graphics_state.lights.push(new Light(vec4(-10, 10, -400, 1), Color(0, 1, 1, 1), 5000));
-        graphics_state.lights.push(new Light(vec4(-10, 10, -500, 1), Color(1, 0, 1, 1), 5000));
-        graphics_state.lights.push(new Light(vec4(-10, 10, -600, 1), Color(1, 1, 0, 1), 5000));
-        graphics_state.lights.push(new Light(vec4(-10, 10, -700, 1), Color(.5, .5, 1, 1), 5000));
-        graphics_state.lights.push(new Light(vec4(-10, 10, -800, 1), Color(1, .5, .5, 1), 5000));
-        graphics_state.lights.push(new Light(vec4(-10, 10, -900, 1), Color(.5, 1, .5, 1), 5000));
-        graphics_state.lights.push(new Light(vec4(-10, 10, -1000, 1), Color(1, 1, 1, 1), 5000));
+		
 
 
 		
@@ -696,7 +688,31 @@ Declare_Any_Class("Example_Animation", {
 		// make camera follow the plane
 		this.drawCamera(graphics_state, current_orientation);
 
+		var forAxis = planeAxes[2];
+		var spotLoc = vec3(planeLocation[0][3],planeLocation[1][3],planeLocation[2][3]);
+		var spotLoc2 = add(spotLoc,mult_vec_scalar(forAxis,50.0));
+		spotLoc2 = add(spotLoc2,mult_vec_scalar(planeAxes[1],20.0))
+		spotLoc = add(spotLoc,mult_vec_scalar(forAxis,50.0));
+		spotLoc = add(spotLoc,mult_vec_scalar(planeAxes[1],-20.0));
+		var spotLoc24 = vec4(spotLoc2[0],spotLoc2[1],spotLoc2[2],1);
+		var spotLoc14 = vec4(spotLoc[0],spotLoc[1],spotLoc[2],1);
 
+		
+		graphics_state.lights.push(new Light(spotLoc14, Color(0, 0, 4, 1), 100));
+        graphics_state.lights.push(new Light(spotLoc24, Color(4, 0, 0, 1), 100));
+		console.log("1: ", spotLoc14, " 2: ", spotLoc24);
+        // graphics_state.lights.push(new Light(vec4(-10, 10, 0, 1), Color(1, 1, 1, 1), 1000));
+		// graphics_state.lights.push(new Light(vec4(2.0, 1.0, 0.0, 0.0), Color(1, 1, .7, 1), -1000*(t%2)));
+		// graphics_state.lights.push(new Light(vec4(-10, 10, -100, 1), Color(1, 0, 0, 1), 5000));
+        // graphics_state.lights.push(new Light(vec4(-10, 10, -200, 1), Color(0, 1, 0, 1), 5000));
+        // graphics_state.lights.push(new Light(vec4(-10, 10, -300, 1), Color(0, 0, 1, 1), 5000));
+        // graphics_state.lights.push(new Light(vec4(-10, 10, -400, 1), Color(0, 1, 1, 1), 5000));
+        // graphics_state.lights.push(new Light(vec4(-10, 10, -500, 1), Color(1, 0, 1, 1), 5000));
+        // graphics_state.lights.push(new Light(vec4(-10, 10, -600, 1), Color(1, 1, 0, 1), 5000));
+        // graphics_state.lights.push(new Light(vec4(-10, 10, -700, 1), Color(.5, .5, 1, 1), 5000));
+        // graphics_state.lights.push(new Light(vec4(-10, 10, -800, 1), Color(1, .5, .5, 1), 5000));
+        // graphics_state.lights.push(new Light(vec4(-10, 10, -900, 1), Color(.5, 1, .5, 1), 5000));
+        // graphics_state.lights.push(new Light(vec4(-10, 10, -1000, 1), Color(1, 1, 1, 1), 5000));
 	
 
 		
@@ -851,8 +867,9 @@ Declare_Any_Class("Example_Animation", {
 		yaw = mult_vec_scalar(yaw, this.shared_scratchpad.heading_change);
 		var roll = new vec3(-1*orientation[0][2], -1*orientation[1][2], -1*orientation[2][2]); //forward
 		var direction = roll;
+
 		roll = mult_vec_scalar(roll, this.shared_scratchpad.roll_change-roll_amount);
-		
+				planeAxes = [pitch,yaw,roll];
 		var orientationChange = add(add(pitch, yaw), roll);
 		var angularChange = magnitude(orientationChange); // scalar
 		

@@ -5,7 +5,24 @@ Declare_Any_Class( "Node_contents",
 		this.positions = [];
 		this.normals = [];
 		this.indices = [];
-      }
+      },
+	      'draw': function( graphics_state, model_transform, material )                                       // The same draw() function is used for every shape -
+      { 
+
+		gl.uniform1f ( g_addrs.USE_TEXTURE_loc, 0 );
+		g_addrs.shader_attributes[2].enabled = true;
+		
+        for( var i = 0, it = g_addrs.shader_attributes[0]; i < g_addrs.shader_attributes.length, it = g_addrs.shader_attributes[i]; i++ )
+          if( it.enabled && it.index != -1)
+          { gl.enableVertexAttribArray( it.index );
+            gl.bindBuffer( gl.ARRAY_BUFFER, this.graphics_card_buffers[i] );
+            gl.vertexAttribPointer( it.index, it.size, it.type, it.normalized, it.stride, it.pointer );
+          }
+          else if(it.index!=-1) gl.disableVertexAttribArray( it.index );
+
+         gl.bindBuffer( gl.ELEMENT_ARRAY_BUFFER, this.index_buffer );
+          gl.drawElements( gl.TRIANGLES, this.indices.length, gl.UNSIGNED_INT, 0 );
+      },
   }, Shape );
 
  //First we make the density function:
@@ -167,6 +184,8 @@ Declare_Any_Class( "Terrain",
 	  
 	  'draw': function(graphics_state, model_transform, material)
 	  {
+         active_shader.update_uniforms( graphics_state, model_transform, material );                     // vertex list in the GPU we consult.
+
 		for(var i = 0; i < this.to_draw.length; i++)
 		{
 			this.to_draw[i].contents.draw(graphics_state, model_transform, material);			
