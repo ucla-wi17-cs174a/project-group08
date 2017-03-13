@@ -455,7 +455,7 @@ Declare_Any_Class("Example_Animation", {
 	'display': function(time) {
 		
 		var aMaterial = new Material(Color(0.4, 0.5, 0, 1), .6, .8, .4, 4,"FAKE.CHICKEN");	//Just a placeholder for now
-		var skyMat = new Material(Color(1.0,1.0,1.0,1.0), 1.0, 1.0, 0.0, 0.0, "LameBox.png");
+		var skyMat = new Material(Color(1.0,1.0,1.0,1.0), 1.0, 0.0, 0.0, 0.0, "LameBox.png");
 		
 		if(DEFERRED){
 			////bind GBuffer and disable transparency
@@ -466,7 +466,7 @@ Declare_Any_Class("Example_Animation", {
 			gl.disable(gl.BLEND);
 			shaders_in_use["G_buf_gen_phong"].activate();
 			gl.clear( gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
-			shapes_in_use.skybox.draw(this.shared_scratchpad.graphics_state,mat4(), skyMat);
+			shapes_in_use.skybox.draw(this.shared_scratchpad.graphics_state,this.sbtrans, skyMat);
 			gl.clear(gl.DEPTH_BUFFER_BIT);
 			this.renderOpaque(time);
 			this.renderTransparent(time);
@@ -661,13 +661,7 @@ Declare_Any_Class("Example_Animation", {
 		this.drawCamera(graphics_state, current_orientation,dt);
 
 	
-		//Hacky skyboxes, do properly later
-		this.sbtrans = new mat4();
-		var invRot = mat4();
-		invRot = mult(rotation(10,1,0,0),invRot);
-		invRot = mult(rotation(this.shared_scratchpad.heading, 0, -1, 0),invRot);
-		invRot = mult(rotation(this.shared_scratchpad.pitch, -1, 0, 0),invRot);
-		this.sbtrans = mult(inverse(this.shared_scratchpad.graphics_state.camera_transform),invRot);
+
 		
 	},
 	// pass in array of positions and normals
@@ -900,6 +894,17 @@ Declare_Any_Class("Example_Animation", {
 		var transition = mat4();
 		transition = mult(transition, lookAt(eye, at, up));
 		graphics_state.camera_transform = transition;
+		
+		// draw skybox around camera
+				//Hacky skyboxes, do properly later
+		var skybox = mat4();
+		var camera_loc = vec4(eye[0], eye[1], eye[2], 1);
+		this.sbtrans = mult(skybox, translation(eye));
+//		var invRot = mat4();
+//		invRot = mult(rotation(10,1,0,0),invRot);
+//		invRot = mult(rotation(this.shared_scratchpad.heading, 0, -1, 0),invRot);
+//		invRot = mult(rotation(this.shared_scratchpad.pitch, -1, 0, 0),invRot);
+//		this.sbtrans = mult(inverse(this.shared_scratchpad.graphics_state.camera_transform),invRot);
 
 	}
 }, Animation);
